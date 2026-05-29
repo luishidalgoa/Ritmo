@@ -159,17 +159,18 @@ public sealed partial class SchedulePage : Page
             }
         }
 
-        for (int idx = 0; idx < schedule.Sessions.Count; idx++)
+        // Fusión visual (#86): sesiones idénticas en días contiguos = una tarjeta con ColumnSpan.
+        foreach (var group in Ritmo.Core.Scheduling.SessionMerge.Merge(schedule.Sessions, Days))
         {
-            var s = schedule.Sessions[idx];
-            int dayCol = Array.IndexOf(Days, s.Day);
+            var s = group.Representative;
+            int dayCol = group.FirstDayIndex;
             if (dayCol < 0) continue;
             int startSlot = 1 + (int)Math.Round((s.Start.Hour - startH + s.Start.Minute / 60.0) * slotsPerHour);
             int spanSlots = Math.Max(1, (int)Math.Round(s.Duration.TotalHours * slotsPerHour));
             if (startSlot < 1) startSlot = 1;
 
             var baseColor = ScheduleColors.For(s.Kind);
-            bool isActive = ReferenceEquals(s, activeSession);
+            bool isActive = activeSession is not null && group.Members.Any(m => ReferenceEquals(m, activeSession));
 
             // Tarjeta como Border (controlamos el hover nosotros para conservar el color).
             var card = new Border
@@ -179,7 +180,7 @@ public sealed partial class SchedulePage : Page
                 Margin = new Thickness(2),
                 Padding = new Thickness(6, 3, 6, 3),
                 Opacity = s.IsTentative ? 0.6 : 1.0,
-                Tag = idx,
+                Tag = group,
                 // Bloque activo ahora: anillo de acento persistente.
                 BorderBrush = isActive ? new SolidColorBrush(accentColor) : null,
                 BorderThickness = isActive ? new Thickness(2) : new Thickness(0),
@@ -208,9 +209,9 @@ public sealed partial class SchedulePage : Page
                 b.BorderThickness = new Thickness(restThickness);
                 b.BorderBrush = isActive ? new SolidColorBrush(accentColor) : null;
             };
-            card.Tapped += (o, args) => { _ = ShowEditDialog((int)((Border)o).Tag); };
+            card.Tapped += (o, args) => { _ = ShowEditGroup((Ritmo.Core.Scheduling.SessionGroup)((Border)o).Tag); };
             Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
-            Grid.SetColumn(card, dayCol + 1);
+            Grid.SetColumn(card, dayCol + 1); Grid.SetColumnSpan(card, group.DaySpan);
             g.Children.Add(card);
 
             // Bloque activo: botón ▶ para concentrarse en él (lleva al temporizador).
@@ -228,7 +229,7 @@ public sealed partial class SchedulePage : Page
                 ToolTipService.SetToolTip(focusBtn, "Concentrarme en este bloque");
                 focusBtn.Click += (_, _) => FocusNow();
                 Grid.SetRow(focusBtn, startSlot); Grid.SetRowSpan(focusBtn, spanSlots);
-                Grid.SetColumn(focusBtn, dayCol + 1);
+                Grid.SetColumn(focusBtn, dayCol + 1); Grid.SetColumnSpan(focusBtn, group.DaySpan);
                 g.Children.Add(focusBtn);
             }
         }
@@ -267,12 +268,6 @@ public sealed partial class SchedulePage : Page
 
     private void AddBtn_Click(object sender, RoutedEventArgs e) => _ = ShowAddDialog();
 
-    private void SessionCard_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button b && b.Tag is int idx)
-            _ = ShowEditDialog(idx);
-    }
-
     private async Task ShowAddDialog(DayOfWeek? day = null, TimeOnly? start = null)
     {
         if (_activePhaseName is null) return;
@@ -288,33 +283,52 @@ public sealed partial class SchedulePage : Page
         }
     }
 
-    private async Task ShowEditDialog(int index)
+    /// <summary>¿Comparten título/tipo/horario/provisional? (para identificar el grupo fusionado).</summary>
+    private static bool SameBlock(StudySession a, StudySession b)
+        => a.Title.Trim() == b.Title.Trim() && a.Kind == b.Kind
+           && a.Start == b.Start && a.Duration == b.Duration && a.IsTentative == b.IsTentative;
+
+    /// <summary>
+    /// Edita/borra un grupo de sesiones fusionadas (#86). Al guardar, reemplaza las
+    /// sesiones del grupo por una en cada día marcado (arregla también el bug #85:
+    /// marcar más días los inserta; desmarcar los quita).
+    /// </summary>
+    private async Task ShowEditGroup(Ritmo.Core.Scheduling.SessionGroup group)
     {
         if (_activePhaseName is null) return;
         var settings = AppState.Load();
         var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
-        if (phase is null || index < 0 || index >= phase.Schedule.Sessions.Count) return;
+        if (phase is null) return;
+
+        var rep = group.Representative;
+        var groupDays = group.Members.Select(m => m.Day).ToHashSet();
+        bool Belongs(StudySession x) => SameBlock(x, rep) && groupDays.Contains(x.Day);
 
         var dlg = new SessionDialog
         {
             XamlRoot = this.XamlRoot,
             PrimaryButtonText = "Guardar",
             SecondaryButtonText = "Cancelar",
-            CloseButtonText = "Eliminar"   // el botón de cierre actúa como "eliminar"
+            CloseButtonText = "Eliminar"
         };
-        dlg.LoadFrom(phase.Schedule.Sessions[index]);
+        dlg.LoadFrom(rep);
+        dlg.PreselectDays(groupDays);   // todos los días del grupo marcados
+
         var result = await dlg.ShowAsync();
+
+        // Las sesiones que NO son de este grupo se conservan tal cual.
+        var kept = phase.Schedule.Sessions.Where(x => !Belongs(x)).ToList();
 
         if (result == ContentDialogResult.Primary)
         {
-            // Al editar se mantiene una sola sesión: usa el primer día marcado (o el original).
-            var day = dlg.SelectedDays.FirstOrDefault(phase.Schedule.Sessions[index].Day);
-            AppState.Config.UpdateSession(_activePhaseName, index, dlg.ToSession(day));
+            // Reemplaza el grupo por una sesión en cada día marcado.
+            var rebuilt = dlg.SelectedDays.Select(d => dlg.ToSession(d));
+            AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
         }
-        else if (result == ContentDialogResult.None)   // CloseButton = Eliminar
-            AppState.Config.RemoveSession(_activePhaseName, index);
+        else if (result == ContentDialogResult.None)   // Eliminar todo el grupo
+            AppState.Config.ReplaceSessions(_activePhaseName, kept);
         else
-            return; // Cancelar (Secondary)
+            return; // Cancelar
         Build();
     }
 

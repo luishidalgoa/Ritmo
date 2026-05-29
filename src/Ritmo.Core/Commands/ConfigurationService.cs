@@ -140,6 +140,27 @@ public sealed class ConfigurationService
         return CommandResult.Ok($"Sesión eliminada de «{phaseName}».");
     }
 
+    /// <summary>
+    /// Reemplaza TODAS las sesiones de una fase por la lista dada. Útil para editar
+    /// o borrar un grupo de sesiones fusionadas (#86) de una vez. Valida cada sesión.
+    /// </summary>
+    public CommandResult ReplaceSessions(string phaseName, IReadOnlyList<StudySession> sessions)
+    {
+        if (sessions.Any(s => s.Duration <= TimeSpan.Zero))
+            return CommandResult.Fail("Alguna sesión tiene duración cero o negativa.");
+        if (sessions.Any(s => string.IsNullOrWhiteSpace(s.Title)))
+            return CommandResult.Fail("Alguna sesión no tiene título.");
+
+        var s = _store.Load();
+        var phase = s.Plan.Phases.FirstOrDefault(p => p.Name.Equals(phaseName, StringComparison.OrdinalIgnoreCase));
+        if (phase is null) return CommandResult.Fail($"No existe la fase «{phaseName}».");
+
+        var newPhase = phase with { Schedule = new WeeklySchedule { Sessions = sessions.ToList() } };
+        var newPhases = s.Plan.Phases.Select(p => ReferenceEquals(p, phase) ? newPhase : p).ToList();
+        _store.Save(s with { Plan = new SchedulePlan { Phases = newPhases } });
+        return CommandResult.Ok("Sesiones actualizadas.");
+    }
+
     /// <summary>Actualiza la configuración Pomodoro (duraciones en minutos).</summary>
     public CommandResult SetPomodoro(int focusMin, int shortBreakMin, int longBreakMin, int focusesPerLong)
     {

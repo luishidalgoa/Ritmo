@@ -62,6 +62,9 @@ public sealed partial class SessionDialog : ContentDialog
         foreach (var (btn, day) in _dayToggles) btn.IsChecked = set.Contains(day);
     }
 
+    /// <summary>Marca un conjunto de días (p. ej. todos los de un grupo fusionado).</summary>
+    public void PreselectDays(IEnumerable<DayOfWeek> days) => SetDays(days);
+
     /// <summary>Rellena el diálogo con una sesión existente (para editar).</summary>
     public void LoadFrom(StudySession s)
     {
