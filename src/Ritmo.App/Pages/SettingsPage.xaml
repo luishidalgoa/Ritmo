@@ -8,13 +8,70 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="48" VerticalAlignment="Center" HorizontalAlignment="Center">
-        <StackPanel Spacing="10" HorizontalAlignment="Center" MaxWidth="520">
-            <FontIcon Glyph="&#xE713;" FontSize="52" HorizontalAlignment="Center"
-                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-            <TextBlock Text="Ajustes" FontSize="32" FontWeight="SemiBold" HorizontalAlignment="Center" />
-            <TextBlock Text="Pomodoro, colores, notas, entornos de concentración y más, configurables aquí (issues #54, #53, #55)."
-                       Opacity="0.6" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" />
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="16" MaxWidth="680" HorizontalAlignment="Left">
+            <TextBlock Text="Ajustes" FontSize="28" FontWeight="SemiBold" />
+
+            <!-- Pomodoro -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Pomodoro" FontSize="18" FontWeight="SemiBold" />
+                    <Grid ColumnSpacing="16" RowSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <NumberBox x:Name="FocusBox" Grid.Row="0" Grid.Column="0" Header="Concentración (min)"
+                                   Minimum="1" Maximum="180" SmallChange="5" SpinButtonPlacementMode="Inline" />
+                        <NumberBox x:Name="ShortBox" Grid.Row="0" Grid.Column="1" Header="Descanso corto (min)"
+                                   Minimum="0" Maximum="60" SmallChange="1" SpinButtonPlacementMode="Inline" />
+                        <NumberBox x:Name="LongBox" Grid.Row="1" Grid.Column="0" Header="Descanso largo (min)"
+                                   Minimum="0" Maximum="120" SmallChange="5" SpinButtonPlacementMode="Inline" />
+                        <NumberBox x:Name="CyclesBox" Grid.Row="1" Grid.Column="1" Header="Focos por descanso largo"
+                                   Minimum="1" Maximum="12" SmallChange="1" SpinButtonPlacementMode="Inline" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Rango horario -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Horario" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Text="Rango de horas que se muestra en la cuadrícula." Opacity="0.7" FontSize="13" />
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                        <TimePicker x:Name="DayStartPicker" Header="Desde" ClockIdentifier="24HourClock" MinuteIncrement="30" />
+                        <TimePicker x:Name="DayEndPicker" Header="Hasta" ClockIdentifier="24HourClock" MinuteIncrement="30" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Apariencia -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Apariencia" FontSize="18" FontWeight="SemiBold" />
+                    <ComboBox x:Name="ThemeBox" Header="Tema" Width="240">
+                        <ComboBoxItem Content="Según el sistema" Tag="Default" />
+                        <ComboBoxItem Content="Claro" Tag="Light" />
+                        <ComboBoxItem Content="Oscuro" Tag="Dark" />
+                    </ComboBox>
+                </StackPanel>
+            </Border>
+
+            <!-- Guardar -->
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button x:Name="SaveBtn" Click="SaveBtn_Click" Style="{StaticResource AccentButtonStyle}" Content="Guardar cambios" />
+                <TextBlock x:Name="SaveStatus" VerticalAlignment="Center" Opacity="0.8" />
+            </StackPanel>
         </StackPanel>
-    </Grid>
+    </ScrollViewer>
 </Page>

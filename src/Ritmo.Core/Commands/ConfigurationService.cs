@@ -114,6 +114,34 @@ public sealed class ConfigurationService
         return CommandResult.Ok($"Sesión eliminada de «{phaseName}».");
     }
 
+    /// <summary>Actualiza la configuración Pomodoro (duraciones en minutos).</summary>
+    public CommandResult SetPomodoro(int focusMin, int shortBreakMin, int longBreakMin, int focusesPerLong)
+    {
+        if (focusMin <= 0) return CommandResult.Fail("La concentración debe durar más de 0 minutos.");
+        if (focusesPerLong < 1) return CommandResult.Fail("Debe haber al menos 1 foco por descanso largo.");
+        try
+        {
+            var cfg = new Pomodoro.PomodoroConfig(
+                TimeSpan.FromMinutes(focusMin), TimeSpan.FromMinutes(shortBreakMin),
+                TimeSpan.FromMinutes(longBreakMin), focusesPerLong);
+            _store.Save(_store.Load() with { Pomodoro = cfg });
+            return CommandResult.Ok("Pomodoro actualizado.");
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            return CommandResult.Fail(ex.Message);
+        }
+    }
+
+    /// <summary>Actualiza el rango horario visible de la rejilla del horario.</summary>
+    public CommandResult SetViewHours(TimeOnly dayStart, TimeOnly dayEnd)
+    {
+        if (dayEnd <= dayStart) return CommandResult.Fail("La hora de fin debe ser posterior a la de inicio.");
+        var s = _store.Load();
+        _store.Save(s with { ViewConfig = s.ViewConfig with { DayStart = dayStart, DayEnd = dayEnd } });
+        return CommandResult.Ok("Rango horario actualizado.");
+    }
+
     /// <summary>Crea o reemplaza un entorno de concentración (por Id).</summary>
     public CommandResult UpsertEnvironment(FocusEnvironment env)
     {

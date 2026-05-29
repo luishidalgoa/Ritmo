@@ -160,6 +160,28 @@ public class ConfigurationServiceTests
     }
 
     [Fact]
+    public void SetPomodoro_actualiza_y_valida()
+    {
+        var (svc, store) = New();
+        Assert.True(svc.SetPomodoro(50, 10, 20, 2).Success);
+        Assert.Equal(TimeSpan.FromMinutes(50), store.Load().Pomodoro.Focus);
+        // Inválidos:
+        Assert.False(svc.SetPomodoro(0, 5, 15, 4).Success);
+        Assert.False(svc.SetPomodoro(25, 5, 15, 0).Success);
+    }
+
+    [Fact]
+    public void SetViewHours_actualiza_y_valida()
+    {
+        var (svc, store) = New();
+        Assert.True(svc.SetViewHours(new TimeOnly(7, 0), new TimeOnly(22, 0)).Success);
+        Assert.Equal(new TimeOnly(7, 0), store.Load().ViewConfig.DayStart);
+        Assert.Equal(new TimeOnly(22, 0), store.Load().ViewConfig.DayEnd);
+        // Fin antes que inicio -> falla.
+        Assert.False(svc.SetViewHours(new TimeOnly(20, 0), new TimeOnly(8, 0)).Success);
+    }
+
+    [Fact]
     public void GetStatus_resume_el_estado()
     {
         var (svc, _) = New();
