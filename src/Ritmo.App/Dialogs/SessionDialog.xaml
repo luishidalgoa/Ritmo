@@ -51,15 +51,36 @@
             <ComboBoxItem Content="Otro" Tag="Otro" />
         </ComboBox>
 
-        <StackPanel Spacing="2">
+        <StackPanel Spacing="6">
             <TextBlock Text="Avisos previos" FontWeight="SemiBold" />
-            <TextBlock x:Name="AlertHint" Text="Hasta 2 recordatorios antes de empezar"
-                       Opacity="0.6" FontSize="12" />
-            <StackPanel Orientation="Horizontal" Spacing="18" Margin="0,6,0,0">
-                <CheckBox x:Name="Alert60" Content="1 hora" />
-                <CheckBox x:Name="Alert10" Content="10 min" />
-                <CheckBox x:Name="Alert5" Content="5 min" />
-            </StackPanel>
+
+            <ComboBox x:Name="Alert1Box" Header="Aviso 1" HorizontalAlignment="Stretch"
+                      SelectionChanged="Alert1Box_SelectionChanged">
+                <ComboBoxItem Content="Ninguno" Tag="0" />
+                <ComboBoxItem Content="5 minutos antes" Tag="5" />
+                <ComboBoxItem Content="10 minutos antes" Tag="10" />
+                <ComboBoxItem Content="15 minutos antes" Tag="15" />
+                <ComboBoxItem Content="30 minutos antes" Tag="30" />
+                <ComboBoxItem Content="1 hora antes" Tag="60" />
+                <ComboBoxItem Content="2 horas antes" Tag="120" />
+                <ComboBoxItem Content="Personalizado…" Tag="custom" />
+            </ComboBox>
+            <NumberBox x:Name="Alert1Custom" Visibility="Collapsed" Header="Minutos antes"
+                       Minimum="1" Maximum="1440" SmallChange="5" SpinButtonPlacementMode="Inline" />
+
+            <ComboBox x:Name="Alert2Box" Header="Aviso 2" HorizontalAlignment="Stretch"
+                      SelectionChanged="Alert2Box_SelectionChanged">
+                <ComboBoxItem Content="Ninguno" Tag="0" />
+                <ComboBoxItem Content="5 minutos antes" Tag="5" />
+                <ComboBoxItem Content="10 minutos antes" Tag="10" />
+                <ComboBoxItem Content="15 minutos antes" Tag="15" />
+                <ComboBoxItem Content="30 minutos antes" Tag="30" />
+                <ComboBoxItem Content="1 hora antes" Tag="60" />
+                <ComboBoxItem Content="2 horas antes" Tag="120" />
+                <ComboBoxItem Content="Personalizado…" Tag="custom" />
+            </ComboBox>
+            <NumberBox x:Name="Alert2Custom" Visibility="Collapsed" Header="Minutos antes"
+                       Minimum="1" Maximum="1440" SmallChange="5" SpinButtonPlacementMode="Inline" />
         </StackPanel>
 
         <ToggleSwitch x:Name="TentativeSwitch" Header="Provisional (no dispara concentración)" OffContent="No" OnContent="Sí" />

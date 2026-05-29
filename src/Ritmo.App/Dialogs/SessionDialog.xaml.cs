@@ -13,20 +13,11 @@ namespace Ritmo_App.Dialogs;
 /// </summary>
 public sealed partial class SessionDialog : ContentDialog
 {
-    private const int MaxAlerts = 2;   // spec: hasta 2 avisos previos
-
-    private IReadOnlyList<int> _preservedAlerts = [];
-    private bool _suppressAlertCheck;
-    private List<CheckBox> _alertBoxes = [];
     private (ToggleButton btn, DayOfWeek day)[] _dayToggles = [];
 
     public SessionDialog()
     {
         InitializeComponent();
-        _alertBoxes = [Alert60, Alert10, Alert5];
-        foreach (var cb in _alertBoxes)
-            cb.Checked += AlertBox_Checked;
-
         _dayToggles =
         [
             (DayMon, DayOfWeek.Monday), (DayTue, DayOfWeek.Tuesday), (DayWed, DayOfWeek.Wednesday),
@@ -39,21 +30,38 @@ public sealed partial class SessionDialog : ContentDialog
     public IReadOnlyList<DayOfWeek> SelectedDays =>
         _dayToggles.Where(t => t.btn.IsChecked == true).Select(t => t.day).ToList();
 
-    private static int MinutesOf(CheckBox cb) => cb.Name switch
-    {
-        nameof(Alert60) => 60,
-        nameof(Alert10) => 10,
-        _ => 5
-    };
+    // ---------- Avisos previos: dos desplegables con presets + personalizado (#87) ----------
 
-    private void AlertBox_Checked(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    private void Alert1Box_SelectionChanged(object sender, SelectionChangedEventArgs e) => SyncCustom(Alert1Box, Alert1Custom);
+    private void Alert2Box_SelectionChanged(object sender, SelectionChangedEventArgs e) => SyncCustom(Alert2Box, Alert2Custom);
+
+    private static void SyncCustom(ComboBox box, NumberBox custom)
     {
-        if (_suppressAlertCheck) return;
-        if (_alertBoxes.Count(b => b.IsChecked == true) <= MaxAlerts) return;
-        _suppressAlertCheck = true;
-        ((CheckBox)sender).IsChecked = false;
-        _suppressAlertCheck = false;
-        AlertHint.Text = $"Máximo {MaxAlerts} avisos";
+        bool isCustom = (box.SelectedItem as ComboBoxItem)?.Tag as string == "custom";
+        custom.Visibility = isCustom ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        if (isCustom && double.IsNaN(custom.Value)) custom.Value = 20;
+    }
+
+    /// <summary>Minutos del desplegable (0 = ninguno; "custom" = el NumberBox).</summary>
+    private static int AlertMinutes(ComboBox box, NumberBox custom)
+    {
+        if (box.SelectedItem is not ComboBoxItem it) return 0;
+        var tag = (string)it.Tag;
+        if (tag == "custom") return double.IsNaN(custom.Value) ? 0 : (int)custom.Value;
+        return int.TryParse(tag, out var m) ? m : 0;
+    }
+
+    /// <summary>Coloca un valor de minutos en un desplegable (preset si coincide, si no "Personalizado").</summary>
+    private static void SetAlert(ComboBox box, NumberBox custom, int minutes)
+    {
+        if (minutes <= 0) { box.SelectedIndex = 0; SyncCustom(box, custom); return; }
+        foreach (var item in box.Items.OfType<ComboBoxItem>())
+            if ((string)item.Tag != "custom" && int.TryParse((string)item.Tag, out var m) && m == minutes)
+            { box.SelectedItem = item; SyncCustom(box, custom); return; }
+        // No es un preset: Personalizado con el valor.
+        box.SelectedItem = box.Items.OfType<ComboBoxItem>().First(i => (string)i.Tag == "custom");
+        custom.Value = minutes;
+        SyncCustom(box, custom);
     }
 
     private void SetDays(IEnumerable<DayOfWeek> days)
@@ -78,13 +86,10 @@ public sealed partial class SessionDialog : ContentDialog
             if (KindBox.Items[i] is ComboBoxItem it && (string)it.Tag == s.Kind.ToString())
             { KindBox.SelectedIndex = i; break; }
 
-        var minutes = s.PreAlerts.Select(a => a.MinutesBefore).ToHashSet();
-        _suppressAlertCheck = true;
-        Alert60.IsChecked = minutes.Contains(60);
-        Alert10.IsChecked = minutes.Contains(10);
-        Alert5.IsChecked = minutes.Contains(5);
-        _suppressAlertCheck = false;
-        _preservedAlerts = PreAlertPresets.NonStandardOf(s.PreAlerts);
+        // Hasta 2 avisos en los dos desplegables (ordenados de mayor a menor).
+        var mins = s.PreAlerts.Select(a => a.MinutesBefore).Where(m => m > 0).Distinct().OrderByDescending(m => m).ToList();
+        SetAlert(Alert1Box, Alert1Custom, mins.Count > 0 ? mins[0] : 0);
+        SetAlert(Alert2Box, Alert2Custom, mins.Count > 1 ? mins[1] : 0);
     }
 
     /// <summary>Valores por defecto para una sesión nueva (día/hora opcionales).</summary>
@@ -95,9 +100,8 @@ public sealed partial class SessionDialog : ContentDialog
         StartPicker.Time = st.ToTimeSpan();
         EndPicker.Time = st.Add(TimeSpan.FromHours(1)).ToTimeSpan();
         KindBox.SelectedIndex = 0;
-        _suppressAlertCheck = true;
-        Alert10.IsChecked = true;   // aviso por defecto: 10 minutos antes
-        _suppressAlertCheck = false;
+        SetAlert(Alert1Box, Alert1Custom, 10);   // aviso por defecto: 10 minutos antes
+        SetAlert(Alert2Box, Alert2Custom, 0);    // segundo aviso: ninguno
     }
 
     /// <summary>Construye la sesión para un día concreto (inicio+fin → duración).</summary>
@@ -111,8 +115,8 @@ public sealed partial class SessionDialog : ContentDialog
         if (KindBox.SelectedItem is ComboBoxItem it && Enum.TryParse<StudyKind>((string)it.Tag, out var k))
             kind = k;
 
-        var selected = _alertBoxes.Where(b => b.IsChecked == true).Select(MinutesOf);
-        var alerts = PreAlertPresets.Compose(selected, _preservedAlerts);
+        var selected = new[] { AlertMinutes(Alert1Box, Alert1Custom), AlertMinutes(Alert2Box, Alert2Custom) };
+        var alerts = PreAlertPresets.Compose(selected);
 
         return new StudySession
         {
