@@ -32,5 +32,12 @@
 
         <TextBlock x:Name="PresetInfo" Opacity="0.55" FontSize="12"
                    TextAlignment="Center" HorizontalAlignment="Center" />
+
+        <Border x:Name="DndBadge" Visibility="Collapsed" HorizontalAlignment="Center"
+                Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
+                CornerRadius="12" Padding="12,4" Margin="0,4,0,0">
+            <TextBlock Text="🔕 No molestar activo" FontSize="12"
+                       Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+        </Border>
     </StackPanel>
 </Page>

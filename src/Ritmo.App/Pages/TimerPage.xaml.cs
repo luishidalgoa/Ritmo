@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Ritmo.Core.Pomodoro;
 using Ritmo.Core.Timing;
+using Ritmo_App.Services;
 
 namespace Ritmo_App;
 
@@ -16,13 +17,14 @@ public sealed partial class TimerPage : Page
 {
     private readonly IClock _clock = new SystemClock();
     private readonly PomodoroEngine _engine = new(PomodoroConfig.DeepWork);
+    private readonly IFocusController _focus = new WindowsFocusController();
     private DispatcherQueueTimer? _ticker;
 
     public TimerPage()
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        Unloaded += (_, _) => _ticker?.Stop();
+        Unloaded += (_, _) => { _ticker?.Stop(); _focus.Exit(); };
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -96,5 +98,20 @@ public sealed partial class TimerPage : Page
         PauseBtn.IsEnabled = running;
         SkipBtn.IsEnabled = !idle;
         ResetBtn.IsEnabled = !idle;
+
+        SyncFocusMode();
+    }
+
+    /// <summary>
+    /// Mantiene el "No molestar" del SO sincronizado: activo SOLO mientras hay
+    /// una fase de Concentración en marcha; restaurado en descansos, pausa o parada.
+    /// </summary>
+    private void SyncFocusMode()
+    {
+        bool shouldFocus = _engine.Phase == PomodoroPhase.Focus && _engine.IsRunning;
+        if (shouldFocus && !_focus.IsActive) _focus.Enter();
+        else if (!shouldFocus && _focus.IsActive) _focus.Exit();
+
+        DndBadge.Visibility = _focus.IsActive ? Visibility.Visible : Visibility.Collapsed;
     }
 }
