@@ -89,6 +89,20 @@ public sealed class SchedulePlanner
     }
 
     /// <summary>
+    /// La próxima sesión de HOY que empieza estrictamente después de la hora dada
+    /// (la siguiente cosa del día, sea del tipo que sea). Null si no queda nada hoy.
+    /// Útil para la vista "Hoy / Ahora": "después → …".
+    /// </summary>
+    public StudySession? GetNextSessionToday(DateTime now)
+    {
+        var nowTime = TimeOnly.FromDateTime(now);
+        return _schedule.Sessions
+            .Where(s => s.Day == now.DayOfWeek && s.Start > nowTime)
+            .OrderBy(s => s.Start)
+            .FirstOrDefault();
+    }
+
+    /// <summary>
     /// Indica qué sesión está activa en el instante dado (inicio &lt;= now &lt; fin),
     /// o null si en ese momento no hay ninguna sesión en curso.
     /// </summary>

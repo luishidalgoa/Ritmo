@@ -256,28 +256,8 @@ public sealed partial class SchedulePage : Page
         }
     }
 
-    /// <summary>Lleva al temporizador (y sincroniza el NavigationView) para concentrarse ya.</summary>
-    private void FocusNow()
-    {
-        var nav = FindAncestor<NavigationView>(this);
-        if (nav is not null)
-        {
-            foreach (var mi in nav.MenuItems.OfType<NavigationViewItem>())
-                if ((string?)mi.Tag == "timer") { nav.SelectedItem = mi; return; }
-        }
-        this.Frame?.Navigate(typeof(TimerPage));
-    }
-
-    private static T? FindAncestor<T>(DependencyObject start) where T : class
-    {
-        var cur = VisualTreeHelper.GetParent(start);
-        while (cur is not null)
-        {
-            if (cur is T t) return t;
-            cur = VisualTreeHelper.GetParent(cur);
-        }
-        return null;
-    }
+    /// <summary>Lleva al temporizador y arranca la concentración del bloque activo.</summary>
+    private void FocusNow() => Navigator.GoToTimer(this, autoStart: true);
 
     private void AddCell_Click(object sender, RoutedEventArgs e)
     {

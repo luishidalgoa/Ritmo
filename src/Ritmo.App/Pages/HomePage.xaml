@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Ritmo_App.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Padding="32" Spacing="20" MaxWidth="640" HorizontalAlignment="Stretch">
+            <StackPanel Spacing="2">
+                <TextBlock Text="Hoy" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock x:Name="DateText" Opacity="0.7" FontSize="13" />
+            </StackPanel>
+
+            <!-- AHORA -->
+            <Border CornerRadius="10" Padding="20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="AHORA" FontWeight="SemiBold" Opacity="0.55" FontSize="11" />
+                    <TextBlock x:Name="NowTitle" FontSize="22" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="NowMeta" Opacity="0.7" />
+                    <Button x:Name="StartBtn" Click="StartBtn_Click" Margin="0,4,0,0"
+                            Style="{StaticResource AccentButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE768;" FontSize="14" />
+                            <TextBlock x:Name="StartBtnText" Text="Empezar concentración" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- DESPUÉS + PRÓXIMO AVISO -->
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" CornerRadius="10" Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="DESPUÉS" FontWeight="SemiBold" Opacity="0.55" FontSize="11" />
+                        <TextBlock x:Name="NextTitle" FontSize="16" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="NextMeta" Opacity="0.7" FontSize="13" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" CornerRadius="10" Padding="16"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="PRÓXIMO AVISO" FontWeight="SemiBold" Opacity="0.55" FontSize="11" />
+                        <TextBlock x:Name="AlertTitle" FontSize="16" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="AlertMeta" Opacity="0.7" FontSize="13" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

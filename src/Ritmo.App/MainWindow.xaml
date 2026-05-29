@@ -19,7 +19,12 @@
                     SelectionChanged="Nav_SelectionChanged"
                     Loaded="Nav_Loaded">
         <NavigationView.MenuItems>
-            <NavigationViewItem Content="Temporizador" Tag="timer" IsSelected="True">
+            <NavigationViewItem Content="Hoy" Tag="home" IsSelected="True">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE8D1;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Temporizador" Tag="timer">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE916;" />
                 </NavigationViewItem.Icon>

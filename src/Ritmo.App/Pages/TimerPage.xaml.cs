@@ -32,6 +32,12 @@ public sealed partial class TimerPage : Page
     // Contexto del bloque vigente (resuelto desde el horario).
     private FocusEnvironment? _activeEnv;
 
+    /// <summary>
+    /// Si otra pantalla (Hoy / Horario) pide "empezar ya", lo deja marcado aquí;
+    /// el Timer lo consume al cargarse y arranca la concentración automáticamente.
+    /// </summary>
+    public static bool AutoStartPending { get; set; }
+
     public TimerPage()
     {
         InitializeComponent();
@@ -47,7 +53,15 @@ public sealed partial class TimerPage : Page
         _ticker.Interval = TimeSpan.FromMilliseconds(250);
         _ticker.Tick += (_, _) => Refresh();
 
-        Refresh();
+        if (AutoStartPending)
+        {
+            AutoStartPending = false;
+            StartBtn_Click(this, new RoutedEventArgs());   // arranca la concentración ya
+        }
+        else
+        {
+            Refresh();
+        }
     }
 
     /// <summary>

@@ -17,8 +17,8 @@ public sealed partial class MainWindow : Window
 
     private void Nav_Loaded(object sender, RoutedEventArgs e)
     {
-        // Página inicial: Temporizador.
-        ContentFrame.Navigate(typeof(TimerPage));
+        // Página inicial: Hoy.
+        ContentFrame.Navigate(typeof(HomePage));
     }
 
     private void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -27,10 +27,11 @@ public sealed partial class MainWindow : Window
 
         var page = item.Tag switch
         {
+            "home" => typeof(HomePage),
             "timer" => typeof(TimerPage),
             "schedule" => typeof(SchedulePage),
             "settings" => typeof(SettingsPage),
-            _ => typeof(TimerPage)
+            _ => typeof(HomePage)
         };
 
         if (ContentFrame.CurrentSourcePageType != page)
