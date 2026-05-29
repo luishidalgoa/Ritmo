@@ -89,6 +89,17 @@ public sealed partial class SchedulePage : Page
                 VerticalAlignment = VerticalAlignment.Center
             }, 0, c + 1, 1, headerBg, line));
 
+        // Mapa de ocupación por (día, hora) para saber qué celdas están vacías.
+        var occupied = new bool[7, hours];
+        foreach (var s in schedule.Sessions)
+        {
+            int dc = Array.IndexOf(Days, s.Day);
+            if (dc < 0) continue;
+            int h0 = s.Start.Hour - startH;
+            int h1 = (int)Math.Ceiling((s.Start.ToTimeSpan() + s.Duration).TotalHours) - startH;
+            for (int hh = Math.Max(0, h0); hh < Math.Min(hours, h1); hh++) occupied[dc, hh] = true;
+        }
+
         for (int h = 0; h < hours; h++)
         {
             int rowTop = 1 + h * slotsPerHour;
@@ -104,6 +115,29 @@ public sealed partial class SchedulePage : Page
                 Grid.SetRow(bg, rowTop); Grid.SetRowSpan(bg, slotsPerHour);
                 Grid.SetColumn(bg, c + 1);
                 g.Children.Add(bg);
+
+                // Celda vacía -> botón "+" sutil para añadir una sesión en ese día/hora.
+                if (!occupied[c, h])
+                {
+                    var addCell = new Button
+                    {
+                        Content = new FontIcon { Glyph = "", FontSize = 13 },
+                        Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+                        BorderThickness = new Thickness(0),
+                        Opacity = 0.0,                         // invisible hasta el hover
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch,
+                        Margin = new Thickness(2),
+                        CornerRadius = new CornerRadius(6),
+                        Tag = new int[] { c, startH + h }       // día y hora de esta celda
+                    };
+                    addCell.PointerEntered += (o, _) => ((Button)o).Opacity = 0.6;
+                    addCell.PointerExited += (o, _) => ((Button)o).Opacity = 0.0;
+                    addCell.Click += AddCell_Click;
+                    Grid.SetRow(addCell, rowTop); Grid.SetRowSpan(addCell, slotsPerHour);
+                    Grid.SetColumn(addCell, c + 1);
+                    g.Children.Add(addCell);
+                }
             }
         }
 
@@ -116,40 +150,52 @@ public sealed partial class SchedulePage : Page
             int spanSlots = Math.Max(1, (int)Math.Round(s.Duration.TotalHours * slotsPerHour));
             if (startSlot < 1) startSlot = 1;
 
-            var content = new StackPanel
-            {
-                Children =
-                {
-                    new TextBlock {
-                        Text = s.Title, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                        Foreground = ScheduleColors.TextFor(s.Kind), TextTrimming = TextTrimming.CharacterEllipsis },
-                    new TextBlock {
-                        Text = $"{s.Start:HH\\:mm}–{s.End:HH\\:mm}{(s.IsTentative ? "  (?)" : "")}",
-                        FontSize = 10, Opacity = 0.75, Foreground = ScheduleColors.TextFor(s.Kind) }
-                }
-            };
+            var baseColor = ScheduleColors.For(s.Kind);
 
-            // Tarjeta clicable (Button sin chrome) para editar/borrar.
-            var card = new Button
+            // Tarjeta como Border (controlamos el hover nosotros para conservar el color).
+            var card = new Border
             {
-                Background = ScheduleColors.For(s.Kind),
+                Background = baseColor,
                 CornerRadius = new CornerRadius(6),
                 Margin = new Thickness(2),
                 Padding = new Thickness(6, 3, 6, 3),
                 Opacity = s.IsTentative ? 0.6 : 1.0,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch,
-                HorizontalContentAlignment = HorizontalAlignment.Left,
-                VerticalContentAlignment = VerticalAlignment.Top,
-                BorderThickness = new Thickness(0),
                 Tag = idx,
-                Content = content
+                Child = new StackPanel
+                {
+                    Children =
+                    {
+                        new TextBlock {
+                            Text = s.Title, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                            Foreground = ScheduleColors.TextFor(s.Kind), TextTrimming = TextTrimming.CharacterEllipsis },
+                        new TextBlock {
+                            Text = $"{s.Start:HH\\:mm}–{s.End:HH\\:mm}{(s.IsTentative ? "  (?)" : "")}",
+                            FontSize = 10, Opacity = 0.75, Foreground = ScheduleColors.TextFor(s.Kind) }
+                    }
+                }
             };
-            card.Click += SessionCard_Click;
+            // Hover sutil: un borde de acento + leve elevación de opacidad, sin tapar el color.
+            double restOpacity = s.IsTentative ? 0.6 : 1.0;
+            card.PointerEntered += (o, _) => {
+                var b = (Border)o;
+                b.BorderThickness = new Thickness(1.5);
+                b.BorderBrush = ScheduleColors.TextFor(s.Kind);
+            };
+            card.PointerExited += (o, _) => {
+                var b = (Border)o;
+                b.BorderThickness = new Thickness(0);
+            };
+            card.Tapped += (o, args) => { _ = ShowEditDialog((int)((Border)o).Tag); };
             Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
             Grid.SetColumn(card, dayCol + 1);
             g.Children.Add(card);
         }
+    }
+
+    private void AddCell_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button b && b.Tag is int[] dh)
+            _ = ShowAddDialog(Days[dh[0]], new TimeOnly(dh[1], 0));
     }
 
     private void AddBtn_Click(object sender, RoutedEventArgs e) => _ = ShowAddDialog();
@@ -160,11 +206,11 @@ public sealed partial class SchedulePage : Page
             _ = ShowEditDialog(idx);
     }
 
-    private async Task ShowAddDialog()
+    private async Task ShowAddDialog(DayOfWeek? day = null, TimeOnly? start = null)
     {
         if (_activePhaseName is null) return;
         var dlg = new SessionDialog { XamlRoot = this.XamlRoot };
-        dlg.LoadDefaults();
+        dlg.LoadDefaults(day, start);
         var result = await dlg.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {

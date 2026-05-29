@@ -29,11 +29,12 @@ public sealed partial class SessionDialog : ContentDialog
             { KindBox.SelectedIndex = i; break; }
     }
 
-    /// <summary>Valores por defecto para una sesión nueva.</summary>
-    public void LoadDefaults()
+    /// <summary>Valores por defecto para una sesión nueva (día/hora opcionales,
+    /// los rellena el botón "+" de una celda concreta del calendario).</summary>
+    public void LoadDefaults(DayOfWeek? day = null, TimeOnly? start = null)
     {
-        DayBox.SelectedIndex = 0;
-        StartPicker.Time = new TimeSpan(9, 0, 0);
+        DayBox.SelectedIndex = day is null ? 0 : Math.Max(0, Array.IndexOf(Days, day.Value));
+        StartPicker.Time = (start ?? new TimeOnly(9, 0)).ToTimeSpan();
         DurationBox.Value = 60;
         KindBox.SelectedIndex = 0;
     }
