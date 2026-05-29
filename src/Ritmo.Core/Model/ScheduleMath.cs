@@ -14,4 +14,17 @@ public static class ScheduleMath
         if (d < System.TimeSpan.Zero) d += System.TimeSpan.FromHours(24);   // cruza medianoche
         return d;   // == 0 si start == end (lo rechaza la validación de sesión)
     }
+
+    /// <summary>
+    /// Desplaza una hora de inicio <paramref name="slotDelta"/> "slots" (de
+    /// <paramref name="slotMinutes"/> minutos cada uno). El resultado se acota al
+    /// día [00:00 .. último slot que empieza dentro del día], para mover sesiones
+    /// arrastrándolas verticalmente sin que la hora se salga del día. #82
+    /// </summary>
+    public static System.TimeOnly ShiftStart(System.TimeOnly start, int slotDelta, int slotMinutes = 30)
+    {
+        int min = start.Hour * 60 + start.Minute + slotDelta * slotMinutes;
+        min = System.Math.Clamp(min, 0, 1440 - slotMinutes);
+        return new System.TimeOnly(min / 60, min % 60);
+    }
 }

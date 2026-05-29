@@ -24,4 +24,19 @@ public class ScheduleMathTests
     public void Iguales_da_cero()
         => Assert.Equal(TimeSpan.Zero,
             ScheduleMath.DurationBetween(new TimeOnly(9, 0), new TimeOnly(9, 0)));
+
+    [Theory]
+    [InlineData(9, 0, 2, 10, 0)]    // +2 slots de 30' = +1h
+    [InlineData(9, 0, -1, 8, 30)]   // -1 slot = -30'
+    [InlineData(9, 30, 3, 11, 0)]   // +1h30
+    public void ShiftStart_desplaza_por_slots(int h, int m, int delta, int eh, int em)
+        => Assert.Equal(new TimeOnly(eh, em), ScheduleMath.ShiftStart(new TimeOnly(h, m), delta));
+
+    [Fact]
+    public void ShiftStart_no_baja_de_medianoche()
+        => Assert.Equal(new TimeOnly(0, 0), ScheduleMath.ShiftStart(new TimeOnly(0, 30), -5));
+
+    [Fact]
+    public void ShiftStart_no_pasa_del_ultimo_slot_del_dia()
+        => Assert.Equal(new TimeOnly(23, 30), ScheduleMath.ShiftStart(new TimeOnly(23, 0), 10));
 }
