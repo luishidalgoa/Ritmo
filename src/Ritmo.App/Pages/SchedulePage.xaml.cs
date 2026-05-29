@@ -82,12 +82,26 @@ public sealed partial class SchedulePage : Page
         var line = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"];
         var headerBg = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"];
 
+        // "En vivo" (#69): hoy + ahora + bloque activo.
+        var now = DateTime.Now;
+        int todayCol = Array.IndexOf(Days, now.DayOfWeek);
+        var activeSession = new Ritmo.Core.Scheduling.SchedulePlanner(schedule).GetActiveSession(now);
+        var accentColor = ((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color;
+        var todayHeaderBrush = new SolidColorBrush(accentColor) { Opacity = 0.22 };
+        var todayTint = new SolidColorBrush(accentColor) { Opacity = 0.06 };
+
         for (int c = 0; c < 7; c++)
+        {
+            bool isToday = c == todayCol;
             g.Children.Add(Cell(new TextBlock {
                 Text = DayNames[c], FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
                 FontSize = 12, HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }, 0, c + 1, 1, headerBg, line));
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = isToday
+                    ? new SolidColorBrush(accentColor)
+                    : (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"]
+            }, 0, c + 1, 1, isToday ? todayHeaderBrush : headerBg, line));
+        }
 
         // Mapa de ocupación por (día, hora) para saber qué celdas están vacías.
         var occupied = new bool[7, hours];
@@ -111,7 +125,11 @@ public sealed partial class SchedulePage : Page
 
             for (int c = 0; c < 7; c++)
             {
-                var bg = new Border { BorderBrush = line, BorderThickness = new Thickness(0, 0, 1, 1) };
+                var bg = new Border
+                {
+                    BorderBrush = line, BorderThickness = new Thickness(0, 0, 1, 1),
+                    Background = c == todayCol ? todayTint : null
+                };
                 Grid.SetRow(bg, rowTop); Grid.SetRowSpan(bg, slotsPerHour);
                 Grid.SetColumn(bg, c + 1);
                 g.Children.Add(bg);
@@ -151,6 +169,7 @@ public sealed partial class SchedulePage : Page
             if (startSlot < 1) startSlot = 1;
 
             var baseColor = ScheduleColors.For(s.Kind);
+            bool isActive = ReferenceEquals(s, activeSession);
 
             // Tarjeta como Border (controlamos el hover nosotros para conservar el color).
             var card = new Border
@@ -161,6 +180,9 @@ public sealed partial class SchedulePage : Page
                 Padding = new Thickness(6, 3, 6, 3),
                 Opacity = s.IsTentative ? 0.6 : 1.0,
                 Tag = idx,
+                // Bloque activo ahora: anillo de acento persistente.
+                BorderBrush = isActive ? new SolidColorBrush(accentColor) : null,
+                BorderThickness = isActive ? new Thickness(2) : new Thickness(0),
                 Child = new StackPanel
                 {
                     Children =
@@ -174,8 +196,8 @@ public sealed partial class SchedulePage : Page
                     }
                 }
             };
-            // Hover sutil: un borde de acento + leve elevación de opacidad, sin tapar el color.
-            double restOpacity = s.IsTentative ? 0.6 : 1.0;
+            // Hover sutil: un borde de acento; al salir, vuelve al anillo (si activo) o a nada.
+            double restThickness = isActive ? 2 : 0;
             card.PointerEntered += (o, _) => {
                 var b = (Border)o;
                 b.BorderThickness = new Thickness(1.5);
@@ -183,13 +205,78 @@ public sealed partial class SchedulePage : Page
             };
             card.PointerExited += (o, _) => {
                 var b = (Border)o;
-                b.BorderThickness = new Thickness(0);
+                b.BorderThickness = new Thickness(restThickness);
+                b.BorderBrush = isActive ? new SolidColorBrush(accentColor) : null;
             };
             card.Tapped += (o, args) => { _ = ShowEditDialog((int)((Border)o).Tag); };
             Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
             Grid.SetColumn(card, dayCol + 1);
             g.Children.Add(card);
+
+            // Bloque activo: botón ▶ para concentrarse en él (lleva al temporizador).
+            if (isActive)
+            {
+                var focusBtn = new Button
+                {
+                    Content = new FontIcon { Glyph = "", FontSize = 12 },   // Play
+                    Padding = new Thickness(4), MinWidth = 0,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(0, 4, 6, 0),
+                    CornerRadius = new CornerRadius(4)
+                };
+                ToolTipService.SetToolTip(focusBtn, "Concentrarme en este bloque");
+                focusBtn.Click += (_, _) => FocusNow();
+                Grid.SetRow(focusBtn, startSlot); Grid.SetRowSpan(focusBtn, spanSlots);
+                Grid.SetColumn(focusBtn, dayCol + 1);
+                g.Children.Add(focusBtn);
+            }
         }
+
+        // Línea de "ahora" sobre la columna de hoy, si la hora está dentro del rango visible.
+        if (todayCol >= 0)
+        {
+            double nowHours = now.Hour + now.Minute / 60.0 - startH;
+            if (nowHours >= 0 && nowHours <= hours)
+            {
+                double slot = nowHours * slotsPerHour;
+                int rowAt = 1 + (int)Math.Floor(slot);
+                double offset = (slot - Math.Floor(slot)) * rowHeight;
+                var nowLine = new Border
+                {
+                    Height = 2, Background = new SolidColorBrush(accentColor),
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(0, offset, 0, 0),
+                    IsHitTestVisible = false
+                };
+                Grid.SetRow(nowLine, rowAt); Grid.SetColumn(nowLine, todayCol + 1);
+                Grid.SetRowSpan(nowLine, 1);
+                g.Children.Add(nowLine);
+            }
+        }
+    }
+
+    /// <summary>Lleva al temporizador (y sincroniza el NavigationView) para concentrarse ya.</summary>
+    private void FocusNow()
+    {
+        var nav = FindAncestor<NavigationView>(this);
+        if (nav is not null)
+        {
+            foreach (var mi in nav.MenuItems.OfType<NavigationViewItem>())
+                if ((string?)mi.Tag == "timer") { nav.SelectedItem = mi; return; }
+        }
+        this.Frame?.Navigate(typeof(TimerPage));
+    }
+
+    private static T? FindAncestor<T>(DependencyObject start) where T : class
+    {
+        var cur = VisualTreeHelper.GetParent(start);
+        while (cur is not null)
+        {
+            if (cur is T t) return t;
+            cur = VisualTreeHelper.GetParent(cur);
+        }
+        return null;
     }
 
     private void AddCell_Click(object sender, RoutedEventArgs e)
