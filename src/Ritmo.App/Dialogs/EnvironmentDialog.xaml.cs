@@ -1,15 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.UI.Text;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Ritmo.Core.Focus;
+using Ritmo.Core.Model;
 
 namespace Ritmo_App.Dialogs;
 
-/// <summary>Diálogo para crear o editar un entorno de concentración (#53).</summary>
+/// <summary>Diálogo para crear o editar un entorno de concentración / trabajo (#53/#74).</summary>
 public sealed partial class EnvironmentDialog : ContentDialog
 {
     private string? _id;   // null = entorno nuevo
+    private readonly List<ShortcutLink> _links = [];
 
     public EnvironmentDialog()
     {
@@ -18,6 +22,40 @@ public sealed partial class EnvironmentDialog : ContentDialog
         PresetBox.SelectedIndex = 2;   // Profundo
         DndCheck.IsChecked = true;
         BadgesCheck.IsChecked = true;
+    }
+
+    private void BuildLinksList()
+    {
+        LinksList.Children.Clear();
+        for (int i = 0; i < _links.Count; i++)
+        {
+            var link = _links[i];
+            int index = i;
+            var text = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+            text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = link.Title + "  ", FontWeight = FontWeights.SemiBold });
+            text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = link.Url, Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+            Grid.SetColumn(text, 0);
+
+            var del = new Button { Content = new SymbolIcon(Symbol.Delete) };
+            del.Click += (_, _) => { _links.RemoveAt(index); BuildLinksList(); };
+            Grid.SetColumn(del, 1);
+
+            var g = new Grid { ColumnSpacing = 6 };
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            g.Children.Add(text); g.Children.Add(del);
+            LinksList.Children.Add(g);
+        }
+    }
+
+    private void AddLinkBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var title = LinkTitleBox.Text.Trim();
+        var url = LinkUrlBox.Text.Trim();
+        if (title.Length == 0 || url.Length == 0) return;
+        _links.Add(new ShortcutLink { Title = title, Url = url });
+        LinkTitleBox.Text = ""; LinkUrlBox.Text = "";
+        BuildLinksList();
     }
 
     /// <summary>Carga un entorno existente para editarlo.</summary>
@@ -35,6 +73,9 @@ public sealed partial class EnvironmentDialog : ContentDialog
         CloseBox.Text = string.Join(", ", env.AppsToClose);
         MuteBox.Text = string.Join(", ", env.AppsToMute);
         WebsitesBox.Text = string.Join(", ", env.BlockedWebsites);
+        _links.Clear();
+        _links.AddRange(env.Links);
+        BuildLinksList();
     }
 
     private void SelectPreset(string? preset)
@@ -75,7 +116,8 @@ public sealed partial class EnvironmentDialog : ContentDialog
             AppsToClose = SplitCsv(CloseBox.Text),
             AppsToMute = SplitCsv(MuteBox.Text),
             BlockedWebsites = SplitCsv(WebsitesBox.Text),
-            Music = music
+            Music = music,
+            Links = _links.ToList()
         };
     }
 

@@ -96,7 +96,7 @@
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
                     <Grid>
-                        <TextBlock Text="Notas y enlaces rápidos" FontSize="18" FontWeight="SemiBold"
+                        <TextBlock Text="Notas" FontSize="18" FontWeight="SemiBold"
                                    VerticalAlignment="Center" />
                         <Button x:Name="AddNoteBtn" Click="AddNoteBtn_Click" HorizontalAlignment="Right">
                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -106,21 +106,8 @@
                         </Button>
                     </Grid>
                     <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                               Text="Notas fijadas y accesos rápidos a recursos (campus, BOE…). Aparecen en la pantalla «Hoy»." />
+                               Text="Notas fijadas (admiten Markdown). Aparecen en la pantalla «Hoy». Los enlaces ahora viven en cada entorno de trabajo." />
                     <StackPanel x:Name="NotesList" Spacing="8" />
-
-                    <TextBlock Text="Enlaces" FontWeight="SemiBold" Margin="0,6,0,0" />
-                    <StackPanel x:Name="ShortcutsList" Spacing="6" />
-                    <Grid ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="ShortcutTitleBox" Grid.Column="0" PlaceholderText="Título" />
-                        <TextBox x:Name="ShortcutUrlBox" Grid.Column="1" PlaceholderText="https://…" />
-                        <Button x:Name="AddShortcutBtn" Grid.Column="2" Click="AddShortcutBtn_Click" Content="Añadir" />
-                    </Grid>
                 </StackPanel>
             </Border>
 

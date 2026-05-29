@@ -74,4 +74,61 @@ public sealed partial class MainWindow : Window
         if (ContentFrame.CurrentSourcePageType != page)
             ContentFrame.Navigate(page);
     }
+
+    private void Nav_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
+    {
+        // "Entornos de trabajo" no navega: abre/cierra el panel lateral derecho (#74).
+        if (args.InvokedItemContainer?.Tag as string == "workenv")
+        {
+            if (!RightPanel.IsPaneOpen) BuildWorkEnvPanel();
+            RightPanel.IsPaneOpen = !RightPanel.IsPaneOpen;
+        }
+    }
+
+    /// <summary>Rellena el panel derecho con cada entorno y sus enlaces (#74).</summary>
+    private void BuildWorkEnvPanel()
+    {
+        WorkEnvPanel.Children.Clear();
+        var envs = Services.AppState.Load().FocusEnvironments;
+        if (envs.Count == 0)
+        {
+            WorkEnvPanel.Children.Add(new TextBlock
+            {
+                Text = "Aún no hay entornos. Créalos en Ajustes y añádeles enlaces.",
+                Opacity = 0.6, FontSize = 13, TextWrapping = TextWrapping.Wrap
+            });
+            return;
+        }
+
+        foreach (var env in envs)
+        {
+            var links = new StackPanel { Spacing = 2 };
+            if (env.Links.Count == 0)
+                links.Children.Add(new TextBlock { Text = "Sin enlaces", Opacity = 0.5, FontSize = 12 });
+            else
+                foreach (var l in env.Links)
+                {
+                    var btn = new HyperlinkButton { Content = l.Title, Padding = new Thickness(0, 2, 0, 2) };
+                    ToolTipService.SetToolTip(btn, l.Url);
+                    var url = l.Url;
+                    btn.Click += (_, _) => OpenUrl(url);
+                    links.Children.Add(btn);
+                }
+
+            WorkEnvPanel.Children.Add(new Expander
+            {
+                Header = env.Name,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                IsExpanded = true,
+                Content = links
+            });
+        }
+    }
+
+    private static void OpenUrl(string url)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = url, UseShellExecute = true }); }
+        catch { }
+    }
 }

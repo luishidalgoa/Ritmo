@@ -52,6 +52,12 @@ public sealed record FocusEnvironment
     /// <summary>App de música a lanzar (opcional).</summary>
     public MusicLauncher? Music { get; init; }
 
+    /// <summary>
+    /// Enlaces y herramientas del entorno (p. ej. el entorno "Oposiciones" agrupa
+    /// el campus, el BOE, etc.). Accesos rápidos del "entorno de trabajo". #74
+    /// </summary>
+    public IReadOnlyList<Ritmo.Core.Model.ShortcutLink> Links { get; init; } = [];
+
     /// <summary>Preset cómodo: estudio profundo con todo el silencio activado.</summary>
     public static FocusEnvironment DeepStudy => new()
     {

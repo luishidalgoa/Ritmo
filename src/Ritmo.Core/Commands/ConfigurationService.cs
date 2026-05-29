@@ -274,6 +274,35 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Entorno eliminado.");
     }
 
+    /// <summary>Añade un enlace al entorno de trabajo indicado. #74</summary>
+    public CommandResult AddEnvironmentLink(string environmentId, string title, string url)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return CommandResult.Fail("El enlace necesita un título.");
+        if (string.IsNullOrWhiteSpace(url)) return CommandResult.Fail("El enlace necesita una URL.");
+        var s = _store.Load();
+        var env = s.FocusEnvironments.FirstOrDefault(e => e.Id == environmentId);
+        if (env is null) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
+
+        var updated = env with { Links = [.. env.Links, new ShortcutLink { Title = title.Trim(), Url = url.Trim() }] };
+        _store.Save(s with { FocusEnvironments = s.FocusEnvironments.Select(e => e.Id == environmentId ? updated : e).ToList() });
+        return CommandResult.Ok($"Enlace «{title}» añadido a «{env.Name}».");
+    }
+
+    /// <summary>Elimina el enlace en el índice dado del entorno indicado. #74</summary>
+    public CommandResult RemoveEnvironmentLink(string environmentId, int index)
+    {
+        var s = _store.Load();
+        var env = s.FocusEnvironments.FirstOrDefault(e => e.Id == environmentId);
+        if (env is null) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
+        if (index < 0 || index >= env.Links.Count) return CommandResult.Fail("Índice de enlace fuera de rango.");
+
+        var links = env.Links.ToList();
+        links.RemoveAt(index);
+        var updated = env with { Links = links };
+        _store.Save(s with { FocusEnvironments = s.FocusEnvironments.Select(e => e.Id == environmentId ? updated : e).ToList() });
+        return CommandResult.Ok("Enlace eliminado.");
+    }
+
     /// <summary>Fija el entorno por defecto (debe existir).</summary>
     public CommandResult SetDefaultEnvironment(string environmentId)
     {

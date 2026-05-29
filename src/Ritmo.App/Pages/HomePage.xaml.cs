@@ -84,13 +84,15 @@ public sealed partial class HomePage : Page
     private void BuildShortcuts(Ritmo.Core.Persistence.AppSettings settings)
     {
         ShortcutsPanel.Children.Clear();
-        var shortcuts = settings.ViewConfig.Shortcuts;
-        ShortcutsSection.Visibility = shortcuts.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-        foreach (var sc in shortcuts)
+        // Los enlaces viven en el entorno de trabajo (#74): muestra los del entorno por defecto.
+        var env = settings.FocusEnvironments.FirstOrDefault(e => e.Id == settings.DefaultFocusEnvironmentId);
+        var links = env?.Links ?? [];
+        ShortcutsSection.Visibility = links.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var l in links)
         {
-            var btn = new HyperlinkButton { Content = sc.Title };
-            ToolTipService.SetToolTip(btn, sc.Url);
-            var url = sc.Url;
+            var btn = new HyperlinkButton { Content = l.Title };
+            ToolTipService.SetToolTip(btn, l.Url);
+            var url = l.Url;
             btn.Click += (_, _) => OpenUrl(url);
             ShortcutsPanel.Children.Add(btn);
         }

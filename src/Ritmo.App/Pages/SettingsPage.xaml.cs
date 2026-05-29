@@ -43,24 +43,18 @@ public sealed partial class SettingsPage : Page
         };
 
         BuildEnvList();
-        BuildNotesAndShortcuts();
+        BuildNotes();
         _ = LoadAutostartState();
     }
 
-    // ---------- Notas y enlaces rápidos (#55) ----------
+    // ---------- Notas (#55). Los enlaces viven en los entornos de trabajo (#74). ----------
 
-    private void BuildNotesAndShortcuts()
+    private void BuildNotes()
     {
         var s = AppState.Load();
-
         NotesList.Children.Clear();
         foreach (var note in s.Notes.OrderBy(n => n.Order))
             NotesList.Children.Add(NoteRow(note));
-
-        ShortcutsList.Children.Clear();
-        var shortcuts = s.ViewConfig.Shortcuts;
-        for (int i = 0; i < shortcuts.Count; i++)
-            ShortcutsList.Children.Add(ShortcutRow(shortcuts[i], i));
     }
 
     private FrameworkElement NoteRow(Ritmo.Core.Model.StudyNote note)
@@ -82,7 +76,7 @@ public sealed partial class SettingsPage : Page
 
         var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
         ToolTipService.SetToolTip(del, "Eliminar");
-        del.Click += (_, _) => { AppState.Config.RemoveNote(note.Id); BuildNotesAndShortcuts(); };
+        del.Click += (_, _) => { AppState.Config.RemoveNote(note.Id); BuildNotes(); };
         Grid.SetColumn(del, 2);
 
         var grid = new Grid { ColumnSpacing = 6 };
@@ -99,32 +93,13 @@ public sealed partial class SettingsPage : Page
         };
     }
 
-    private FrameworkElement ShortcutRow(Ritmo.Core.Model.ShortcutLink sc, int index)
-    {
-        var text = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
-        text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = sc.Title + "  ", FontWeight = FontWeights.SemiBold });
-        text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = sc.Url, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
-        Grid.SetColumn(text, 0);
-
-        var del = new Button { Content = new SymbolIcon(Symbol.Delete) };
-        ToolTipService.SetToolTip(del, "Eliminar");
-        del.Click += (_, _) => { AppState.Config.RemoveShortcut(index); BuildNotesAndShortcuts(); };
-        Grid.SetColumn(del, 1);
-
-        var grid = new Grid { ColumnSpacing = 6 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.Children.Add(text); grid.Children.Add(del);
-        return grid;
-    }
-
     private async void AddNoteBtn_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new NoteDialog { XamlRoot = this.XamlRoot };
         if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
         {
             AppState.Config.AddNote(dlg.TitleText, dlg.ContentText);
-            BuildNotesAndShortcuts();
+            BuildNotes();
         }
     }
 
@@ -135,14 +110,8 @@ public sealed partial class SettingsPage : Page
         if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
         {
             AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText);
-            BuildNotesAndShortcuts();
+            BuildNotes();
         }
-    }
-
-    private void AddShortcutBtn_Click(object sender, RoutedEventArgs e)
-    {
-        var r = AppState.Config.AddShortcut(ShortcutTitleBox.Text, ShortcutUrlBox.Text);
-        if (r.Success) { ShortcutTitleBox.Text = ""; ShortcutUrlBox.Text = ""; BuildNotesAndShortcuts(); }
     }
 
     // ---------- Segundo plano y arranque (#24/#20) ----------

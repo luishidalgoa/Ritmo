@@ -43,6 +43,21 @@
                      PlaceholderText="Spotify" />
             <TextBox x:Name="WebsitesBox" Header="Webs a bloquear (separadas por comas)"
                      PlaceholderText="youtube.com, twitter.com" />
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="Enlaces y herramientas del entorno" FontWeight="SemiBold" />
+                <StackPanel x:Name="LinksList" Spacing="4" />
+                <Grid ColumnSpacing="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="LinkTitleBox" Grid.Column="0" PlaceholderText="Título" />
+                    <TextBox x:Name="LinkUrlBox" Grid.Column="1" PlaceholderText="https://…" />
+                    <Button x:Name="AddLinkBtn" Grid.Column="2" Click="AddLinkBtn_Click" Content="Añadir" />
+                </Grid>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </ContentDialog>

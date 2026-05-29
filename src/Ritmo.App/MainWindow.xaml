@@ -17,6 +17,7 @@
                     IsSettingsVisible="False"
                     PaneDisplayMode="Left"
                     SelectionChanged="Nav_SelectionChanged"
+                    ItemInvoked="Nav_ItemInvoked"
                     Loaded="Nav_Loaded">
         <NavigationView.MenuItems>
             <NavigationViewItem Content="Hoy" Tag="home" IsSelected="True">
@@ -36,6 +37,11 @@
             </NavigationViewItem>
         </NavigationView.MenuItems>
         <NavigationView.FooterMenuItems>
+            <NavigationViewItem Content="Entornos de trabajo" Tag="workenv" SelectsOnInvoked="False">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE821;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem Content="Ajustes" Tag="settings">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE713;" />
@@ -43,6 +49,25 @@
             </NavigationViewItem>
         </NavigationView.FooterMenuItems>
 
-        <Frame x:Name="ContentFrame" />
+        <SplitView x:Name="RightPanel" PanePlacement="Right" DisplayMode="Overlay"
+                   OpenPaneLength="340" IsPaneOpen="False"
+                   PaneBackground="{ThemeResource LayerFillColorDefaultBrush}">
+            <SplitView.Pane>
+                <Grid Padding="16" RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Spacing="2">
+                        <TextBlock Text="Entornos de trabajo" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="Accesos rápidos por entorno." Opacity="0.7" FontSize="12" />
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="WorkEnvPanel" Spacing="8" />
+                    </ScrollViewer>
+                </Grid>
+            </SplitView.Pane>
+            <Frame x:Name="ContentFrame" />
+        </SplitView>
     </NavigationView>
 </Window>
