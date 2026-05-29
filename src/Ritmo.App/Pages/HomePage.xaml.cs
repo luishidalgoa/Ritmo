@@ -106,7 +106,11 @@ public sealed partial class HomePage : Page
             var stack = new StackPanel { Spacing = 2 };
             stack.Children.Add(new TextBlock { Text = note.Title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
             if (!string.IsNullOrWhiteSpace(note.Content))
-                stack.Children.Add(new TextBlock { Text = note.Content, Opacity = 0.75, TextWrapping = TextWrapping.Wrap });
+            {
+                var md = MarkdownRenderer.Build(note.Content);   // #72: render Markdown
+                md.Opacity = 0.85;
+                stack.Children.Add(md);
+            }
 
             var border = new Border
             {
