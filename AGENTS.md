@@ -10,6 +10,10 @@
    - Project: **Ritmo project** → https://github.com/users/luishidalgoa/projects/12/views/1
    - Comando: `gh project item-list 12 --owner luishidalgoa --format json`
    - Mira qué está en **In progress** (eso es lo que continúa) y qué hay en **Todo**.
+   - **Roadmap por fases**: ver `ROADMAP.md` y los Milestones
+     (`gh api repos/luishidalgoa/Ritmo/milestones?state=all`). Cada issue está
+     asignada a su milestone (M1…M5); trabaja en orden de milestone salvo que el
+     usuario diga otra cosa.
 2. **Toda tarea sale de un issue del Project.** Si no existe, créalo y añádelo al
    Project ANTES de programar. Pásalo a *In progress* al empezar y a *Done* al cerrar.
 3. **No hagas `git push` ni cierres issues sin OK explícito del usuario.**
