@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.UI.Xaml.Controls;
 using Ritmo.Core.Model;
 
@@ -7,13 +9,43 @@ namespace Ritmo_App.Dialogs;
 /// <summary>Diálogo para crear o editar una sesión del horario.</summary>
 public sealed partial class SessionDialog : ContentDialog
 {
+    private const int MaxAlerts = 2;   // spec: hasta 2 avisos previos
+
     private static readonly DayOfWeek[] Days =
         { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
           DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
 
+    // Avisos de la sesión que no son presets (p. ej. puestos por la IA): se preservan.
+    private IReadOnlyList<int> _preservedAlerts = [];
+    private bool _suppressAlertCheck;
+    private List<CheckBox> _alertBoxes = [];
+
     public SessionDialog()
     {
         InitializeComponent();
+        _alertBoxes = [Alert60, Alert10, Alert5];
+        foreach (var cb in _alertBoxes)
+            cb.Checked += AlertBox_Checked;
+    }
+
+    /// <summary>Minutos del preset asociado a cada casilla.</summary>
+    private static int MinutesOf(CheckBox cb) => cb.Name switch
+    {
+        nameof(Alert60) => 60,
+        nameof(Alert10) => 10,
+        _ => 5
+    };
+
+    /// <summary>Impide marcar más de <see cref="MaxAlerts"/> avisos (revierte el de más).</summary>
+    private void AlertBox_Checked(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (_suppressAlertCheck) return;
+        if (_alertBoxes.Count(b => b.IsChecked == true) <= MaxAlerts) return;
+
+        _suppressAlertCheck = true;
+        ((CheckBox)sender).IsChecked = false;     // revertir el tercero
+        _suppressAlertCheck = false;
+        AlertHint.Text = $"Máximo {MaxAlerts} avisos";
     }
 
     /// <summary>Rellena el diálogo con una sesión existente (para editar).</summary>
@@ -27,6 +59,14 @@ public sealed partial class SessionDialog : ContentDialog
         for (int i = 0; i < KindBox.Items.Count; i++)
             if (KindBox.Items[i] is ComboBoxItem it && (string)it.Tag == s.Kind.ToString())
             { KindBox.SelectedIndex = i; break; }
+
+        var minutes = s.PreAlerts.Select(a => a.MinutesBefore).ToHashSet();
+        _suppressAlertCheck = true;
+        Alert60.IsChecked = minutes.Contains(60);
+        Alert10.IsChecked = minutes.Contains(10);
+        Alert5.IsChecked = minutes.Contains(5);
+        _suppressAlertCheck = false;
+        _preservedAlerts = PreAlertPresets.NonStandardOf(s.PreAlerts);
     }
 
     /// <summary>Valores por defecto para una sesión nueva (día/hora opcionales,
@@ -37,6 +77,10 @@ public sealed partial class SessionDialog : ContentDialog
         StartPicker.Time = (start ?? new TimeOnly(9, 0)).ToTimeSpan();
         DurationBox.Value = 60;
         KindBox.SelectedIndex = 0;
+        // Aviso por defecto sensato para una sesión nueva: 10 minutos antes.
+        _suppressAlertCheck = true;
+        Alert10.IsChecked = true;
+        _suppressAlertCheck = false;
     }
 
     /// <summary>Construye la sesión a partir de lo que el usuario introdujo.</summary>
@@ -49,6 +93,9 @@ public sealed partial class SessionDialog : ContentDialog
         if (KindBox.SelectedItem is ComboBoxItem it && Enum.TryParse<StudyKind>((string)it.Tag, out var k))
             kind = k;
 
+        var selected = _alertBoxes.Where(b => b.IsChecked == true).Select(MinutesOf);
+        var alerts = PreAlertPresets.Compose(selected, _preservedAlerts);
+
         return new StudySession
         {
             Title = string.IsNullOrWhiteSpace(TitleBox.Text) ? "(sin título)" : TitleBox.Text.Trim(),
@@ -56,6 +103,7 @@ public sealed partial class SessionDialog : ContentDialog
             Start = start,
             Duration = TimeSpan.FromMinutes(minutes),
             Kind = kind,
+            PreAlerts = alerts,
             IsTentative = TentativeSwitch.IsOn
         };
     }

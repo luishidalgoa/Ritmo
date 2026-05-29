@@ -47,6 +47,17 @@
             <ComboBoxItem Content="Otro" Tag="Otro" />
         </ComboBox>
 
+        <StackPanel Spacing="2">
+            <TextBlock Text="Avisos previos" FontWeight="SemiBold" />
+            <TextBlock x:Name="AlertHint" Text="Hasta 2 recordatorios antes de empezar"
+                       Opacity="0.6" FontSize="12" />
+            <StackPanel Orientation="Horizontal" Spacing="18" Margin="0,6,0,0">
+                <CheckBox x:Name="Alert60" Content="1 hora" />
+                <CheckBox x:Name="Alert10" Content="10 min" />
+                <CheckBox x:Name="Alert5" Content="5 min" />
+            </StackPanel>
+        </StackPanel>
+
         <ToggleSwitch x:Name="TentativeSwitch" Header="Provisional (no dispara concentración)" OffContent="No" OnContent="Sí" />
     </StackPanel>
 </ContentDialog>
