@@ -1,4 +1,5 @@
 using System.Globalization;
+using Ritmo.Core.Focus;
 using Ritmo.Core.Model;
 using Ritmo.Core.Pomodoro;
 
@@ -16,6 +17,32 @@ internal sealed class SettingsDto
     public List<PhaseDto> Phases { get; set; } = [];
     public List<NoteDto> Notes { get; set; } = [];
     public ViewConfigDto? ViewConfig { get; set; }
+    public List<FocusEnvironmentDto> FocusEnvironments { get; set; } = [];
+    public string? DefaultFocusEnvironmentId { get; set; }
+    public Dictionary<string, string> EnvironmentByKind { get; set; } = [];
+}
+
+internal sealed class MusicDto
+{
+    public string Name { get; set; } = "";
+    public string Target { get; set; } = "";
+    public string? Arguments { get; set; }
+    public bool AutoPlay { get; set; }
+}
+
+internal sealed class FocusEnvironmentDto
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string? PomodoroPreset { get; set; }
+    public bool EnableDoNotDisturb { get; set; } = true;
+    public bool HideTaskbarBadges { get; set; } = true;
+    public bool ShowDayPreview { get; set; } = true;
+    public bool OpenStudyListInEdge { get; set; }
+    public List<string> BlockedWebsites { get; set; } = [];
+    public List<string> AppsToClose { get; set; } = [];
+    public List<string> AppsToMute { get; set; } = [];
+    public MusicDto? Music { get; set; }
 }
 
 internal sealed class SessionDto
@@ -88,7 +115,25 @@ internal static class SettingsMapper
         },
         Phases = s.Plan.Phases.Select(ToDto).ToList(),
         Notes = s.Notes.Select(ToDto).ToList(),
-        ViewConfig = ToDto(s.ViewConfig)
+        ViewConfig = ToDto(s.ViewConfig),
+        FocusEnvironments = s.FocusEnvironments.Select(ToDto).ToList(),
+        DefaultFocusEnvironmentId = s.DefaultFocusEnvironmentId,
+        EnvironmentByKind = s.EnvironmentByKind.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value)
+    };
+
+    private static FocusEnvironmentDto ToDto(FocusEnvironment e) => new()
+    {
+        Id = e.Id, Name = e.Name, PomodoroPreset = e.PomodoroPreset,
+        EnableDoNotDisturb = e.EnableDoNotDisturb, HideTaskbarBadges = e.HideTaskbarBadges,
+        ShowDayPreview = e.ShowDayPreview, OpenStudyListInEdge = e.OpenStudyListInEdge,
+        BlockedWebsites = e.BlockedWebsites.ToList(),
+        AppsToClose = e.AppsToClose.ToList(),
+        AppsToMute = e.AppsToMute.ToList(),
+        Music = e.Music is null ? null : new MusicDto
+        {
+            Name = e.Music.Name, Target = e.Music.Target,
+            Arguments = e.Music.Arguments, AutoPlay = e.Music.AutoPlay
+        }
     };
 
     private static SessionDto ToDto(StudySession x) => new()
@@ -136,7 +181,27 @@ internal static class SettingsMapper
             d.Pomodoro.FocusesPerLongBreak),
         Plan = new SchedulePlan { Phases = d.Phases.Select(FromDto).ToList() },
         Notes = d.Notes.Select(FromDto).ToList(),
-        ViewConfig = d.ViewConfig is null ? new ScheduleViewConfig() : FromDto(d.ViewConfig)
+        ViewConfig = d.ViewConfig is null ? new ScheduleViewConfig() : FromDto(d.ViewConfig),
+        FocusEnvironments = d.FocusEnvironments.Select(FromDto).ToList(),
+        DefaultFocusEnvironmentId = d.DefaultFocusEnvironmentId,
+        EnvironmentByKind = d.EnvironmentByKind
+            .Where(kv => Enum.TryParse<StudyKind>(kv.Key, ignoreCase: true, out _))
+            .ToDictionary(kv => Enum.Parse<StudyKind>(kv.Key, ignoreCase: true), kv => kv.Value)
+    };
+
+    private static FocusEnvironment FromDto(FocusEnvironmentDto e) => new()
+    {
+        Id = e.Id, Name = e.Name, PomodoroPreset = e.PomodoroPreset,
+        EnableDoNotDisturb = e.EnableDoNotDisturb, HideTaskbarBadges = e.HideTaskbarBadges,
+        ShowDayPreview = e.ShowDayPreview, OpenStudyListInEdge = e.OpenStudyListInEdge,
+        BlockedWebsites = e.BlockedWebsites.ToList(),
+        AppsToClose = e.AppsToClose.ToList(),
+        AppsToMute = e.AppsToMute.ToList(),
+        Music = e.Music is null ? null : new MusicLauncher
+        {
+            Name = e.Music.Name, Target = e.Music.Target,
+            Arguments = e.Music.Arguments, AutoPlay = e.Music.AutoPlay
+        }
     };
 
     private static StudySession FromDto(SessionDto x) => new()

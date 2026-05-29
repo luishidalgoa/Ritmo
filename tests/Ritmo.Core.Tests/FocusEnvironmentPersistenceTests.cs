@@ -1,0 +1,86 @@
+using Ritmo.Core.Focus;
+using Ritmo.Core.Model;
+using Ritmo.Core.Persistence;
+
+namespace Ritmo.Core.Tests;
+
+public class FocusEnvironmentPersistenceTests : IDisposable
+{
+    private readonly string _dir;
+    private readonly string _file;
+
+    public FocusEnvironmentPersistenceTests()
+    {
+        _dir = Path.Combine(Path.GetTempPath(), "RitmoEnv_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_dir);
+        _file = Path.Combine(_dir, "settings.json");
+    }
+
+    public void Dispose()
+    {
+        try { if (Directory.Exists(_dir)) Directory.Delete(_dir, true); } catch { }
+    }
+
+    private static AppSettings WithEnvironments() => new()
+    {
+        FocusEnvironments =
+        [
+            new FocusEnvironment
+            {
+                Id = "deep", Name = "Estudio profundo", PomodoroPreset = "DeepWork",
+                BlockedWebsites = ["youtube.com", "reddit.com"],
+                AppsToClose = ["Discord"],
+                AppsToMute = ["Spotify"],
+                OpenStudyListInEdge = true,
+                Music = new MusicLauncher { Name = "Aonsoku", Target = @"C:\Apps\Aonsoku.exe", AutoPlay = true }
+            },
+            new FocusEnvironment { Id = "ligero", Name = "Repaso ligero", EnableDoNotDisturb = false }
+        ],
+        DefaultFocusEnvironmentId = "deep",
+        EnvironmentByKind = new Dictionary<StudyKind, string>
+        {
+            [StudyKind.Simulacro] = "ligero"
+        }
+    };
+
+    [Fact]
+    public void RoundTrip_de_entornos()
+    {
+        var store = new JsonSettingsStore(_file);
+        store.Save(WithEnvironments());
+        var loaded = store.Load();
+
+        Assert.Equal(2, loaded.FocusEnvironments.Count);
+        var deep = loaded.FocusEnvironments.First(e => e.Id == "deep");
+        Assert.Equal("Estudio profundo", deep.Name);
+        Assert.Equal(new[] { "youtube.com", "reddit.com" }, deep.BlockedWebsites.ToArray());
+        Assert.Contains("Discord", deep.AppsToClose);
+        Assert.Contains("Spotify", deep.AppsToMute);
+        Assert.True(deep.OpenStudyListInEdge);
+        Assert.Equal("Aonsoku", deep.Music!.Name);
+        Assert.True(deep.Music.AutoPlay);
+
+        Assert.Equal("deep", loaded.DefaultFocusEnvironmentId);
+    }
+
+    [Fact]
+    public void ResolveEnvironment_usa_mapeo_por_tipo_y_luego_default()
+    {
+        var store = new JsonSettingsStore(_file);
+        store.Save(WithEnvironments());
+        var loaded = store.Load();
+
+        // Simulacro está mapeado a "ligero".
+        Assert.Equal("ligero", loaded.ResolveEnvironment(StudyKind.Simulacro)!.Id);
+        // Técnico no está mapeado -> cae al por defecto "deep".
+        Assert.Equal("deep", loaded.ResolveEnvironment(StudyKind.Tecnico)!.Id);
+    }
+
+    [Fact]
+    public void Sin_entornos_ResolveEnvironment_es_null()
+    {
+        var loaded = new JsonSettingsStore(_file).Load(); // archivo inexistente -> Default
+        Assert.Empty(loaded.FocusEnvironments);
+        Assert.Null(loaded.ResolveEnvironment(StudyKind.Tecnico));
+    }
+}

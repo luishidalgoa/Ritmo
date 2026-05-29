@@ -1,3 +1,4 @@
+using Ritmo.Core.Focus;
 using Ritmo.Core.Model;
 using Ritmo.Core.Pomodoro;
 
@@ -27,5 +28,32 @@ public sealed record AppSettings
     /// <summary>Preferencias de visualización del horario.</summary>
     public ScheduleViewConfig ViewConfig { get; init; } = new();
 
+    /// <summary>Entornos de concentración definidos por el usuario.</summary>
+    public IReadOnlyList<FocusEnvironment> FocusEnvironments { get; init; } = [];
+
+    /// <summary>Id del entorno usado por defecto al iniciar focus (o null).</summary>
+    public string? DefaultFocusEnvironmentId { get; init; }
+
+    /// <summary>
+    /// Mapeo opcional tipo de bloque → id de entorno, para asociar automáticamente
+    /// (p. ej. un bloque "Simulacro" usa el entorno "Simulacro").
+    /// </summary>
+    public IReadOnlyDictionary<StudyKind, string> EnvironmentByKind { get; init; }
+        = new Dictionary<StudyKind, string>();
+
     public static AppSettings Default => new();
+
+    /// <summary>
+    /// Resuelve qué entorno usar para un tipo de bloque: primero el mapeo por tipo,
+    /// luego el por defecto, y si nada aplica, null.
+    /// </summary>
+    public FocusEnvironment? ResolveEnvironment(StudyKind kind)
+    {
+        if (EnvironmentByKind.TryGetValue(kind, out var id))
+        {
+            var byKind = FocusEnvironments.FirstOrDefault(e => e.Id == id);
+            if (byKind is not null) return byKind;
+        }
+        return FocusEnvironments.FirstOrDefault(e => e.Id == DefaultFocusEnvironmentId);
+    }
 }
