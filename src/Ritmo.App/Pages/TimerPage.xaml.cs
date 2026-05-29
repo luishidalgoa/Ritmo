@@ -20,7 +20,7 @@ public sealed partial class TimerPage : Page
     private readonly PomodoroEngine _engine = new(PomodoroConfig.DeepWork);
     private readonly IFocusController _focus = new WindowsFocusController();
     private DispatcherQueueTimer? _ticker;
-    private bool _musicLaunched;
+    private bool _environmentApplied;
 
     public TimerPage()
     {
@@ -114,13 +114,18 @@ public sealed partial class TimerPage : Page
         if (shouldFocus && !_focus.IsActive)
         {
             _focus.Enter();
-            // Lanzar la música del entorno por defecto una sola vez por sesión.
-            if (!_musicLaunched)
+            // Acciones del entorno por defecto, una sola vez por sesión.
+            if (!_environmentApplied)
             {
-                var env = AppState.Load().FocusEnvironments
-                    .FirstOrDefault(e => e.Id == AppState.Load().DefaultFocusEnvironmentId);
-                if (env?.Music is not null && MusicService.TryLaunch(env.Music))
-                    _musicLaunched = true;
+                _environmentApplied = true;
+                var settings = AppState.Load();
+                var env = settings.FocusEnvironments
+                    .FirstOrDefault(e => e.Id == settings.DefaultFocusEnvironmentId);
+                if (env is not null)
+                {
+                    MusicService.TryLaunch(env.Music);          // lanzar música (#10)
+                    AppCloser.CloseAll(env.AppsToClose);         // cerrar apps de ruido (#35)
+                }
             }
         }
         else if (!shouldFocus && _focus.IsActive)
@@ -128,7 +133,7 @@ public sealed partial class TimerPage : Page
             _focus.Exit();
         }
 
-        if (_engine.Phase == PomodoroPhase.Idle) _musicLaunched = false;  // reset al parar
+        if (_engine.Phase == PomodoroPhase.Idle) _environmentApplied = false;  // reset al parar
         DndBadge.Visibility = _focus.IsActive ? Visibility.Visible : Visibility.Collapsed;
     }
 }
