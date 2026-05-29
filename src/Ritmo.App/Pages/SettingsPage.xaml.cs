@@ -110,6 +110,73 @@ public sealed partial class SettingsPage : Page
 
     private void ExitBtn_Click(object sender, RoutedEventArgs e) => MainWindow.Current?.ExitApp();
 
+    // ---------- Copia de seguridad: exportar / importar (#56) ----------
+
+    private static nint WindowHandle()
+        => MainWindow.Current is null ? 0 : WinRT.Interop.WindowNative.GetWindowHandle(MainWindow.Current);
+
+    private async void ExportBtn_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var picker = new Windows.Storage.Pickers.FileSavePicker
+            {
+                SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary,
+                SuggestedFileName = "ritmo-config"
+            };
+            picker.FileTypeChoices.Add("Configuración de Ritmo", new System.Collections.Generic.List<string> { ".json" });
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, WindowHandle());
+
+            var file = await picker.PickSaveFileAsync();
+            if (file is null) return;
+            await Windows.Storage.FileIO.WriteTextAsync(file, AppState.Config.ExportJson());
+            BackupStatus.Text = $"✓ Exportado a {file.Name}";
+        }
+        catch (Exception ex) { BackupStatus.Text = $"⚠ {ex.Message}"; }
+    }
+
+    private async void ImportBtn_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var picker = new Windows.Storage.Pickers.FileOpenPicker
+            {
+                SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary
+            };
+            picker.FileTypeFilter.Add(".json");
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, WindowHandle());
+
+            var file = await picker.PickSingleFileAsync();
+            if (file is null) return;
+
+            // Importar reemplaza TODO: confirmar antes.
+            var confirm = new ContentDialog
+            {
+                XamlRoot = this.XamlRoot,
+                Title = "Importar configuración",
+                Content = "Esto reemplazará toda tu configuración actual por la del archivo. ¿Continuar?",
+                PrimaryButtonText = "Importar",
+                CloseButtonText = "Cancelar",
+                DefaultButton = ContentDialogButton.Close
+            };
+            if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+
+            var json = await Windows.Storage.FileIO.ReadTextAsync(file);
+            var r = AppState.Config.ImportJson(json);
+            if (r.Success)
+            {
+                ScheduleHost.Instance.Start();   // re-leer el horario importado
+                LoadValues();                    // refrescar la pantalla
+                BackupStatus.Text = "✓ Configuración importada";
+            }
+            else
+            {
+                BackupStatus.Text = $"⚠ {r.Message}";
+            }
+        }
+        catch (Exception ex) { BackupStatus.Text = $"⚠ {ex.Message}"; }
+    }
+
     // ---------- Entornos de concentración (#53) ----------
 
     private void BuildEnvList()

@@ -18,6 +18,32 @@ public sealed class ConfigurationService
     /// <summary>Lee el estado actual (sin modificar nada).</summary>
     public AppSettings GetSettings() => _store.Load();
 
+    /// <summary>Serializa toda la configuración a JSON (para exportar / respaldar). #56</summary>
+    public string ExportJson() => SettingsJson.Serialize(_store.Load());
+
+    /// <summary>
+    /// Reemplaza TODA la configuración por la de un JSON exportado. Valida que el
+    /// JSON sea parseable antes de guardar; si no, no toca nada. #56
+    /// </summary>
+    public CommandResult ImportJson(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return CommandResult.Fail("El archivo está vacío.");
+
+        AppSettings imported;
+        try
+        {
+            imported = SettingsJson.Deserialize(json);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return CommandResult.Fail("El archivo no es una configuración válida de Ritmo.");
+        }
+
+        _store.Save(imported);
+        return CommandResult.Ok("Configuración importada.");
+    }
+
     /// <summary>Resumen del estado para responder a la IA o pintar la UI.</summary>
     public StatusReport GetStatus()
     {

@@ -90,6 +90,32 @@
                 </StackPanel>
             </Border>
 
+            <!-- Copia de seguridad (#56) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Copia de seguridad" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                               Text="Exporta toda tu configuración (horario, fases, entornos, notas, ajustes) a un archivo, o impórtala para restaurarla. Importar reemplaza la configuración actual." />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button x:Name="ExportBtn" Click="ExportBtn_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xEDE1;" FontSize="14" />
+                                <TextBlock Text="Exportar configuración" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="ImportBtn" Click="ImportBtn_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8B5;" FontSize="14" />
+                                <TextBlock Text="Importar configuración" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock x:Name="BackupStatus" VerticalAlignment="Center" Opacity="0.8" FontSize="13" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- Segundo plano y arranque (#24/#20) -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"

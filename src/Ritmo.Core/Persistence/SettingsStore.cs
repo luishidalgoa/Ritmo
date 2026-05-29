@@ -16,12 +16,6 @@ public interface ISettingsStore
 /// </summary>
 public sealed class JsonSettingsStore : ISettingsStore
 {
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     public string FilePath { get; }
 
     public JsonSettingsStore(string filePath) => FilePath = filePath;
@@ -43,11 +37,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 return AppSettings.Default;
 
             var json = File.ReadAllText(FilePath);
-            if (string.IsNullOrWhiteSpace(json))
-                return AppSettings.Default;
-
-            var dto = JsonSerializer.Deserialize<SettingsDto>(json, Options);
-            return dto is null ? AppSettings.Default : SettingsMapper.FromDto(dto);
+            return SettingsJson.Deserialize(json);
         }
         catch (JsonException)
         {
@@ -62,8 +52,7 @@ public sealed class JsonSettingsStore : ISettingsStore
         if (!string.IsNullOrEmpty(dir))
             Directory.CreateDirectory(dir);
 
-        var dto = SettingsMapper.ToDto(settings);
-        var json = JsonSerializer.Serialize(dto, Options);
+        var json = SettingsJson.Serialize(settings);
 
         // Escritura atómica: a un temporal y luego reemplazo, para no dejar el
         // archivo a medias si algo falla a mitad de escritura.
