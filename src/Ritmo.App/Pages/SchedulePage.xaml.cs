@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -32,139 +33,169 @@ public sealed partial class SchedulePage : Page
     private const double RowHeight = 26;      // alto de media hora
     private const int SlotsPerHour = 2;
 
-    // Estado del arrastre de redimensión horizontal (#82).
-    private bool _dragging;
-    private Border? _dragCard;
-    private Ritmo.Core.Scheduling.SessionGroup? _dragGroup;
-    private int _dragC0;
+    private enum DragMode { None, Move, ResizeH, ResizeV, ResizeBoth }
 
-    // Estado del arrastre para MOVER una sesión (#82).
-    private bool _movePressed, _moving;
-    private double _moveStartX, _moveStartY;
-    private Border? _moveCard;
-    private Ritmo.Core.Scheduling.SessionGroup? _moveGroup;
-    private int _moveStartSlot;
-
-    // Estado de la redimensión VERTICAL (duración) por el asa inferior (#90).
-    private bool _vdragging;
-    private Border? _vdragCard;
-    private Ritmo.Core.Scheduling.SessionGroup? _vdragGroup;
-    private int _vdragStartSlot;
-
-    // Asas de cada tarjeta (para ocultarlas al mover, #89) y hora superior de la rejilla.
-    private readonly Dictionary<Border, List<Border>> _cardHandles = [];
+    // Estado unificado del arrastre (mover / redimensionar) #82/#88/#89/#90.
+    private DragMode _mode = DragMode.None;
+    private SessionCard? _card;
+    private Ritmo.Core.Scheduling.SessionGroup? _group;
+    private double _startX, _startY;          // inicio del puntero en coords de GridRoot
+    private int _c0, _startSlot, _startDaySpan, _startRowSpan;
+    private bool _movedEnough;
+    private int _maxDaySpan, _maxRows;         // topes para no solapar (calculados al empezar)
+    private int _curCol, _curRow, _curDaySpan, _curRowSpan;   // preview actual (válido)
     private int _startHour = 8;
+    private IReadOnlyList<StudySession> _keptForDrag = [];
 
     public SchedulePage()
     {
         InitializeComponent();
         Loaded += (_, _) => Build();
-        // Durante el arrastre, los movimientos/soltar se atienden a nivel de la
-        // rejilla (con el puntero capturado), no del asa minúscula (#82).
+        // El movimiento/soltar se atienden a nivel de rejilla (con el puntero capturado).
         GridRoot.PointerMoved += GridRoot_PointerMoved;
         GridRoot.PointerReleased += GridRoot_PointerReleased;
-        GridRoot.PointerCaptureLost += (_, _) =>
-        {
-            _dragging = false; _dragCard = null;
-            _vdragging = false; _vdragCard = null;
-            if (_movePressed) { _movePressed = false; _moving = false; if (_moveCard is not null) _moveCard.Opacity = 1.0; _moveCard = null; _moveGroup = null; }
-        };
+        GridRoot.PointerCaptureLost += (_, _) => CancelDrag();
+    }
+
+    private void CancelDrag()
+    {
+        if (_card is not null) _card.Opacity = _group is not null && _group.Representative.IsTentative ? 0.6 : 1.0;
+        _mode = DragMode.None; _card = null; _group = null;
     }
 
     private void GridRoot_PointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
+        if (_mode == DragMode.None || _card is null || _group is null) return;
         var pt = e.GetCurrentPoint(GridRoot).Position;
 
-        // Redimensión horizontal por el asa derecha.
-        if (_dragging && _dragCard is not null)
+        if (!_movedEnough && (Math.Abs(pt.X - _startX) > 6 || Math.Abs(pt.Y - _startY) > 6))
+        {
+            _movedEnough = true;
+            if (_mode == DragMode.Move) _card.Opacity = 0.6;
+        }
+        if (!_movedEnough) return;
+
+        if (_mode is DragMode.ResizeH or DragMode.ResizeBoth)
         {
             int targetDay = (int)Math.Floor((pt.X - HourColWidth) / DayColWidth);
-            targetDay = Math.Clamp(targetDay, _dragC0, 6);
-            Grid.SetColumnSpan(_dragCard, targetDay - _dragC0 + 1);
-            return;
+            targetDay = Math.Clamp(targetDay, _c0, _c0 + _maxDaySpan - 1);
+            _curDaySpan = targetDay - _c0 + 1;
+            Grid.SetColumnSpan(_card, _curDaySpan);
         }
-
-        // Redimensión vertical por el asa inferior (cambia el nº de filas = duración).
-        if (_vdragging && _vdragCard is not null)
+        if (_mode is DragMode.ResizeV or DragMode.ResizeBoth)
         {
-            int bottomRow = (int)Math.Round((pt.Y - 32) / RowHeight);   // 32 = fila de cabecera
-            int newSpan = Math.Max(1, bottomRow - _vdragStartSlot + 1);
-            Grid.SetRowSpan(_vdragCard, newSpan);
-            return;
+            int bottomRow = (int)Math.Round((pt.Y - 32) / RowHeight);   // 32 = cabecera
+            int span = Math.Clamp(bottomRow - _startSlot + 1, 1, _maxRows);
+            _curRowSpan = span;
+            Grid.SetRowSpan(_card, _curRowSpan);
         }
-
-        // Mover (arrastrar el cuerpo). Empieza al superar un umbral, para no robar el clic.
-        if (_movePressed && _moveCard is not null && _moveGroup is not null)
+        if (_mode == DragMode.Move)
         {
-            if (!_moving && (Math.Abs(pt.X - _moveStartX) > 6 || Math.Abs(pt.Y - _moveStartY) > 6))
+            int dayDelta = (int)Math.Round((pt.X - _startX) / DayColWidth);
+            int slotDelta = (int)Math.Round((pt.Y - _startY) / RowHeight);
+            int dayIndex = Math.Clamp(_c0 + dayDelta, 0, 7 - _startDaySpan);
+            int row = Math.Max(1, _startSlot + slotDelta);
+            // Solo aceptar la nueva posición si NO solapa (si solapa, se queda en la última válida).
+            if (!MoveCollides(dayIndex, row))
             {
-                _moving = true;
-                _moveCard.Opacity = 0.6;          // feedback de "agarrado"
-                HideHandles(_moveCard);            // el asa no se queda huérfana (#89)
-            }
-            if (_moving)
-            {
-                int dayDelta = (int)Math.Round((pt.X - _moveStartX) / DayColWidth);
-                int slotDelta = (int)Math.Round((pt.Y - _moveStartY) / RowHeight);
-                int newCol = Math.Clamp(_moveGroup.FirstDayIndex + dayDelta, 0, 7 - _moveGroup.DaySpan) + 1;
-                int newRow = Math.Max(1, _moveStartSlot + slotDelta);
-                Grid.SetColumn(_moveCard, newCol);
-                Grid.SetRow(_moveCard, newRow);
+                _curCol = dayIndex + 1; _curRow = row;
+                Grid.SetColumn(_card, _curCol); Grid.SetRow(_card, _curRow);
             }
         }
     }
 
-    private void HideHandles(Border card)
+    private bool MoveCollides(int dayIndex, int row)
     {
-        if (_cardHandles.TryGetValue(card, out var hs))
-            foreach (var h in hs) h.Visibility = Visibility.Collapsed;
+        var rep = _group!.Representative;
+        var start = ScheduleMath.ShiftStart(rep.Start, row - _startSlot);
+        var cand = _group.Members.Select(m =>
+            rep with { Day = Days[Math.Clamp(Array.IndexOf(Days, m.Day) + (dayIndex - _c0), 0, 6)], Start = start });
+        return Collides(cand, _keptForDrag);
     }
 
     private void GridRoot_PointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
         GridRoot.ReleasePointerCapture(e.Pointer);
+        if (_mode == DragMode.None || _card is null || _group is null) { CancelDrag(); return; }
 
-        if (_dragging)
+        var mode = _mode; var group = _group; bool moved = _movedEnough;
+        if (_card is not null) _card.Opacity = group.Representative.IsTentative ? 0.6 : 1.0;
+        _mode = DragMode.None; var card = _card; _card = null; _group = null;
+
+        if (!moved)
         {
-            _dragging = false;
-            var card = _dragCard; var group = _dragGroup; var c0 = _dragC0;
-            _dragCard = null; _dragGroup = null;
-            if (card is not null && group is not null)
-                _ = ApplyResize(group, c0, Grid.GetColumnSpan(card));
+            if (mode == DragMode.Move) _ = ShowEditGroup(group);   // clic sin arrastre = editar
+            else Build();                                           // toque en un borde: repintar
             return;
         }
 
-        if (_vdragging)
+        switch (mode)
         {
-            _vdragging = false;
-            var card = _vdragCard; var group = _vdragGroup;
-            _vdragCard = null; _vdragGroup = null;
-            if (card is not null && group is not null)
-                _ = ApplyVerticalResize(group, Grid.GetRowSpan(card));
-            return;
+            case DragMode.Move:
+                _ = ApplyMove(group, (_curCol - 1) - _c0, RowsToSlotDelta(_curRow)); break;
+            case DragMode.ResizeH:
+                _ = ApplyResize(group, _c0, _curDaySpan); break;
+            case DragMode.ResizeV:
+                _ = ApplyVerticalResize(group, _curRowSpan); break;
+            case DragMode.ResizeBoth:
+                _ = ApplyResizeBoth(group, _c0, _curDaySpan, _curRowSpan); break;
         }
+    }
 
-        if (_movePressed)
+    private int RowsToSlotDelta(int newRow) => newRow - _startSlot;
+
+    /// <summary>Empieza un arrastre desde la tarjeta, según la zona pulsada (borde/cuerpo).</summary>
+    private void BeginDrag(SessionCard card, Ritmo.Core.Scheduling.SessionGroup group, DragMode mode,
+                           int c0, int startSlot, int daySpan, int rowSpan,
+                           Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        _mode = mode; _card = card; _group = group; _movedEnough = false;
+        _c0 = c0; _startSlot = startSlot; _startDaySpan = daySpan; _startRowSpan = rowSpan;
+        _curCol = c0 + 1; _curRow = startSlot; _curDaySpan = daySpan; _curRowSpan = rowSpan;
+        var pt = e.GetCurrentPoint(GridRoot).Position; _startX = pt.X; _startY = pt.Y;
+
+        // Conservadas (no del grupo) + topes de no-solape, calculados una vez.
+        var settings = AppState.Load();
+        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        var rep = group.Representative;
+        var groupDays = group.Members.Select(m => m.Day).ToHashSet();
+        _keptForDrag = phase is null ? []
+            : phase.Schedule.Sessions.Where(x => !(SameBlock(x, rep) && groupDays.Contains(x.Day))).ToList();
+        _maxDaySpan = MaxDaySpan(rep, c0, rep.Duration, _keptForDrag);
+        _maxRows = MaxRows(rep, groupDays, _keptForDrag);
+
+        GridRoot.CapturePointer(e.Pointer);
+        e.Handled = true;
+    }
+
+    /// <summary>Máximo nº de columnas contiguas (desde c0) sin pisar otra sesión.</summary>
+    private int MaxDaySpan(StudySession rep, int c0, TimeSpan dur, IReadOnlyList<StudySession> kept)
+    {
+        int max = 1;
+        for (int d = c0 + 1; d <= 6; d++)
         {
-            var pt = e.GetCurrentPoint(GridRoot).Position;
-            bool wasMoving = _moving;
-            var group = _moveGroup;
-            _movePressed = false; _moving = false;
-            var card = _moveCard; _moveCard = null; _moveGroup = null;
-            if (card is not null) card.Opacity = 1.0;
+            bool collide = kept.Any(k => k.Day == Days[d] && ScheduleMath.TimesOverlap(rep.Start, dur, k.Start, k.Duration));
+            if (collide) break;
+            max = d - c0 + 1;
+        }
+        return max;
+    }
 
-            if (group is null) return;
-            if (wasMoving)
+    /// <summary>Máximo nº de filas (medias horas) que puede durar sin pisar nada debajo en ningún día.</summary>
+    private int MaxRows(StudySession rep, System.Collections.Generic.HashSet<DayOfWeek> groupDays, IReadOnlyList<StudySession> kept)
+    {
+        int startMin = rep.Start.Hour * 60 + rep.Start.Minute;
+        int maxEnd = 24 * 60;
+        foreach (var day in groupDays)
+        {
+            foreach (var k in kept.Where(k => k.Day == day))
             {
-                int dayDelta = (int)Math.Round((pt.X - _moveStartX) / DayColWidth);
-                int slotDelta = (int)Math.Round((pt.Y - _moveStartY) / RowHeight);
-                _ = ApplyMove(group, dayDelta, slotDelta);
-            }
-            else
-            {
-                _ = ShowEditGroup(group);   // fue un clic, no un arrastre -> editar
+                int kStart = k.Start.Hour * 60 + k.Start.Minute;
+                if (kStart >= startMin && kStart < maxEnd) maxEnd = kStart;   // sesión que empieza por debajo
             }
         }
+        int slotMin = 60 / SlotsPerHour;
+        return Math.Max(1, (maxEnd - startMin) / slotMin);
     }
 
     private void Build()
@@ -207,7 +238,6 @@ public sealed partial class SchedulePage : Page
         g.Children.Clear();
         g.RowDefinitions.Clear();
         g.ColumnDefinitions.Clear();
-        _cardHandles.Clear();
 
         g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(HourColWidth) });
         for (int c = 0; c < 7; c++)
@@ -310,16 +340,12 @@ public sealed partial class SchedulePage : Page
             var baseColor = ScheduleColors.For(s.Kind);
             bool isActive = activeSession is not null && group.Members.Any(m => ReferenceEquals(m, activeSession));
 
-            // Tarjeta como Border (controlamos el hover nosotros para conservar el color).
-            var card = new Border
+            // Border visual de la tarjeta (dentro de un SessionCard para poder cambiar el cursor).
+            var visual = new Border
             {
                 Background = baseColor,
                 CornerRadius = new CornerRadius(6),
-                Margin = new Thickness(2),
                 Padding = new Thickness(6, 3, 6, 3),
-                Opacity = s.IsTentative ? 0.6 : 1.0,
-                Tag = group,
-                // Bloque activo ahora: anillo de acento persistente.
                 BorderBrush = isActive ? new SolidColorBrush(accentColor) : null,
                 BorderThickness = isActive ? new Thickness(2) : new Thickness(0),
                 Child = new StackPanel
@@ -335,37 +361,40 @@ public sealed partial class SchedulePage : Page
                     }
                 }
             };
-            // Hover sutil: un borde de acento; al salir, vuelve al anillo (si activo) o a nada.
+            var card = new SessionCard
+            {
+                Content = visual,
+                Margin = new Thickness(2),
+                Opacity = s.IsTentative ? 0.6 : 1.0,
+                Tag = group
+            };
+
+            // Hover: borde de acento + cursor según la zona (cuerpo=mover, bordes/esquina=redimensionar).
             double restThickness = isActive ? 2 : 0;
-            card.PointerEntered += (o, _) => {
-                var b = (Border)o;
-                b.BorderThickness = new Thickness(1.5);
-                b.BorderBrush = ScheduleColors.TextFor(s.Kind);
+            int cardStartSlot = startSlot, cardSpanSlots = spanSlots, cardDayCol = dayCol;
+            var thisGroup = group;
+            card.PointerEntered += (_, _) => {
+                visual.BorderThickness = new Thickness(1.5);
+                visual.BorderBrush = ScheduleColors.TextFor(s.Kind);
             };
-            card.PointerExited += (o, _) => {
-                var b = (Border)o;
-                b.BorderThickness = new Thickness(restThickness);
-                b.BorderBrush = isActive ? new SolidColorBrush(accentColor) : null;
+            card.PointerExited += (_, _) => {
+                visual.BorderThickness = new Thickness(restThickness);
+                visual.BorderBrush = isActive ? new SolidColorBrush(accentColor) : null;
             };
-            // Arrastrar el cuerpo = mover; un clic sin arrastre = editar (#82).
-            int cardStartSlot = startSlot;
+            card.PointerMoved += (o, e) =>
+            {
+                if (_mode != DragMode.None) return;   // durante un arrastre no cambies el cursor
+                var b = (SessionCard)o;
+                b.SetCursor(ZoneCursor(b, e));
+            };
             card.PointerPressed += (o, e) =>
             {
-                if (_dragging) return;   // hay una redimensión en curso
-                var pt = e.GetCurrentPoint(GridRoot).Position;
-                _movePressed = true; _moving = false;
-                _moveStartX = pt.X; _moveStartY = pt.Y;
-                _moveCard = (Border)o; _moveGroup = (Ritmo.Core.Scheduling.SessionGroup)((Border)o).Tag;
-                _moveStartSlot = cardStartSlot;
-                GridRoot.CapturePointer(e.Pointer);
-                e.Handled = true;
+                var b = (SessionCard)o;
+                BeginDrag(b, thisGroup, ZoneMode(b, e), cardDayCol, cardStartSlot, thisGroup.DaySpan, cardSpanSlots, e);
             };
             Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
             Grid.SetColumn(card, dayCol + 1); Grid.SetColumnSpan(card, group.DaySpan);
             g.Children.Add(card);
-
-            // Asas de redimensión (derecha = días, inferior = duración) #82/#90.
-            AddResizeHandles(g, card, group, startSlot, spanSlots, accentColor);
 
             // Bloque activo: botón ▶ para concentrarse en él (lleva al temporizador).
             if (isActive)
@@ -413,68 +442,29 @@ public sealed partial class SchedulePage : Page
     /// <summary>Lleva al temporizador y arranca la concentración del bloque activo.</summary>
     private void FocusNow() => Navigator.GoToTimer(this, autoStart: true);
 
-    // ---------- Asas de redimensión: derecha (días) e inferior (duración) #82/#90 ----------
+    // ---------- Zonas del cursor (borde derecho = días, inferior = duración, esquina = ambas) ----------
 
-    private void AddResizeHandles(Grid g, Border card, Ritmo.Core.Scheduling.SessionGroup group,
-                                  int startSlot, int spanSlots, Windows.UI.Color accentColor)
+    private const double EdgePx = 12;
+
+    private static (bool right, bool bottom) Zone(SessionCard card, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
-        int c0 = group.FirstDayIndex;
-        var handles = new List<Border>();
+        var p = e.GetCurrentPoint(card).Position;
+        return (p.X >= card.ActualWidth - EdgePx, p.Y >= card.ActualHeight - EdgePx);
+    }
 
-        // Asa derecha: extiende/encoge por días.
-        var right = new Border
-        {
-            Width = 8,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Stretch,
-            Margin = new Thickness(0, 2, 2, 2),
-            CornerRadius = new CornerRadius(0, 6, 6, 0),
-            Background = new SolidColorBrush(accentColor),
-            Opacity = 0
-        };
-        ToolTipService.SetToolTip(right, "Arrastra para extender por días");
-        right.PointerEntered += (o, _) => { if (!_dragging) ((Border)o).Opacity = 0.85; };
-        right.PointerExited += (o, _) => { if (!_dragging) ((Border)o).Opacity = 0.35; };
-        right.PointerPressed += (o, e) =>
-        {
-            _dragging = true; _dragCard = card; _dragGroup = group; _dragC0 = c0;
-            ((Border)o).Opacity = 0.9;
-            GridRoot.CapturePointer(e.Pointer);
-            e.Handled = true;
-        };
-        Grid.SetRow(right, startSlot); Grid.SetRowSpan(right, spanSlots);
-        Grid.SetColumn(right, c0 + group.DaySpan);
-        g.Children.Add(right); handles.Add(right);
+    private static InputSystemCursorShape ZoneCursor(SessionCard card, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        var (r, b) = Zone(card, e);
+        return (r && b) ? InputSystemCursorShape.SizeNorthwestSoutheast
+             : r ? InputSystemCursorShape.SizeWestEast
+             : b ? InputSystemCursorShape.SizeNorthSouth
+             : InputSystemCursorShape.SizeAll;
+    }
 
-        // Asa inferior: cambia la duración (eje Y).
-        var bottom = new Border
-        {
-            Height = 8,
-            VerticalAlignment = VerticalAlignment.Bottom,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            Margin = new Thickness(2, 0, 2, 2),
-            CornerRadius = new CornerRadius(0, 0, 6, 6),
-            Background = new SolidColorBrush(accentColor),
-            Opacity = 0
-        };
-        ToolTipService.SetToolTip(bottom, "Arrastra para cambiar la duración");
-        bottom.PointerEntered += (o, _) => { if (!_vdragging) ((Border)o).Opacity = 0.85; };
-        bottom.PointerExited += (o, _) => { if (!_vdragging) ((Border)o).Opacity = 0.35; };
-        bottom.PointerPressed += (o, e) =>
-        {
-            _vdragging = true; _vdragCard = card; _vdragGroup = group; _vdragStartSlot = startSlot;
-            ((Border)o).Opacity = 0.9;
-            GridRoot.CapturePointer(e.Pointer);
-            e.Handled = true;
-        };
-        Grid.SetRow(bottom, startSlot + spanSlots - 1); Grid.SetColumn(bottom, c0 + 1); Grid.SetColumnSpan(bottom, group.DaySpan);
-        g.Children.Add(bottom); handles.Add(bottom);
-
-        // Ambas asas se insinúan al pasar el ratón por la tarjeta.
-        card.PointerEntered += (_, _) => { if (!_dragging && !_vdragging) { right.Opacity = 0.55; bottom.Opacity = 0.55; } };
-        card.PointerExited += (_, _) => { if (!_dragging && !_vdragging) { right.Opacity = 0; bottom.Opacity = 0; } };
-
-        _cardHandles[card] = handles;
+    private static DragMode ZoneMode(SessionCard card, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        var (r, b) = Zone(card, e);
+        return (r && b) ? DragMode.ResizeBoth : r ? DragMode.ResizeH : b ? DragMode.ResizeV : DragMode.Move;
     }
 
     /// <summary>¿Algún candidato pisa (mismo día, horario solapado) una sesión conservada? #88</summary>
@@ -570,6 +560,30 @@ public sealed partial class SchedulePage : Page
         if (Collides(resized, kept)) { Build(); return; }   // chocaría con algo debajo (#90)
 
         AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. resized]);
+        await Task.CompletedTask;
+        Build();
+    }
+
+    /// <summary>Redimensión en esquina: cambia días Y duración a la vez.</summary>
+    private async Task ApplyResizeBoth(Ritmo.Core.Scheduling.SessionGroup group, int c0, int daySpan, int rowSpan)
+    {
+        if (_activePhaseName is null) { Build(); return; }
+        var settings = AppState.Load();
+        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        if (phase is null) { Build(); return; }
+
+        var rep = group.Representative;
+        var origDays = group.Members.Select(m => m.Day).ToHashSet();
+        bool Belongs(StudySession x) => SameBlock(x, rep) && origDays.Contains(x.Day);
+        var kept = phase.Schedule.Sessions.Where(x => !Belongs(x)).ToList();
+
+        var newDuration = TimeSpan.FromMinutes(Math.Max(1, rowSpan) * (60 / SlotsPerHour));
+        var rebuilt = Enumerable.Range(c0, Math.Clamp(daySpan, 1, 7 - c0))
+                                .Select(i => rep with { Day = Days[i], Duration = newDuration }).ToList();
+
+        if (Collides(rebuilt, kept)) { Build(); return; }
+
+        AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
         await Task.CompletedTask;
         Build();
     }
