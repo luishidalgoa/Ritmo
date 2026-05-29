@@ -51,7 +51,7 @@
 
         <SplitView x:Name="RightPanel" PanePlacement="Right" DisplayMode="Overlay"
                    OpenPaneLength="340" IsPaneOpen="False"
-                   PaneBackground="{ThemeResource LayerFillColorDefaultBrush}">
+                   PaneBackground="{ThemeResource SolidBackgroundFillColorBaseBrush}">
             <SplitView.Pane>
                 <Grid Padding="16" RowSpacing="12">
                     <Grid.RowDefinitions>
