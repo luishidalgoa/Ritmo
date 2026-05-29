@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Ritmo.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Ritmo.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
