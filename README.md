@@ -1,0 +1,46 @@
+# FocusTAI
+
+App de escritorio (Windows 11) para preparar la oposición **TAI** con técnica Pomodoro y horario semanal.
+
+App **en segundo plano**, look moderno (WinUI 3 / estilo Reloj de Windows 11), **sin inicio de sesión ni usuarios**: se instala en el sistema y listo.
+
+## Qué hace (objetivo)
+
+- ⏱️ **Pomodoro** con sesiones de concentración.
+- 🗓️ **Horario semanal**: defines qué sesión toca a qué hora de qué día.
+- 🔔 **Avisos previos configurables** (1 h / 10 min / 5 min antes… incluso 2 avisos por sesión).
+- 🎯 **Modo concentración**: activa *No molestar*, oculta distractores y silencia el ruido.
+- 🌐 Bloqueo de webs distractoras en Edge durante la sesión.
+- 🤐 Cierra/silencia apps de ruido (Discord, juegos…).
+- 🎵 Lanza tu app de música (Aonsoku, Spotify…), configurable.
+- 📚 Abre (o crea) la lista de trabajo **"Estudio"** en Edge.
+
+## Arquitectura
+
+Núcleo puro y testeable, separado de la integración con el SO y la UI:
+
+| Proyecto | Rol | Testeable |
+|---|---|---|
+| `src/FocusTAI.Core` | Lógica pura: modelo, planificador de horario, Pomodoro, avisos. Sin dependencias de Windows. | ✅ 100% |
+| `tests/FocusTAI.Core.Tests` | Tests xUnit del núcleo. | — |
+| `src/FocusTAI.App` *(pendiente)* | UI WinUI 3 + integración con el SO (No molestar, Edge, música…). | parcial |
+
+> Filosofía: **el cerebro de la app se prueba sin pantalla**. La UI y el SO se montan encima.
+
+## Desarrollo
+
+Requisitos: .NET 9 SDK, plantillas WinUI 3 (Windows App SDK).
+
+```powershell
+dotnet test          # ejecuta los tests del núcleo
+dotnet build         # compila la solución
+```
+
+## Estado
+
+- [x] Núcleo: modelo + planificador semanal (con avisos previos, sesión activa, cruce de medianoche).
+- [x] Tests del planificador (11/11 verdes).
+- [ ] Motor Pomodoro (máquina de estados sesión/descanso).
+- [ ] Servicio en segundo plano (timers sobre el planificador).
+- [ ] UI WinUI 3 (editor de horario, bandeja, temporizador).
+- [ ] Integración SO: No molestar, bloqueo Edge, cerrar apps, música, lista "Estudio".

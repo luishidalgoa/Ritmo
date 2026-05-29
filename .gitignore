@@ -1,0 +1,38 @@
+# Compilados .NET
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+*.user
+*.suo
+.vs/
+
+# Build de WinUI / MSIX
+AppPackages/
+BundleArtifacts/
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+GeneratedArtifacts/
+_pkginfo.txt
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# Resultados de tests
+[Tt]est[Rr]esults/
+*.trx
+*.coverage
+coverage*.json
+coverage*.xml
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
