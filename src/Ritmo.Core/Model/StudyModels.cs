@@ -11,6 +11,8 @@ public enum StudyKind
     Tests,
     Simulacro,
     Descanso,
+    /// <summary>Hueco reservado para estudiar, pero sin materia decidida todavía.</summary>
+    PorDefinir,
     Otro
 }
 
@@ -46,6 +48,13 @@ public sealed record StudySession
     public StudyKind Kind { get; init; } = StudyKind.Otro;
     /// <summary>Avisos previos configurables (puede haber 0, 1 o varios).</summary>
     public IReadOnlyList<PreAlert> PreAlerts { get; init; } = [];
+
+    /// <summary>
+    /// Bloque provisional: el usuario aún no sabe qué pasará en este hueco.
+    /// Se muestra atenuado y NO dispara el modo concentración automáticamente
+    /// (sus avisos previos sí pueden sonar, como recordatorio suave).
+    /// </summary>
+    public bool IsTentative { get; init; }
 
     public TimeOnly End => Start.Add(Duration);
 }

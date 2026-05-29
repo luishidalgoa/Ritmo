@@ -37,7 +37,9 @@ public sealed class SchedulePlanner
                 var start = dayCursor + s.Start.ToTimeSpan();
 
                 // Evento de inicio de sesión.
-                if (start >= from && start < until)
+                // Los bloques tentativos NO disparan inicio automático de concentración
+                // (solo se ven en el calendario y, si tienen avisos, suenan como recordatorio).
+                if (!s.IsTentative && start >= from && start < until)
                 {
                     events.Add(new PlannedEvent
                     {
@@ -95,6 +97,9 @@ public sealed class SchedulePlanner
         foreach (var s in _schedule.Sessions)
         {
             if (s.Day != now.DayOfWeek)
+                continue;
+            // Los bloques tentativos no cuentan como sesión activa (no disparan concentración).
+            if (s.IsTentative)
                 continue;
             // Sesión que no cruza medianoche (caso normal del horario 08–20).
             if (s.Start <= s.End)
