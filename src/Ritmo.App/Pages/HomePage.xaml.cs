@@ -76,6 +76,78 @@ public sealed partial class HomePage : Page
             AlertTitle.Text = "Sin avisos próximos";
             AlertMeta.Text = "No hay nada programado por delante";
         }
+
+        BuildShortcuts(settings);
+        BuildNotes(settings);
+    }
+
+    private void BuildShortcuts(Ritmo.Core.Persistence.AppSettings settings)
+    {
+        ShortcutsPanel.Children.Clear();
+        var shortcuts = settings.ViewConfig.Shortcuts;
+        ShortcutsSection.Visibility = shortcuts.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var sc in shortcuts)
+        {
+            var btn = new HyperlinkButton { Content = sc.Title };
+            ToolTipService.SetToolTip(btn, sc.Url);
+            var url = sc.Url;
+            btn.Click += (_, _) => OpenUrl(url);
+            ShortcutsPanel.Children.Add(btn);
+        }
+    }
+
+    private void BuildNotes(Ritmo.Core.Persistence.AppSettings settings)
+    {
+        NotesPanel.Children.Clear();
+        var notes = settings.Notes;
+        NotesSection.Visibility = notes.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var note in notes.OrderBy(n => n.Order))
+        {
+            var stack = new StackPanel { Spacing = 2 };
+            stack.Children.Add(new TextBlock { Text = note.Title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+            if (!string.IsNullOrWhiteSpace(note.Content))
+                stack.Children.Add(new TextBlock { Text = note.Content, Opacity = 0.75, TextWrapping = TextWrapping.Wrap });
+
+            var border = new Border
+            {
+                Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorSecondaryBrush"],
+                BorderBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(14, 10, 14, 10),
+                Child = stack
+            };
+            // Acento por el lado izquierdo si la nota tiene color.
+            if (!string.IsNullOrWhiteSpace(note.AccentColor) &&
+                TryParseHex(note.AccentColor!, out var color))
+            {
+                border.BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(color);
+                border.BorderThickness = new Thickness(4, 1, 1, 1);
+            }
+            NotesPanel.Children.Add(border);
+        }
+    }
+
+    private static void OpenUrl(string url)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = url, UseShellExecute = true }); }
+        catch { /* URL inválida: ignorar */ }
+    }
+
+    private static bool TryParseHex(string hex, out Windows.UI.Color color)
+    {
+        color = Microsoft.UI.Colors.Transparent;
+        hex = hex.TrimStart('#');
+        if (hex.Length != 6) return false;
+        try
+        {
+            byte r = System.Convert.ToByte(hex[..2], 16);
+            byte g = System.Convert.ToByte(hex.Substring(2, 2), 16);
+            byte b = System.Convert.ToByte(hex.Substring(4, 2), 16);
+            color = Windows.UI.Color.FromArgb(255, r, g, b);
+            return true;
+        }
+        catch { return false; }
     }
 
     private void StartBtn_Click(object sender, RoutedEventArgs e)

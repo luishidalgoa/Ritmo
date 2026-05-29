@@ -168,6 +168,74 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Rango horario actualizado.");
     }
 
+    // ---------- Notas y enlaces-atajo (#55) ----------
+
+    /// <summary>Añade una nota fijada (markdown). Devuelve su Id en el mensaje.</summary>
+    public CommandResult AddNote(string title, string content, string? accentColor = null)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return CommandResult.Fail("La nota necesita un título.");
+        var s = _store.Load();
+        var order = s.Notes.Count == 0 ? 0 : s.Notes.Max(n => n.Order) + 1;
+        var note = new StudyNote
+        {
+            Id = $"note-{Guid.NewGuid():N}"[..12],
+            Title = title.Trim(),
+            Content = content ?? "",
+            AccentColor = accentColor,
+            Order = order
+        };
+        _store.Save(s with { Notes = [.. s.Notes, note] });
+        return CommandResult.Ok(note.Id);
+    }
+
+    /// <summary>Edita el título/contenido de una nota existente.</summary>
+    public CommandResult UpdateNote(string id, string title, string content, string? accentColor = null)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return CommandResult.Fail("La nota necesita un título.");
+        var s = _store.Load();
+        var note = s.Notes.FirstOrDefault(n => n.Id == id);
+        if (note is null) return CommandResult.Fail($"No existe la nota «{id}».");
+        var updated = s.Notes
+            .Select(n => n.Id == id ? n with { Title = title.Trim(), Content = content ?? "", AccentColor = accentColor } : n)
+            .ToList();
+        _store.Save(s with { Notes = updated });
+        return CommandResult.Ok("Nota actualizada.");
+    }
+
+    /// <summary>Elimina una nota por Id.</summary>
+    public CommandResult RemoveNote(string id)
+    {
+        var s = _store.Load();
+        if (s.Notes.All(n => n.Id != id)) return CommandResult.Fail($"No existe la nota «{id}».");
+        _store.Save(s with { Notes = s.Notes.Where(n => n.Id != id).ToList() });
+        return CommandResult.Ok("Nota eliminada.");
+    }
+
+    /// <summary>Añade un enlace-atajo (título + URL).</summary>
+    public CommandResult AddShortcut(string title, string url)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return CommandResult.Fail("El enlace necesita un título.");
+        if (string.IsNullOrWhiteSpace(url)) return CommandResult.Fail("El enlace necesita una URL.");
+        var s = _store.Load();
+        var list = s.ViewConfig.Shortcuts.Append(new ShortcutLink { Title = title.Trim(), Url = url.Trim() }).ToList();
+        _store.Save(s with { ViewConfig = s.ViewConfig with { Shortcuts = list } });
+        return CommandResult.Ok($"Enlace «{title}» añadido.");
+    }
+
+    /// <summary>Elimina el enlace-atajo en el índice dado.</summary>
+    public CommandResult RemoveShortcut(int index)
+    {
+        var s = _store.Load();
+        if (index < 0 || index >= s.ViewConfig.Shortcuts.Count)
+            return CommandResult.Fail("Índice de enlace fuera de rango.");
+        var list = s.ViewConfig.Shortcuts.ToList();
+        list.RemoveAt(index);
+        _store.Save(s with { ViewConfig = s.ViewConfig with { Shortcuts = list } });
+        return CommandResult.Ok("Enlace eliminado.");
+    }
+
     /// <summary>Crea o reemplaza un entorno de concentración (por Id).</summary>
     public CommandResult UpsertEnvironment(FocusEnvironment env)
     {

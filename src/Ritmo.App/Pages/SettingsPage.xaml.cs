@@ -43,7 +43,106 @@ public sealed partial class SettingsPage : Page
         };
 
         BuildEnvList();
+        BuildNotesAndShortcuts();
         _ = LoadAutostartState();
+    }
+
+    // ---------- Notas y enlaces rápidos (#55) ----------
+
+    private void BuildNotesAndShortcuts()
+    {
+        var s = AppState.Load();
+
+        NotesList.Children.Clear();
+        foreach (var note in s.Notes.OrderBy(n => n.Order))
+            NotesList.Children.Add(NoteRow(note));
+
+        ShortcutsList.Children.Clear();
+        var shortcuts = s.ViewConfig.Shortcuts;
+        for (int i = 0; i < shortcuts.Count; i++)
+            ShortcutsList.Children.Add(ShortcutRow(shortcuts[i], i));
+    }
+
+    private FrameworkElement NoteRow(Ritmo.Core.Model.StudyNote note)
+    {
+        var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        info.Children.Add(new TextBlock { Text = note.Title, FontWeight = FontWeights.SemiBold });
+        if (!string.IsNullOrWhiteSpace(note.Content))
+            info.Children.Add(new TextBlock
+            {
+                Text = note.Content, Opacity = 0.65, FontSize = 12,
+                TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1
+            });
+        Grid.SetColumn(info, 0);
+
+        var edit = new Button { Content = new SymbolIcon(Symbol.Edit) };
+        ToolTipService.SetToolTip(edit, "Editar");
+        edit.Click += (_, _) => _ = EditNote(note);
+        Grid.SetColumn(edit, 1);
+
+        var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
+        ToolTipService.SetToolTip(del, "Eliminar");
+        del.Click += (_, _) => { AppState.Config.RemoveNote(note.Id); BuildNotesAndShortcuts(); };
+        Grid.SetColumn(del, 2);
+
+        var grid = new Grid { ColumnSpacing = 6 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(info); grid.Children.Add(edit); grid.Children.Add(del);
+
+        return new Border
+        {
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(12, 8, 8, 8), Child = grid
+        };
+    }
+
+    private FrameworkElement ShortcutRow(Ritmo.Core.Model.ShortcutLink sc, int index)
+    {
+        var text = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+        text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = sc.Title + "  ", FontWeight = FontWeights.SemiBold });
+        text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = sc.Url, Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+        Grid.SetColumn(text, 0);
+
+        var del = new Button { Content = new SymbolIcon(Symbol.Delete) };
+        ToolTipService.SetToolTip(del, "Eliminar");
+        del.Click += (_, _) => { AppState.Config.RemoveShortcut(index); BuildNotesAndShortcuts(); };
+        Grid.SetColumn(del, 1);
+
+        var grid = new Grid { ColumnSpacing = 6 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(text); grid.Children.Add(del);
+        return grid;
+    }
+
+    private async void AddNoteBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new NoteDialog { XamlRoot = this.XamlRoot };
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
+        {
+            AppState.Config.AddNote(dlg.TitleText, dlg.ContentText);
+            BuildNotesAndShortcuts();
+        }
+    }
+
+    private async Task EditNote(Ritmo.Core.Model.StudyNote note)
+    {
+        var dlg = new NoteDialog { XamlRoot = this.XamlRoot };
+        dlg.LoadFrom(note);
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
+        {
+            AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText);
+            BuildNotesAndShortcuts();
+        }
+    }
+
+    private void AddShortcutBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var r = AppState.Config.AddShortcut(ShortcutTitleBox.Text, ShortcutUrlBox.Text);
+        if (r.Success) { ShortcutTitleBox.Text = ""; ShortcutUrlBox.Text = ""; BuildNotesAndShortcuts(); }
     }
 
     // ---------- Segundo plano y arranque (#24/#20) ----------

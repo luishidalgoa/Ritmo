@@ -63,6 +63,21 @@
                     </StackPanel>
                 </Border>
             </Grid>
+
+            <!-- Accesos rápidos (#55) -->
+            <StackPanel x:Name="ShortcutsSection" Spacing="8" Visibility="Collapsed">
+                <TextBlock Text="ACCESOS RÁPIDOS" FontWeight="SemiBold" Opacity="0.55" FontSize="11" />
+                <ScrollViewer HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel x:Name="ShortcutsPanel" Orientation="Horizontal" Spacing="8" />
+                </ScrollViewer>
+            </StackPanel>
+
+            <!-- Notas fijadas (#55) -->
+            <StackPanel x:Name="NotesSection" Spacing="8" Visibility="Collapsed">
+                <TextBlock Text="NOTAS" FontWeight="SemiBold" Opacity="0.55" FontSize="11" />
+                <StackPanel x:Name="NotesPanel" Spacing="8" />
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>
