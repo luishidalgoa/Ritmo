@@ -80,6 +80,52 @@ public class ConfigurationServiceTests
     }
 
     [Fact]
+    public void UpdateSession_reemplaza_por_indice()
+    {
+        var (svc, store) = New();
+        svc.AddPhase("F", new DateOnly(2026, 6, 1), null);
+        var s1 = new StudySession { Title = "A", Day = DayOfWeek.Monday, Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(1) };
+        svc.AddSession("F", s1);
+        var s2 = s1 with { Title = "A-editada", Duration = TimeSpan.FromHours(2) };
+        var r = svc.UpdateSession("F", 0, s2);
+        Assert.True(r.Success);
+        var saved = store.Load().Plan.Phases[0].Schedule.Sessions[0];
+        Assert.Equal("A-editada", saved.Title);
+        Assert.Equal(TimeSpan.FromHours(2), saved.Duration);
+    }
+
+    [Fact]
+    public void UpdateSession_indice_invalido_falla()
+    {
+        var (svc, _) = New();
+        svc.AddPhase("F", new DateOnly(2026, 6, 1), null);
+        var s = new StudySession { Title = "X", Day = DayOfWeek.Monday, Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(1) };
+        Assert.False(svc.UpdateSession("F", 5, s).Success);
+    }
+
+    [Fact]
+    public void RemoveSession_borra_por_indice()
+    {
+        var (svc, store) = New();
+        svc.AddPhase("F", new DateOnly(2026, 6, 1), null);
+        svc.AddSession("F", new StudySession { Title = "A", Day = DayOfWeek.Monday, Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(1) });
+        svc.AddSession("F", new StudySession { Title = "B", Day = DayOfWeek.Tuesday, Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(1) });
+        var r = svc.RemoveSession("F", 0);
+        Assert.True(r.Success);
+        var sessions = store.Load().Plan.Phases[0].Schedule.Sessions;
+        Assert.Single(sessions);
+        Assert.Equal("B", sessions[0].Title);
+    }
+
+    [Fact]
+    public void RemoveSession_indice_invalido_falla()
+    {
+        var (svc, _) = New();
+        svc.AddPhase("F", new DateOnly(2026, 6, 1), null);
+        Assert.False(svc.RemoveSession("F", 0).Success);
+    }
+
+    [Fact]
     public void UpsertEnvironment_crea_y_actualiza()
     {
         var (svc, store) = New();

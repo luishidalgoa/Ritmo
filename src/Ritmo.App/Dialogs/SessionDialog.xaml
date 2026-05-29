@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Ritmo_App.Dialogs.SessionDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Sesión"
+    PrimaryButtonText="Guardar"
+    SecondaryButtonText="Cancelar"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="12" Width="320">
+        <TextBox x:Name="TitleBox" Header="Título" PlaceholderText="p. ej. Técnico" />
+
+        <ComboBox x:Name="DayBox" Header="Día" HorizontalAlignment="Stretch">
+            <ComboBoxItem Content="Lunes" />
+            <ComboBoxItem Content="Martes" />
+            <ComboBoxItem Content="Miércoles" />
+            <ComboBoxItem Content="Jueves" />
+            <ComboBoxItem Content="Viernes" />
+            <ComboBoxItem Content="Sábado" />
+            <ComboBoxItem Content="Domingo" />
+        </ComboBox>
+
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TimePicker x:Name="StartPicker" Grid.Column="0" Header="Inicio" ClockIdentifier="24HourClock" MinuteIncrement="5" />
+            <NumberBox x:Name="DurationBox" Grid.Column="1" Header="Duración (min)"
+                       Value="60" Minimum="5" Maximum="600" SmallChange="5" SpinButtonPlacementMode="Inline" />
+        </Grid>
+
+        <ComboBox x:Name="KindBox" Header="Tipo" HorizontalAlignment="Stretch">
+            <ComboBoxItem Content="Técnico" Tag="Tecnico" />
+            <ComboBoxItem Content="Legislación" Tag="Legislacion" />
+            <ComboBoxItem Content="Inglés" Tag="Ingles" />
+            <ComboBoxItem Content="Tests" Tag="Tests" />
+            <ComboBoxItem Content="Simulacro" Tag="Simulacro" />
+            <ComboBoxItem Content="Descanso" Tag="Descanso" />
+            <ComboBoxItem Content="Por definir" Tag="PorDefinir" />
+            <ComboBoxItem Content="Otro" Tag="Otro" />
+        </ComboBox>
+
+        <ToggleSwitch x:Name="TentativeSwitch" Header="Provisional (no dispara concentración)" OffContent="No" OnContent="Sí" />
+    </StackPanel>
+</ContentDialog>

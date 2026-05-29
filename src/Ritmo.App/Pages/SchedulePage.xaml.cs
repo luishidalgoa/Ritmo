@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Ritmo.Core.Model;
+using Ritmo_App.Dialogs;
 using Ritmo_App.Services;
 
 namespace Ritmo_App;
@@ -21,6 +23,8 @@ public sealed partial class SchedulePage : Page
     private static readonly string[] DayNames =
         { "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO" };
 
+    private string? _activePhaseName;
+
     public SchedulePage()
     {
         InitializeComponent();
@@ -36,6 +40,8 @@ public sealed partial class SchedulePage : Page
         var phase = settings.Plan.GetActivePhase(today)
                     ?? settings.Plan.OrderedPhases.FirstOrDefault();
         var schedule = phase?.Schedule ?? settings.Schedule;
+        _activePhaseName = phase?.Name;
+        AddBtn.IsEnabled = phase is not null;
 
         PhaseInfo.Text = phase is null
             ? "Sin fase configurada"
@@ -101,38 +107,96 @@ public sealed partial class SchedulePage : Page
             }
         }
 
-        foreach (var s in schedule.Sessions)
+        for (int idx = 0; idx < schedule.Sessions.Count; idx++)
         {
+            var s = schedule.Sessions[idx];
             int dayCol = Array.IndexOf(Days, s.Day);
             if (dayCol < 0) continue;
             int startSlot = 1 + (int)Math.Round((s.Start.Hour - startH + s.Start.Minute / 60.0) * slotsPerHour);
             int spanSlots = Math.Max(1, (int)Math.Round(s.Duration.TotalHours * slotsPerHour));
             if (startSlot < 1) startSlot = 1;
 
-            var card = new Border
+            var content = new StackPanel
+            {
+                Children =
+                {
+                    new TextBlock {
+                        Text = s.Title, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                        Foreground = ScheduleColors.TextFor(s.Kind), TextTrimming = TextTrimming.CharacterEllipsis },
+                    new TextBlock {
+                        Text = $"{s.Start:HH\\:mm}–{s.End:HH\\:mm}{(s.IsTentative ? "  (?)" : "")}",
+                        FontSize = 10, Opacity = 0.75, Foreground = ScheduleColors.TextFor(s.Kind) }
+                }
+            };
+
+            // Tarjeta clicable (Button sin chrome) para editar/borrar.
+            var card = new Button
             {
                 Background = ScheduleColors.For(s.Kind),
                 CornerRadius = new CornerRadius(6),
                 Margin = new Thickness(2),
                 Padding = new Thickness(6, 3, 6, 3),
-                Opacity = s.IsTentative ? 0.55 : 1.0,
-                Child = new StackPanel
-                {
-                    Children =
-                    {
-                        new TextBlock {
-                            Text = s.Title, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                            Foreground = ScheduleColors.TextFor(s.Kind), TextTrimming = TextTrimming.CharacterEllipsis },
-                        new TextBlock {
-                            Text = $"{s.Start:HH\\:mm}–{s.End:HH\\:mm}{(s.IsTentative ? "  (?)" : "")}",
-                            FontSize = 10, Opacity = 0.75, Foreground = ScheduleColors.TextFor(s.Kind) }
-                    }
-                }
+                Opacity = s.IsTentative ? 0.6 : 1.0,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                VerticalContentAlignment = VerticalAlignment.Top,
+                BorderThickness = new Thickness(0),
+                Tag = idx,
+                Content = content
             };
+            card.Click += SessionCard_Click;
             Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
             Grid.SetColumn(card, dayCol + 1);
             g.Children.Add(card);
         }
+    }
+
+    private void AddBtn_Click(object sender, RoutedEventArgs e) => _ = ShowAddDialog();
+
+    private void SessionCard_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button b && b.Tag is int idx)
+            _ = ShowEditDialog(idx);
+    }
+
+    private async Task ShowAddDialog()
+    {
+        if (_activePhaseName is null) return;
+        var dlg = new SessionDialog { XamlRoot = this.XamlRoot };
+        dlg.LoadDefaults();
+        var result = await dlg.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+        {
+            AppState.Config.AddSession(_activePhaseName, dlg.ToSession());
+            Build();
+        }
+    }
+
+    private async Task ShowEditDialog(int index)
+    {
+        if (_activePhaseName is null) return;
+        var settings = AppState.Load();
+        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        if (phase is null || index < 0 || index >= phase.Schedule.Sessions.Count) return;
+
+        var dlg = new SessionDialog
+        {
+            XamlRoot = this.XamlRoot,
+            PrimaryButtonText = "Guardar",
+            SecondaryButtonText = "Cancelar",
+            CloseButtonText = "Eliminar"   // el botón de cierre actúa como "eliminar"
+        };
+        dlg.LoadFrom(phase.Schedule.Sessions[index]);
+        var result = await dlg.ShowAsync();
+
+        if (result == ContentDialogResult.Primary)
+            AppState.Config.UpdateSession(_activePhaseName, index, dlg.ToSession());
+        else if (result == ContentDialogResult.None)   // CloseButton = Eliminar
+            AppState.Config.RemoveSession(_activePhaseName, index);
+        else
+            return; // Cancelar (Secondary)
+        Build();
     }
 
     private static FrameworkElement Cell(FrameworkElement content, int row, int col, int rowSpan, Brush? bg, Brush line)

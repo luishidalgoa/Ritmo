@@ -37,3 +37,5 @@ public sealed partial class MainWindow : Window
             ContentFrame.Navigate(page);
     }
 }
+
+

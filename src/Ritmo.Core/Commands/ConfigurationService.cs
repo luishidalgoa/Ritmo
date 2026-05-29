@@ -73,6 +73,47 @@ public sealed class ConfigurationService
         return CommandResult.Ok($"Sesión «{session.Title}» añadida a «{phaseName}».");
     }
 
+    /// <summary>Reemplaza la sesión en el índice dado de una fase.</summary>
+    public CommandResult UpdateSession(string phaseName, int index, StudySession session)
+    {
+        if (session.Duration <= TimeSpan.Zero)
+            return CommandResult.Fail("La duración debe ser mayor que cero.");
+        if (string.IsNullOrWhiteSpace(session.Title))
+            return CommandResult.Fail("La sesión necesita un título.");
+
+        var s = _store.Load();
+        var phase = s.Plan.Phases.FirstOrDefault(p => p.Name.Equals(phaseName, StringComparison.OrdinalIgnoreCase));
+        if (phase is null)
+            return CommandResult.Fail($"No existe la fase «{phaseName}».");
+        if (index < 0 || index >= phase.Schedule.Sessions.Count)
+            return CommandResult.Fail("Índice de sesión fuera de rango.");
+
+        var list = phase.Schedule.Sessions.ToList();
+        list[index] = session;
+        var newPhase = phase with { Schedule = new WeeklySchedule { Sessions = list } };
+        var newPhases = s.Plan.Phases.Select(p => ReferenceEquals(p, phase) ? newPhase : p).ToList();
+        _store.Save(s with { Plan = new SchedulePlan { Phases = newPhases } });
+        return CommandResult.Ok($"Sesión actualizada en «{phaseName}».");
+    }
+
+    /// <summary>Elimina la sesión en el índice dado de una fase.</summary>
+    public CommandResult RemoveSession(string phaseName, int index)
+    {
+        var s = _store.Load();
+        var phase = s.Plan.Phases.FirstOrDefault(p => p.Name.Equals(phaseName, StringComparison.OrdinalIgnoreCase));
+        if (phase is null)
+            return CommandResult.Fail($"No existe la fase «{phaseName}».");
+        if (index < 0 || index >= phase.Schedule.Sessions.Count)
+            return CommandResult.Fail("Índice de sesión fuera de rango.");
+
+        var list = phase.Schedule.Sessions.ToList();
+        list.RemoveAt(index);
+        var newPhase = phase with { Schedule = new WeeklySchedule { Sessions = list } };
+        var newPhases = s.Plan.Phases.Select(p => ReferenceEquals(p, phase) ? newPhase : p).ToList();
+        _store.Save(s with { Plan = new SchedulePlan { Phases = newPhases } });
+        return CommandResult.Ok($"Sesión eliminada de «{phaseName}».");
+    }
+
     /// <summary>Crea o reemplaza un entorno de concentración (por Id).</summary>
     public CommandResult UpsertEnvironment(FocusEnvironment env)
     {
