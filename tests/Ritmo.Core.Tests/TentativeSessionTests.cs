@@ -14,7 +14,8 @@ public class TentativeSessionTests
         {
             Sessions = [ new StudySession {
                 Title = "Firme", Day = DayOfWeek.Monday,
-                Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(2) } ]
+                Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(2),
+                Kind = StudyKind.Tecnico } ]
         });
         var starts = plan.GetEvents(MondayMidnight, TimeSpan.FromDays(1))
                          .Where(e => e.Type == PlannedEventType.SessionStart);
@@ -91,5 +92,61 @@ public class TentativeSessionTests
             Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(1)
         };
         Assert.False(s.IsTentative);
+    }
+
+    [Theory]
+    [InlineData(StudyKind.Tecnico, true)]
+    [InlineData(StudyKind.Legislacion, true)]
+    [InlineData(StudyKind.Ingles, true)]
+    [InlineData(StudyKind.Tests, true)]
+    [InlineData(StudyKind.Simulacro, true)]
+    [InlineData(StudyKind.Descanso, false)]
+    [InlineData(StudyKind.Personal, false)]
+    [InlineData(StudyKind.PorDefinir, false)]
+    [InlineData(StudyKind.Otro, false)]
+    public void IsFocusKind_clasifica_correctamente(StudyKind kind, bool expected)
+    {
+        Assert.Equal(expected, kind.IsFocusKind());
+    }
+
+    [Fact]
+    public void Sesion_Personal_NO_dispara_inicio_pero_se_ve()
+    {
+        var plan = new SchedulePlanner(new WeeklySchedule
+        {
+            Sessions = [ new StudySession {
+                Title = "Comida", Day = DayOfWeek.Monday,
+                Start = new TimeOnly(14,0), Duration = TimeSpan.FromHours(1),
+                Kind = StudyKind.Personal } ]
+        });
+        var events = plan.GetEvents(MondayMidnight, TimeSpan.FromDays(1));
+        Assert.DoesNotContain(events, e => e.Type == PlannedEventType.SessionStart);
+    }
+
+    [Fact]
+    public void Sesion_Personal_no_cuenta_como_activa()
+    {
+        var plan = new SchedulePlanner(new WeeklySchedule
+        {
+            Sessions = [ new StudySession {
+                Title = "Gimnasio", Day = DayOfWeek.Monday,
+                Start = new TimeOnly(18,0), Duration = TimeSpan.FromHours(1),
+                Kind = StudyKind.Personal } ]
+        });
+        Assert.Null(plan.GetActiveSession(new DateTime(2026, 6, 1, 18, 30, 0)));
+    }
+
+    [Fact]
+    public void Descanso_tampoco_dispara_concentracion()
+    {
+        var plan = new SchedulePlanner(new WeeklySchedule
+        {
+            Sessions = [ new StudySession {
+                Title = "Pausa", Day = DayOfWeek.Monday,
+                Start = new TimeOnly(11,0), Duration = TimeSpan.FromHours(1),
+                Kind = StudyKind.Descanso } ]
+        });
+        Assert.Empty(plan.GetEvents(MondayMidnight, TimeSpan.FromDays(1))
+                         .Where(e => e.Type == PlannedEventType.SessionStart));
     }
 }

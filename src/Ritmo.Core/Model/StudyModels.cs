@@ -13,7 +13,28 @@ public enum StudyKind
     Descanso,
     /// <summary>Hueco reservado para estudiar, pero sin materia decidida todavía.</summary>
     PorDefinir,
+    /// <summary>Evento personal del usuario (comida, deporte, ocio…). No es de estudio.</summary>
+    Personal,
     Otro
+}
+
+/// <summary>Utilidades sobre el tipo de bloque.</summary>
+public static class StudyKindExtensions
+{
+    /// <summary>
+    /// ¿Es un tipo "de concentración"? Solo estos disparan el modo focus.
+    /// Los demás (Descanso, Personal, PorDefinir) se ven en el horario pero NO
+    /// arrancan concentración: sirven para reflejar la semana completa.
+    /// </summary>
+    public static bool IsFocusKind(this StudyKind kind) => kind switch
+    {
+        StudyKind.Tecnico => true,
+        StudyKind.Legislacion => true,
+        StudyKind.Ingles => true,
+        StudyKind.Tests => true,
+        StudyKind.Simulacro => true,
+        _ => false   // Descanso, PorDefinir, Personal, Otro -> no disparan concentración
+    };
 }
 
 /// <summary>

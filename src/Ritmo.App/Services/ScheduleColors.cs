@@ -25,6 +25,7 @@ internal static class ScheduleColors
         StudyKind.Tests => Hex("#E4DFEC"),
         StudyKind.Simulacro => Hex("#F8CBAD"),
         StudyKind.Descanso => Hex("#FCE9D6"),
+        StudyKind.Personal => Hex("#FCE4EC"),
         StudyKind.PorDefinir => Hex("#F2F2F2"),
         _ => Hex("#EDEDED")
     });
@@ -36,6 +37,7 @@ internal static class ScheduleColors
         StudyKind.Ingles => Hex("#C55A11"),
         StudyKind.Tests => Hex("#7030A0"),
         StudyKind.Simulacro => Hex("#C0392B"),
+        StudyKind.Personal => Hex("#AD1457"),
         _ => Hex("#595959")
     });
 }

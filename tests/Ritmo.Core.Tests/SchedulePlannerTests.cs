@@ -86,6 +86,7 @@ public class SchedulePlannerTests
                     Day = DayOfWeek.Monday,
                     Start = new TimeOnly(9, 0),
                     Duration = TimeSpan.FromHours(1),
+                    Kind = StudyKind.Tecnico,
                     PreAlerts = [new PreAlert(0)]
                 }
             ]
@@ -165,7 +166,7 @@ public class SchedulePlannerTests
                     Day = DayOfWeek.Monday,
                     Start = new TimeOnly(23, 0),
                     Duration = TimeSpan.FromHours(2), // 23:00 -> 01:00
-                    Kind = StudyKind.Otro
+                    Kind = StudyKind.Tecnico
                 }
             ]
         };

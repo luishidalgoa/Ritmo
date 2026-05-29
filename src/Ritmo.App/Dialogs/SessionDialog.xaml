@@ -42,6 +42,7 @@
             <ComboBoxItem Content="Tests" Tag="Tests" />
             <ComboBoxItem Content="Simulacro" Tag="Simulacro" />
             <ComboBoxItem Content="Descanso" Tag="Descanso" />
+            <ComboBoxItem Content="Personal (comida, deporte…)" Tag="Personal" />
             <ComboBoxItem Content="Por definir" Tag="PorDefinir" />
             <ComboBoxItem Content="Otro" Tag="Otro" />
         </ComboBox>
