@@ -27,4 +27,17 @@ public static class ScheduleMath
         min = System.Math.Clamp(min, 0, 1440 - slotMinutes);
         return new System.TimeOnly(min / 60, min % 60);
     }
+
+    /// <summary>
+    /// ¿Se solapan dos intervalos del MISMO día? [start, start+dur). Bordes que solo
+    /// se tocan (uno empieza justo cuando el otro acaba) NO cuentan como solape.
+    /// Para mover/redimensionar sin pisar otra sesión (#88/#90).
+    /// </summary>
+    public static bool TimesOverlap(System.TimeOnly aStart, System.TimeSpan aDur,
+                                    System.TimeOnly bStart, System.TimeSpan bDur)
+    {
+        var aS = aStart.ToTimeSpan(); var aE = aS + aDur;
+        var bS = bStart.ToTimeSpan(); var bE = bS + bDur;
+        return aS < bE && bS < aE;
+    }
 }

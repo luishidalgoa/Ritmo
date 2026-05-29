@@ -39,4 +39,24 @@ public class ScheduleMathTests
     [Fact]
     public void ShiftStart_no_pasa_del_ultimo_slot_del_dia()
         => Assert.Equal(new TimeOnly(23, 30), ScheduleMath.ShiftStart(new TimeOnly(23, 0), 10));
+
+    [Fact]
+    public void TimesOverlap_solapan()
+        => Assert.True(ScheduleMath.TimesOverlap(
+            new TimeOnly(9, 0), TimeSpan.FromHours(2), new TimeOnly(10, 0), TimeSpan.FromHours(1)));
+
+    [Fact]
+    public void TimesOverlap_disjuntos_no()
+        => Assert.False(ScheduleMath.TimesOverlap(
+            new TimeOnly(9, 0), TimeSpan.FromHours(1), new TimeOnly(11, 0), TimeSpan.FromHours(1)));
+
+    [Fact]
+    public void TimesOverlap_bordes_que_se_tocan_no_solapan()
+        => Assert.False(ScheduleMath.TimesOverlap(
+            new TimeOnly(9, 0), TimeSpan.FromHours(2), new TimeOnly(11, 0), TimeSpan.FromHours(1)));
+
+    [Fact]
+    public void TimesOverlap_uno_dentro_de_otro()
+        => Assert.True(ScheduleMath.TimesOverlap(
+            new TimeOnly(9, 0), TimeSpan.FromHours(3), new TimeOnly(10, 0), TimeSpan.FromMinutes(30)));
 }
