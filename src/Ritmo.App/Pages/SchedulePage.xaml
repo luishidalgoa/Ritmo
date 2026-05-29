@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Ritmo_App.SchedulePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="48" VerticalAlignment="Center" HorizontalAlignment="Center">
+        <StackPanel Spacing="10" HorizontalAlignment="Center" MaxWidth="520">
+            <FontIcon Glyph="&#xE787;" FontSize="52" HorizontalAlignment="Center"
+                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+            <TextBlock Text="Horario" FontSize="32" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            <TextBlock Text="La rejilla semanal tipo Excel (fases, colores, notas, enlaces) llega en las issues #25, #45 y #46."
+                       Opacity="0.6" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</Page>

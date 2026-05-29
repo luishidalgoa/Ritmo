@@ -1,14 +1,11 @@
 using Microsoft.UI.Xaml;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using Microsoft.UI.Xaml.Controls;
 
 namespace Ritmo_App;
 
 /// <summary>
-/// The application window. This hosts a Frame that displays pages. Add your
-/// UI and logic to MainPage.xaml / MainPage.xaml.cs instead of here so you
-/// can use Page features such as navigation events and the Loaded lifecycle.
+/// Ventana principal: barra de título + NavigationView que conmuta entre las
+/// páginas (Temporizador / Horario / Ajustes) dentro de un Frame.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
@@ -18,10 +15,28 @@ public sealed partial class MainWindow : Window
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
-
         AppWindow.SetIcon("Assets/AppIcon.ico");
+    }
 
-        // Navigate the root frame to the main page on startup.
-        RootFrame.Navigate(typeof(MainPage));
+    private void Nav_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Página inicial: Temporizador.
+        ContentFrame.Navigate(typeof(TimerPage));
+    }
+
+    private void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    {
+        if (args.SelectedItem is not NavigationViewItem item) return;
+
+        var page = item.Tag switch
+        {
+            "timer" => typeof(TimerPage),
+            "schedule" => typeof(SchedulePage),
+            "settings" => typeof(SettingsPage),
+            _ => typeof(TimerPage)
+        };
+
+        if (ContentFrame.CurrentSourcePageType != page)
+            ContentFrame.Navigate(page);
     }
 }
