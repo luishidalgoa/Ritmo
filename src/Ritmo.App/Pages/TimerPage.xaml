@@ -9,6 +9,14 @@
     mc:Ignorable="d">
 
     <StackPanel Padding="48" Spacing="16" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560">
+        <StackPanel x:Name="SubjectBadge" Spacing="2" HorizontalAlignment="Center" Visibility="Collapsed">
+            <TextBlock x:Name="SubjectText" Text="" FontSize="22" FontWeight="SemiBold"
+                       HorizontalAlignment="Center" TextAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock x:Name="SubjectMeta" Text="" Opacity="0.6" FontSize="12"
+                       HorizontalAlignment="Center" TextAlignment="Center" />
+        </StackPanel>
+
         <Border x:Name="PhaseBadge" Padding="14,5" CornerRadius="14" HorizontalAlignment="Center"
                 Background="{ThemeResource AccentFillColorDefaultBrush}">
             <TextBlock x:Name="PhaseText" Text="Listo para empezar" FontWeight="SemiBold"

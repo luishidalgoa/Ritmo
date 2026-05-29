@@ -39,4 +39,17 @@ public sealed record PomodoroConfig
     /// <summary>Preset largo (encaja con bloques de 2h del horario TAI): 50/10/20, largo cada 2.</summary>
     public static PomodoroConfig DeepWork => new(
         TimeSpan.FromMinutes(50), TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(20), 2);
+
+    /// <summary>
+    /// Resuelve un preset por su nombre (el que guarda un entorno de concentración,
+    /// p. ej. "DeepWork" o "Classic"). Si el nombre no coincide con ningún preset,
+    /// devuelve <paramref name="fallback"/> (o <see cref="DeepWork"/> si es null).
+    /// </summary>
+    public static PomodoroConfig ByName(string? name, PomodoroConfig? fallback = null) =>
+        name?.Trim().ToLowerInvariant() switch
+        {
+            "classic" or "clasico" or "clásico" => Classic,
+            "deepwork" or "deep work" or "deep" => DeepWork,
+            _ => fallback ?? DeepWork
+        };
 }

@@ -3,7 +3,10 @@ using System.Linq;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Ritmo.Core.Focus;
+using Ritmo.Core.Model;
 using Ritmo.Core.Pomodoro;
+using Ritmo.Core.Scheduling;
 using Ritmo.Core.Timing;
 using Ritmo_App.Services;
 
@@ -13,14 +16,21 @@ namespace Ritmo_App;
 /// Vista del temporizador Pomodoro: refleja en pantalla el PomodoroEngine del
 /// núcleo. Un DispatcherQueueTimer refresca la UI; el motor recibe el "ahora"
 /// del SystemClock (la lógica vive en el núcleo, ya testeada).
+///
+/// Además conecta el temporizador con el horario (#67): si ahora toca un bloque
+/// del plan, muestra su asignatura, usa el preset Pomodoro del entorno mapeado a
+/// su tipo y, al concentrar, aplica ese entorno (no el genérico por defecto).
 /// </summary>
 public sealed partial class TimerPage : Page
 {
     private readonly IClock _clock = new SystemClock();
-    private readonly PomodoroEngine _engine = new(PomodoroConfig.DeepWork);
+    private PomodoroEngine _engine = new(PomodoroConfig.DeepWork);
     private readonly IFocusController _focus = new WindowsFocusController();
     private DispatcherQueueTimer? _ticker;
     private bool _environmentApplied;
+
+    // Contexto del bloque vigente (resuelto desde el horario).
+    private FocusEnvironment? _activeEnv;
 
     public TimerPage()
     {
@@ -31,10 +41,7 @@ public sealed partial class TimerPage : Page
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        var c = PomodoroConfig.DeepWork;
-        PresetInfo.Text =
-            $"Concentración {c.Focus.TotalMinutes:0} · descanso {c.ShortBreak.TotalMinutes:0} · " +
-            $"largo {c.LongBreak.TotalMinutes:0} cada {c.FocusesPerLongBreak} focos";
+        ResolveContext();
 
         _ticker = DispatcherQueue.CreateTimer();
         _ticker.Interval = TimeSpan.FromMilliseconds(250);
@@ -43,9 +50,53 @@ public sealed partial class TimerPage : Page
         Refresh();
     }
 
+    /// <summary>
+    /// Mira el horario: si hay un bloque activo AHORA, carga su asignatura, el
+    /// entorno mapeado a su tipo y el preset Pomodoro de ese entorno. Si no hay
+    /// bloque, usa el Pomodoro de ajustes ("concentración libre"). Solo recompone
+    /// el motor cuando está en Idle, para no interrumpir una sesión en curso.
+    /// </summary>
+    private void ResolveContext()
+    {
+        var settings = AppState.Load();
+        var now = _clock.Now;
+        var today = DateOnly.FromDateTime(now);
+        var phase = settings.Plan.GetActivePhase(today) ?? settings.Plan.OrderedPhases.FirstOrDefault();
+        var schedule = phase?.Schedule ?? settings.Schedule;
+        var active = new SchedulePlanner(schedule).GetActiveSession(now);
+
+        PomodoroConfig config;
+        if (active is not null)
+        {
+            _activeEnv = settings.ResolveEnvironment(active.Kind);
+            config = PomodoroConfig.ByName(_activeEnv?.PomodoroPreset, settings.Pomodoro);
+            SubjectText.Text = active.Title;
+            SubjectMeta.Text = $"{active.Kind.Label()} · {active.Start:HH\\:mm}–{active.End:HH\\:mm}";
+        }
+        else
+        {
+            _activeEnv = settings.ResolveEnvironment(StudyKind.Otro);   // cae al entorno por defecto
+            config = settings.Pomodoro;
+            SubjectText.Text = "Sin bloque ahora";
+            SubjectMeta.Text = "Concentración libre";
+        }
+        SubjectBadge.Visibility = Visibility.Visible;
+
+        if (_engine.Phase == PomodoroPhase.Idle)
+            _engine = new PomodoroEngine(config);
+
+        PresetInfo.Text =
+            $"Concentración {config.Focus.TotalMinutes:0} · descanso {config.ShortBreak.TotalMinutes:0} · " +
+            $"largo {config.LongBreak.TotalMinutes:0} cada {config.FocusesPerLongBreak} focos";
+    }
+
     private void StartBtn_Click(object sender, RoutedEventArgs e)
     {
-        if (_engine.Phase == PomodoroPhase.Idle) _engine.Start(_clock.Now);
+        if (_engine.Phase == PomodoroPhase.Idle)
+        {
+            ResolveContext();          // recoge el bloque vigente en el momento de arrancar
+            _engine.Start(_clock.Now);
+        }
         else if (!_engine.IsRunning) _engine.Resume(_clock.Now);
         _ticker?.Start();
         Refresh();
@@ -114,13 +165,11 @@ public sealed partial class TimerPage : Page
         if (shouldFocus && !_focus.IsActive)
         {
             _focus.Enter();
-            // Acciones del entorno por defecto, una sola vez por sesión.
+            // Acciones del entorno mapeado al bloque actual, una sola vez por sesión (#67).
             if (!_environmentApplied)
             {
                 _environmentApplied = true;
-                var settings = AppState.Load();
-                var env = settings.FocusEnvironments
-                    .FirstOrDefault(e => e.Id == settings.DefaultFocusEnvironmentId);
+                var env = _activeEnv;
                 if (env is not null)
                 {
                     MusicService.TryLaunch(env.Music);          // lanzar música (#10)
