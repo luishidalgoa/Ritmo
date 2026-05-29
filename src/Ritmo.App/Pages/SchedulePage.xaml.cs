@@ -25,10 +25,45 @@ public sealed partial class SchedulePage : Page
 
     private string? _activePhaseName;
 
+    // Geometría de la rejilla (debe coincidir con BuildGrid).
+    private const double HourColWidth = 64;
+    private const double DayColWidth = 150;
+
+    // Estado del arrastre de redimensión horizontal (#82).
+    private bool _dragging;
+    private Border? _dragCard;
+    private Ritmo.Core.Scheduling.SessionGroup? _dragGroup;
+    private int _dragC0;
+
     public SchedulePage()
     {
         InitializeComponent();
         Loaded += (_, _) => Build();
+        // Durante el arrastre, los movimientos/soltar se atienden a nivel de la
+        // rejilla (con el puntero capturado), no del asa minúscula (#82).
+        GridRoot.PointerMoved += GridRoot_PointerMoved;
+        GridRoot.PointerReleased += GridRoot_PointerReleased;
+        GridRoot.PointerCaptureLost += (_, _) => _dragging = false;
+    }
+
+    private void GridRoot_PointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (!_dragging || _dragCard is null) return;
+        double x = e.GetCurrentPoint(GridRoot).Position.X;
+        int targetDay = (int)Math.Floor((x - HourColWidth) / DayColWidth);
+        targetDay = Math.Clamp(targetDay, _dragC0, 6);
+        Grid.SetColumnSpan(_dragCard, targetDay - _dragC0 + 1);   // preview en vivo
+    }
+
+    private void GridRoot_PointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (!_dragging) return;
+        _dragging = false;
+        GridRoot.ReleasePointerCapture(e.Pointer);
+        var card = _dragCard; var group = _dragGroup; var c0 = _dragC0;
+        _dragCard = null; _dragGroup = null;
+        if (card is not null && group is not null)
+            _ = ApplyResize(group, c0, Grid.GetColumnSpan(card));
     }
 
     private void Build()
@@ -71,9 +106,9 @@ public sealed partial class SchedulePage : Page
         g.RowDefinitions.Clear();
         g.ColumnDefinitions.Clear();
 
-        g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(HourColWidth) });
         for (int c = 0; c < 7; c++)
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(DayColWidth) });
 
         g.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
         for (int r = 0; r < totalRows; r++)
@@ -214,6 +249,9 @@ public sealed partial class SchedulePage : Page
             Grid.SetColumn(card, dayCol + 1); Grid.SetColumnSpan(card, group.DaySpan);
             g.Children.Add(card);
 
+            // Asa de redimensión en el borde derecho: arrastra para expandir/encoger por días (#82).
+            AddResizeHandle(g, card, group, startSlot, spanSlots, accentColor);
+
             // Bloque activo: botón ▶ para concentrarse en él (lleva al temporizador).
             if (isActive)
             {
@@ -259,6 +297,67 @@ public sealed partial class SchedulePage : Page
 
     /// <summary>Lleva al temporizador y arranca la concentración del bloque activo.</summary>
     private void FocusNow() => Navigator.GoToTimer(this, autoStart: true);
+
+    // ---------- Redimensión horizontal por arrastre (#82) ----------
+
+    private void AddResizeHandle(Grid g, Border card, Ritmo.Core.Scheduling.SessionGroup group,
+                                 int startSlot, int spanSlots, Windows.UI.Color accentColor)
+    {
+        int c0 = group.FirstDayIndex;
+        var handle = new Border
+        {
+            Width = 8,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            Margin = new Thickness(0, 2, 2, 2),
+            CornerRadius = new CornerRadius(0, 6, 6, 0),
+            Background = new SolidColorBrush(accentColor),
+            Opacity = 0                           // visible solo al pasar el ratón
+        };
+        ToolTipService.SetToolTip(handle, "Arrastra para extender por días");
+
+        handle.PointerEntered += (o, _) => { if (!_dragging) ((Border)o).Opacity = 0.85; };
+        handle.PointerExited += (o, _) => { if (!_dragging) ((Border)o).Opacity = 0.35; };
+        // Aparece como grip al pasar el ratón por la tarjeta (afordancia de "arrastra para extender").
+        card.PointerEntered += (_, _) => { if (!_dragging) handle.Opacity = 0.55; };
+        card.PointerExited += (_, _) => { if (!_dragging) handle.Opacity = 0; };
+
+        handle.PointerPressed += (o, e) =>
+        {
+            _dragging = true; _dragCard = card; _dragGroup = group; _dragC0 = c0;
+            ((Border)o).Opacity = 0.9;
+            GridRoot.CapturePointer(e.Pointer);   // captura a nivel de rejilla (mueve fuera del asa)
+            e.Handled = true;                      // evita que el Tapped de la tarjeta abra el editor
+        };
+
+        Grid.SetRow(handle, startSlot); Grid.SetRowSpan(handle, spanSlots);
+        Grid.SetColumn(handle, c0 + group.DaySpan);   // columna de rejilla del borde derecho de la tarjeta
+        g.Children.Add(handle);
+    }
+
+    /// <summary>
+    /// Aplica la nueva extensión: el bloque pasa a existir en los días
+    /// [c0 .. c0+newSpan-1] (añade los que falten, quita los sobrantes).
+    /// </summary>
+    private async Task ApplyResize(Ritmo.Core.Scheduling.SessionGroup group, int c0, int newSpan)
+    {
+        if (_activePhaseName is null) { Build(); return; }
+        var settings = AppState.Load();
+        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        if (phase is null) { Build(); return; }
+
+        var rep = group.Representative;
+        var origDays = group.Members.Select(m => m.Day).ToHashSet();
+        bool Belongs(StudySession x) => SameBlock(x, rep) && origDays.Contains(x.Day);
+
+        var kept = phase.Schedule.Sessions.Where(x => !Belongs(x)).ToList();
+        var rebuilt = Enumerable.Range(c0, Math.Clamp(newSpan, 1, 7 - c0))
+                                .Select(i => rep with { Day = Days[i] });
+
+        AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
+        await Task.CompletedTask;
+        Build();
+    }
 
     private void AddCell_Click(object sender, RoutedEventArgs e)
     {

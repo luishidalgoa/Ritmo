@@ -34,9 +34,10 @@
         </Grid>
 
         <ScrollViewer Grid.Row="1" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto">
+                      VerticalScrollBarVisibility="Auto"
+                      AutomationProperties.AutomationId="ScheduleScroller">
             <!-- La rejilla se genera en el code-behind dentro de este Grid -->
-            <Grid x:Name="GridRoot" />
+            <Grid x:Name="GridRoot" AutomationProperties.AutomationId="GridRoot" />
         </ScrollViewer>
     </Grid>
 </Page>
