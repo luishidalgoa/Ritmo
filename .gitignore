@@ -36,3 +36,7 @@ coverage*.xml
 *.nupkg
 packages/
 .nuget/
+
+# Temporales locales de ejecución/capturas
+_run.log
+_*.png
