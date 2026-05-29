@@ -53,6 +53,29 @@
                 </StackPanel>
             </Border>
 
+            <!-- Entornos de concentración (#53) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <TextBlock Text="Entornos de concentración" FontSize="18" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <Button x:Name="AddEnvBtn" Click="AddEnvBtn_Click" HorizontalAlignment="Right">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE710;" FontSize="13" />
+                                <TextBlock Text="Añadir entorno" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                               Text="Qué ocurre al concentrarte: música, apps a cerrar, No molestar… El marcado como predeterminado (★) se usa cuando un bloque no tiene un entorno propio asignado." />
+                    <StackPanel x:Name="EnvList" Spacing="8" />
+                    <TextBlock x:Name="EnvEmpty" Text="Aún no hay entornos. Añade uno para personalizar tu concentración."
+                               Opacity="0.6" FontSize="13" Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+
             <!-- Apariencia -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"

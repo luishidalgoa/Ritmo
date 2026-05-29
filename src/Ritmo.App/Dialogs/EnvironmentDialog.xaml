@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Ritmo_App.Dialogs.EnvironmentDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Entorno de concentración"
+    PrimaryButtonText="Guardar"
+    SecondaryButtonText="Cancelar"
+    DefaultButton="Primary">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="520">
+        <StackPanel Spacing="14" Width="360">
+            <TextBox x:Name="NameBox" Header="Nombre" PlaceholderText="p. ej. Estudio profundo" />
+
+            <ComboBox x:Name="PresetBox" Header="Ritmo Pomodoro" HorizontalAlignment="Stretch">
+                <ComboBoxItem Content="Por defecto de la app" Tag="" />
+                <ComboBoxItem Content="Clásico (25/5/15)" Tag="Classic" />
+                <ComboBoxItem Content="Profundo (50/10/20)" Tag="DeepWork" />
+            </ComboBox>
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="Al concentrarte" FontWeight="SemiBold" />
+                <CheckBox x:Name="DndCheck" Content="Activar No molestar" />
+                <CheckBox x:Name="BadgesCheck" Content="Ocultar avisos de la barra de tareas" />
+                <CheckBox x:Name="EdgeCheck" Content="Abrir el perfil de estudio en Edge" />
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="Música" FontWeight="SemiBold" />
+                <TextBox x:Name="MusicNameBox" Header="Nombre" PlaceholderText="Spotify, Aonsoku…" />
+                <TextBox x:Name="MusicTargetBox" Header="Ejecutable o URI"
+                         PlaceholderText="spotify: o C:\…\Aonsoku.exe" />
+                <CheckBox x:Name="AutoPlayCheck" Content="Intentar reproducir automáticamente" />
+            </StackPanel>
+
+            <TextBox x:Name="CloseBox" Header="Apps a cerrar (separadas por comas)"
+                     PlaceholderText="Discord, Steam" />
+            <TextBox x:Name="MuteBox" Header="Apps a silenciar (separadas por comas)"
+                     PlaceholderText="Spotify" />
+            <TextBox x:Name="WebsitesBox" Header="Webs a bloquear (separadas por comas)"
+                     PlaceholderText="youtube.com, twitter.com" />
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

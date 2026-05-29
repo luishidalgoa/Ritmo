@@ -155,6 +155,31 @@ public sealed class ConfigurationService
         return CommandResult.Ok($"Entorno «{env.Name}» guardado.");
     }
 
+    /// <summary>
+    /// Elimina un entorno. Si era el por defecto, lo deja sin por defecto; y quita
+    /// cualquier mapeo tipo→entorno que apuntara a él (para no dejar referencias rotas).
+    /// </summary>
+    public CommandResult RemoveEnvironment(string environmentId)
+    {
+        var s = _store.Load();
+        if (s.FocusEnvironments.All(e => e.Id != environmentId))
+            return CommandResult.Fail($"No existe el entorno con id «{environmentId}».");
+
+        var remaining = s.FocusEnvironments.Where(e => e.Id != environmentId).ToList();
+        var newDefault = s.DefaultFocusEnvironmentId == environmentId ? null : s.DefaultFocusEnvironmentId;
+        var newMap = s.EnvironmentByKind
+            .Where(kv => kv.Value != environmentId)
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        _store.Save(s with
+        {
+            FocusEnvironments = remaining,
+            DefaultFocusEnvironmentId = newDefault,
+            EnvironmentByKind = newMap
+        });
+        return CommandResult.Ok("Entorno eliminado.");
+    }
+
     /// <summary>Fija el entorno por defecto (debe existir).</summary>
     public CommandResult SetDefaultEnvironment(string environmentId)
     {
