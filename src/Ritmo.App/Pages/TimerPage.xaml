@@ -8,31 +8,29 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="48" VerticalAlignment="Center" HorizontalAlignment="Center">
-        <StackPanel Spacing="16" HorizontalAlignment="Center" MaxWidth="560">
-            <Border x:Name="PhaseBadge" Padding="14,5" CornerRadius="14" HorizontalAlignment="Center"
-                    Background="{ThemeResource AccentControlElevationFillColorDefaultBrush}">
-                <TextBlock x:Name="PhaseText" Text="Listo para empezar" FontWeight="SemiBold"
-                           Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
-            </Border>
+    <StackPanel Padding="48" Spacing="16" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560">
+        <Border x:Name="PhaseBadge" Padding="14,5" CornerRadius="14" HorizontalAlignment="Center"
+                Background="{ThemeResource AccentFillColorDefaultBrush}">
+            <TextBlock x:Name="PhaseText" Text="Listo para empezar" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+        </Border>
 
-            <TextBlock x:Name="TimeText" Text="50:00" FontSize="92" FontWeight="SemiBold"
-                       HorizontalAlignment="Center" FontFamily="Consolas" />
+        <TextBlock x:Name="TimeText" Text="50:00" FontSize="92" FontWeight="SemiBold"
+                   HorizontalAlignment="Center" FontFamily="Consolas" />
 
-            <ProgressBar x:Name="Progress" Minimum="0" Maximum="1" Value="0" Width="420" Height="6" />
-            <TextBlock x:Name="FocusCount" Text="Focos completados: 0" Opacity="0.7" HorizontalAlignment="Center" />
+        <ProgressBar x:Name="Progress" Minimum="0" Maximum="1" Value="0" Width="420" Height="6" />
+        <TextBlock x:Name="FocusCount" Text="Focos completados: 0" Opacity="0.7" HorizontalAlignment="Center" />
 
-            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" Margin="0,8,0,0">
-                <Button x:Name="StartBtn" Click="StartBtn_Click" Style="{StaticResource AccentButtonStyle}">
-                    <TextBlock x:Name="StartBtnText" Text="Iniciar" />
-                </Button>
-                <Button x:Name="PauseBtn" Click="PauseBtn_Click" IsEnabled="False" Content="Pausar" />
-                <Button x:Name="SkipBtn" Click="SkipBtn_Click" IsEnabled="False" Content="Saltar" />
-                <Button x:Name="ResetBtn" Click="ResetBtn_Click" IsEnabled="False" Content="Reiniciar" />
-            </StackPanel>
-
-            <TextBlock x:Name="PresetInfo" Opacity="0.55" FontSize="12"
-                       TextAlignment="Center" HorizontalAlignment="Center" />
+        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" Margin="0,8,0,0">
+            <Button x:Name="StartBtn" Click="StartBtn_Click" Style="{StaticResource AccentButtonStyle}">
+                <TextBlock x:Name="StartBtnText" Text="Iniciar" />
+            </Button>
+            <Button x:Name="PauseBtn" Click="PauseBtn_Click" IsEnabled="False" Content="Pausar" />
+            <Button x:Name="SkipBtn" Click="SkipBtn_Click" IsEnabled="False" Content="Saltar" />
+            <Button x:Name="ResetBtn" Click="ResetBtn_Click" IsEnabled="False" Content="Reiniciar" />
         </StackPanel>
-    </Grid>
+
+        <TextBlock x:Name="PresetInfo" Opacity="0.55" FontSize="12"
+                   TextAlignment="Center" HorizontalAlignment="Center" />
+    </StackPanel>
 </Page>

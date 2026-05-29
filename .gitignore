@@ -40,3 +40,8 @@ packages/
 # Temporales locales de ejecución/capturas
 _run.log
 _*.png
+
+# Depuración / temporales
+_dumps/
+*.dmp
+*.log
