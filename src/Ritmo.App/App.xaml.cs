@@ -1,52 +1,64 @@
-﻿using Windows.ApplicationModel;
-using Windows.ApplicationModel.Activation;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
+using System;
+using System.Diagnostics;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using Microsoft.UI.Xaml.Shapes;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using Microsoft.Windows.AppLifecycle;
+using Ritmo_App.Services;
 
 namespace Ritmo_App;
 
 /// <summary>
-/// Provides application-specific behavior to supplement the default Application class.
+/// Aplicación. Es de instancia única (#24/#20): si ya hay una corriendo, la
+/// segunda activación se redirige a la primera (que reaparece) y la segunda se
+/// cierra. Al cerrar la ventana la app NO sale: se oculta y sigue viva en segundo
+/// plano para que los avisos del horario suenen igualmente. Se sale del todo con
+/// la acción "Salir" de Ajustes.
 /// </summary>
 public partial class App : Application
 {
-    private Window? _window;
-    
-    /// <summary>
-    /// Initializes the singleton application object.  This is the first line of authored code
-    /// executed, and as such is the logical equivalent of main() or WinMain().
-    /// </summary>
+    private MainWindow? _window;
+
     public App()
     {
         InitializeComponent();
     }
 
-    /// <summary>
-    /// Invoked when the application is launched.
-    /// </summary>
-    /// <param name="args">Details about the launch request and process.</param>
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
-        // Servicio de fondo: vigila el horario y lanza toasts en avisos/inicios (#28/#29).
-        Ritmo_App.Services.ScheduleHost.Instance.Start();
+        var main = AppInstance.FindOrRegisterForKey("ritmo-single-instance");
+        if (!main.IsCurrent)
+        {
+            // Ya hay una instancia: redirige la activación a ella y cierra esta.
+            RedirectAndExit(main);
+            return;
+        }
+
+        // Soy la instancia principal: atiendo futuras (re)activaciones.
+        main.Activated += OnReactivated;
+
+        // Servicio de fondo: vigila el horario y lanza toasts (#28/#29). Sigue vivo
+        // aunque se oculte la ventana; solo se para al salir de verdad.
+        ScheduleHost.Instance.Start();
 
         _window = new MainWindow();
-        _window.Closed += (_, _) =>
-        {
-            Ritmo_App.Services.ScheduleHost.Instance.Stop();
-            Ritmo_App.Services.ToastService.Unregister();
-        };
         _window.Activate();
+    }
+
+    private static async void RedirectAndExit(AppInstance main)
+    {
+        try
+        {
+            var aea = AppInstance.GetCurrent().GetActivatedEventArgs();
+            await main.RedirectActivationToAsync(aea);
+        }
+        catch { /* best-effort */ }
+        // Cierra esta instancia secundaria; la principal ya recibió la activación.
+        Process.GetCurrentProcess().Kill();
+    }
+
+    private void OnReactivated(object? sender, AppActivationArguments e)
+    {
+        // El evento llega en un hilo de fondo: vuelve al hilo de UI de la ventana.
+        var w = _window;
+        w?.DispatcherQueue.TryEnqueue(() => w.ShowFromBackground());
     }
 }

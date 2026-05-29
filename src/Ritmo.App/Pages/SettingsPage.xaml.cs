@@ -43,7 +43,72 @@ public sealed partial class SettingsPage : Page
         };
 
         BuildEnvList();
+        _ = LoadAutostartState();
     }
+
+    // ---------- Segundo plano y arranque (#24/#20) ----------
+
+    private bool _autostartLoading;
+
+    private async Task LoadAutostartState()
+    {
+        _autostartLoading = true;
+        try
+        {
+            var task = await Windows.ApplicationModel.StartupTask.GetAsync("RitmoStartup");
+            switch (task.State)
+            {
+                case Windows.ApplicationModel.StartupTaskState.Enabled:
+                    AutostartSwitch.IsOn = true; AutostartSwitch.IsEnabled = true; AutostartHint.Text = "";
+                    break;
+                case Windows.ApplicationModel.StartupTaskState.Disabled:
+                    AutostartSwitch.IsOn = false; AutostartSwitch.IsEnabled = true; AutostartHint.Text = "";
+                    break;
+                case Windows.ApplicationModel.StartupTaskState.DisabledByUser:
+                    AutostartSwitch.IsOn = false; AutostartSwitch.IsEnabled = false;
+                    AutostartHint.Text = "Desactivado desde el Administrador de tareas de Windows. Actívalo allí (pestaña Inicio).";
+                    break;
+                default:
+                    AutostartSwitch.IsOn = false; AutostartSwitch.IsEnabled = false;
+                    AutostartHint.Text = "El arranque automático lo gestiona una directiva del sistema.";
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            AutostartSwitch.IsEnabled = false;
+            AutostartHint.Text = $"No disponible: {ex.Message}";
+        }
+        finally { _autostartLoading = false; }
+    }
+
+    private async void AutostartSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_autostartLoading) return;
+        try
+        {
+            var task = await Windows.ApplicationModel.StartupTask.GetAsync("RitmoStartup");
+            if (AutostartSwitch.IsOn)
+            {
+                var state = await task.RequestEnableAsync();
+                if (state != Windows.ApplicationModel.StartupTaskState.Enabled)
+                {
+                    AutostartSwitch.IsOn = false;
+                    AutostartHint.Text = "Windows no permitió activarlo (revisa el Administrador de tareas).";
+                }
+            }
+            else
+            {
+                task.Disable();
+            }
+        }
+        catch (Exception ex)
+        {
+            AutostartHint.Text = $"No se pudo cambiar: {ex.Message}";
+        }
+    }
+
+    private void ExitBtn_Click(object sender, RoutedEventArgs e) => MainWindow.Current?.ExitApp();
 
     // ---------- Entornos de concentración (#53) ----------
 

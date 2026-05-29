@@ -90,6 +90,26 @@
                 </StackPanel>
             </Border>
 
+            <!-- Segundo plano y arranque (#24/#20) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Segundo plano y arranque" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                               Text="Al cerrar la ventana, Ritmo sigue en segundo plano para que los avisos del horario suenen igualmente. Vuelve a abrirlo desde el menú Inicio o usa «Salir» para cerrarlo del todo." />
+                    <ToggleSwitch x:Name="AutostartSwitch" Header="Arrancar Ritmo al iniciar sesión en Windows"
+                                  OffContent="No" OnContent="Sí" Toggled="AutostartSwitch_Toggled" />
+                    <TextBlock x:Name="AutostartHint" Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
+                    <Button x:Name="ExitBtn" Click="ExitBtn_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE7E8;" FontSize="14" />
+                            <TextBlock Text="Salir de Ritmo (detiene los avisos)" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+
             <!-- Guardar -->
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <Button x:Name="SaveBtn" Click="SaveBtn_Click" Style="{StaticResource AccentButtonStyle}" Content="Guardar cambios" />
