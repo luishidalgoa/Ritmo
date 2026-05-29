@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -19,6 +20,7 @@ public sealed partial class TimerPage : Page
     private readonly PomodoroEngine _engine = new(PomodoroConfig.DeepWork);
     private readonly IFocusController _focus = new WindowsFocusController();
     private DispatcherQueueTimer? _ticker;
+    private bool _musicLaunched;
 
     public TimerPage()
     {
@@ -109,9 +111,24 @@ public sealed partial class TimerPage : Page
     private void SyncFocusMode()
     {
         bool shouldFocus = _engine.Phase == PomodoroPhase.Focus && _engine.IsRunning;
-        if (shouldFocus && !_focus.IsActive) _focus.Enter();
-        else if (!shouldFocus && _focus.IsActive) _focus.Exit();
+        if (shouldFocus && !_focus.IsActive)
+        {
+            _focus.Enter();
+            // Lanzar la música del entorno por defecto una sola vez por sesión.
+            if (!_musicLaunched)
+            {
+                var env = AppState.Load().FocusEnvironments
+                    .FirstOrDefault(e => e.Id == AppState.Load().DefaultFocusEnvironmentId);
+                if (env?.Music is not null && MusicService.TryLaunch(env.Music))
+                    _musicLaunched = true;
+            }
+        }
+        else if (!shouldFocus && _focus.IsActive)
+        {
+            _focus.Exit();
+        }
 
+        if (_engine.Phase == PomodoroPhase.Idle) _musicLaunched = false;  // reset al parar
         DndBadge.Visibility = _focus.IsActive ? Visibility.Visible : Visibility.Collapsed;
     }
 }
