@@ -8,13 +8,21 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="48" VerticalAlignment="Center" HorizontalAlignment="Center">
-        <StackPanel Spacing="10" HorizontalAlignment="Center" MaxWidth="520">
-            <FontIcon Glyph="&#xE787;" FontSize="52" HorizontalAlignment="Center"
-                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-            <TextBlock Text="Horario" FontSize="32" FontWeight="SemiBold" HorizontalAlignment="Center" />
-            <TextBlock Text="La rejilla semanal tipo Excel (fases, colores, notas, enlaces) llega en las issues #25, #45 y #46."
-                       Opacity="0.6" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" />
+    <Grid Padding="24" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="2">
+            <TextBlock Text="Horario semanal" FontSize="24" FontWeight="SemiBold" />
+            <TextBlock x:Name="PhaseInfo" Opacity="0.7" FontSize="13" />
         </StackPanel>
+
+        <ScrollViewer Grid.Row="1" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+            <!-- La rejilla se genera en el code-behind dentro de este Grid -->
+            <Grid x:Name="GridRoot" />
+        </ScrollViewer>
     </Grid>
 </Page>
