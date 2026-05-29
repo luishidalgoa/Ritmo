@@ -15,15 +15,20 @@
     <StackPanel Spacing="12" Width="320">
         <TextBox x:Name="TitleBox" Header="Título" PlaceholderText="p. ej. Técnico" />
 
-        <ComboBox x:Name="DayBox" Header="Día" HorizontalAlignment="Stretch">
-            <ComboBoxItem Content="Lunes" />
-            <ComboBoxItem Content="Martes" />
-            <ComboBoxItem Content="Miércoles" />
-            <ComboBoxItem Content="Jueves" />
-            <ComboBoxItem Content="Viernes" />
-            <ComboBoxItem Content="Sábado" />
-            <ComboBoxItem Content="Domingo" />
-        </ComboBox>
+        <StackPanel Spacing="6">
+            <TextBlock Text="Días" FontWeight="SemiBold" />
+            <StackPanel x:Name="DayToggles" Orientation="Horizontal" Spacing="6">
+                <ToggleButton x:Name="DayMon" Content="L" MinWidth="40" />
+                <ToggleButton x:Name="DayTue" Content="M" MinWidth="40" />
+                <ToggleButton x:Name="DayWed" Content="X" MinWidth="40" />
+                <ToggleButton x:Name="DayThu" Content="J" MinWidth="40" />
+                <ToggleButton x:Name="DayFri" Content="V" MinWidth="40" />
+                <ToggleButton x:Name="DaySat" Content="S" MinWidth="40" />
+                <ToggleButton x:Name="DaySun" Content="D" MinWidth="40" />
+            </StackPanel>
+            <TextBlock x:Name="DayHint" Text="Marca varios para crearlo en todos a la vez."
+                       Opacity="0.6" FontSize="12" />
+        </StackPanel>
 
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions>
@@ -31,8 +36,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <TimePicker x:Name="StartPicker" Grid.Column="0" Header="Inicio" ClockIdentifier="24HourClock" MinuteIncrement="5" />
-            <NumberBox x:Name="DurationBox" Grid.Column="1" Header="Duración (min)"
-                       Value="60" Minimum="5" Maximum="600" SmallChange="5" SpinButtonPlacementMode="Inline" />
+            <TimePicker x:Name="EndPicker" Grid.Column="1" Header="Fin" ClockIdentifier="24HourClock" MinuteIncrement="5" />
         </Grid>
 
         <ComboBox x:Name="KindBox" Header="Tipo" HorizontalAlignment="Stretch">

@@ -281,7 +281,9 @@ public sealed partial class SchedulePage : Page
         var result = await dlg.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {
-            AppState.Config.AddSession(_activePhaseName, dlg.ToSession());
+            // Crea el bloque en CADA día marcado (#81). Si no se marcó ninguno, no hace nada.
+            foreach (var d in dlg.SelectedDays)
+                AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));
             Build();
         }
     }
@@ -304,7 +306,11 @@ public sealed partial class SchedulePage : Page
         var result = await dlg.ShowAsync();
 
         if (result == ContentDialogResult.Primary)
-            AppState.Config.UpdateSession(_activePhaseName, index, dlg.ToSession());
+        {
+            // Al editar se mantiene una sola sesión: usa el primer día marcado (o el original).
+            var day = dlg.SelectedDays.FirstOrDefault(phase.Schedule.Sessions[index].Day);
+            AppState.Config.UpdateSession(_activePhaseName, index, dlg.ToSession(day));
+        }
         else if (result == ContentDialogResult.None)   // CloseButton = Eliminar
             AppState.Config.RemoveSession(_activePhaseName, index);
         else
