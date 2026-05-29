@@ -1,4 +1,4 @@
-namespace FocusTAI.Core.Model;
+namespace Ritmo.Core.Model;
 
 /// <summary>
 /// Tipo de bloque de estudio. Coincide con los carriles del horario TAI.

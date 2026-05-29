@@ -1,6 +1,6 @@
-using FocusTAI.Core.Model;
+using Ritmo.Core.Model;
 
-namespace FocusTAI.Core.Scheduling;
+namespace Ritmo.Core.Scheduling;
 
 /// <summary>
 /// Convierte un horario semanal (recurrente) en eventos absolutos en el tiempo.

@@ -1,7 +1,7 @@
-using FocusTAI.Core.Model;
-using FocusTAI.Core.Scheduling;
+using Ritmo.Core.Model;
+using Ritmo.Core.Scheduling;
 
-namespace FocusTAI.Core.Tests;
+namespace Ritmo.Core.Tests;
 
 public class SchedulePlannerTests
 {

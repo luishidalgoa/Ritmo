@@ -1,6 +1,6 @@
-using FocusTAI.Core.Model;
+using Ritmo.Core.Model;
 
-namespace FocusTAI.Core.Scheduling;
+namespace Ritmo.Core.Scheduling;
 
 /// <summary>Qué representa un evento planificado en el tiempo.</summary>
 public enum PlannedEventType

@@ -1,4 +1,4 @@
-# FocusTAI
+# Ritmo
 
 App de escritorio (Windows 11) para preparar la oposición **TAI** con técnica Pomodoro y horario semanal.
 
@@ -21,9 +21,9 @@ Núcleo puro y testeable, separado de la integración con el SO y la UI:
 
 | Proyecto | Rol | Testeable |
 |---|---|---|
-| `src/FocusTAI.Core` | Lógica pura: modelo, planificador de horario, Pomodoro, avisos. Sin dependencias de Windows. | ✅ 100% |
-| `tests/FocusTAI.Core.Tests` | Tests xUnit del núcleo. | — |
-| `src/FocusTAI.App` *(pendiente)* | UI WinUI 3 + integración con el SO (No molestar, Edge, música…). | parcial |
+| `src/Ritmo.Core` | Lógica pura: modelo, planificador de horario, Pomodoro, avisos. Sin dependencias de Windows. | ✅ 100% |
+| `tests/Ritmo.Core.Tests` | Tests xUnit del núcleo. | — |
+| `src/Ritmo.App` *(pendiente)* | UI WinUI 3 + integración con el SO (No molestar, Edge, música…). | parcial |
 
 > Filosofía: **el cerebro de la app se prueba sin pantalla**. La UI y el SO se montan encima.
 
