@@ -35,6 +35,20 @@ public static class StudyKindExtensions
         StudyKind.Simulacro => true,
         _ => false   // Descanso, PorDefinir, Personal, Otro -> no disparan concentración
     };
+
+    /// <summary>Etiqueta legible en español para mostrar en UI/avisos.</summary>
+    public static string Label(this StudyKind kind) => kind switch
+    {
+        StudyKind.Tecnico => "Técnico",
+        StudyKind.Legislacion => "Legislación",
+        StudyKind.Ingles => "Inglés",
+        StudyKind.Tests => "Tests",
+        StudyKind.Simulacro => "Simulacro",
+        StudyKind.Descanso => "Descanso",
+        StudyKind.PorDefinir => "Por definir",
+        StudyKind.Personal => "Personal",
+        _ => "Otro"
+    };
 }
 
 /// <summary>

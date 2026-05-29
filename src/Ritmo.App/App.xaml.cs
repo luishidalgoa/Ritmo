@@ -38,7 +38,15 @@ public partial class App : Application
     /// <param name="args">Details about the launch request and process.</param>
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
+        // Servicio de fondo: vigila el horario y lanza toasts en avisos/inicios (#28/#29).
+        Ritmo_App.Services.ScheduleHost.Instance.Start();
+
         _window = new MainWindow();
+        _window.Closed += (_, _) =>
+        {
+            Ritmo_App.Services.ScheduleHost.Instance.Stop();
+            Ritmo_App.Services.ToastService.Unregister();
+        };
         _window.Activate();
     }
 }
