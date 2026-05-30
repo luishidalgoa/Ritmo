@@ -35,6 +35,16 @@
                         <FontIcon Glyph="&#xE76C;" FontSize="12" />
                     </Button>
                     <Button x:Name="ThisWeekBtn" Click="ThisWeekBtn_Click" Content="Esta semana" Padding="10,4" Margin="6,0,0,0" />
+                    <Button x:Name="CalNavBtn" AutomationProperties.Name="Ir a una fecha" Padding="8,4"
+                            ToolTipService.ToolTip="Ir a una fecha (mes/año)">
+                        <FontIcon Glyph="&#xE787;" FontSize="13" />
+                        <Button.Flyout>
+                            <Flyout x:Name="CalNavFlyout" Opening="CalNavFlyout_Opening">
+                                <CalendarView x:Name="CalNav" SelectionMode="Single"
+                                              SelectedDatesChanged="CalNav_SelectedDatesChanged" />
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
                 </StackPanel>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">

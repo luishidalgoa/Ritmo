@@ -229,19 +229,26 @@ public sealed partial class SchedulePage : Page
 
         var today = DateOnly.FromDateTime(DateTime.Now);
         _builtDate = today;
-        var phase = (_viewedPhaseName is not null
-                        ? settings.Plan.Phases.FirstOrDefault(p => p.Name == _viewedPhaseName)
-                        : null)
-                    ?? settings.Plan.GetActivePhase(today)
-                    ?? settings.Plan.OrderedPhases.FirstOrDefault();
+        // La fase mostrada se resuelve por la SEMANA visible, no por "hoy" (#46 fix):
+        // si una fase cubre algún día de la semana, se usa; si no, no hay fase (rejilla
+        // vacía) — así al pasar el límite de una fase, el horario "corta". Una fase
+        // elegida a mano en el selector tiene prioridad.
+        SchedulePhase? phase = _viewedPhaseName is not null
+            ? settings.Plan.Phases.FirstOrDefault(p => p.Name == _viewedPhaseName)
+            : null;
+        if (phase is null)
+            for (int d = 0; d < 7 && phase is null; d++)
+                phase = settings.Plan.GetActivePhase(_weekStart.AddDays(d));
         BuildPhaseSelector(settings, phase);
-        var schedule = phase?.Schedule ?? settings.Schedule;
+        var schedule = phase?.Schedule ?? new WeeklySchedule();   // sin fase -> rejilla vacía
         _activePhaseName = phase?.Name;
         AddBtn.IsEnabled = phase is not null;
 
-        PhaseInfo.Text = phase is null
-            ? "Sin fase configurada"
-            : $"{phase.Name}  ·  {phase.ValidFrom:dd/MM/yyyy} → {(phase.ValidTo?.ToString("dd/MM/yyyy") ?? "indefinida")}";
+        PhaseInfo.Text = phase is not null
+            ? $"{phase.Name}  ·  {phase.ValidFrom:dd/MM/yyyy} → {(phase.ValidTo?.ToString("dd/MM/yyyy") ?? "indefinida")}"
+            : settings.Plan.Phases.Count > 0
+                ? "Sin fase para esta semana"
+                : "Sin fase configurada";
 
         int startH = settings.ViewConfig.DayStart.Hour;
         int endH = settings.ViewConfig.DayEnd.Hour;
@@ -617,6 +624,19 @@ public sealed partial class SchedulePage : Page
         _viewedPhaseName = string.IsNullOrEmpty(tag) ? null : tag;
         CloseDetail(internalRefresh: true);   // la selección previa puede no aplicar a otra fase
         Build();
+    }
+
+    // ---------- Navegador de calendario: saltar por mes/año (#119) ----------
+
+    private void CalNavFlyout_Opening(object sender, object e)
+        => CalNav.SetDisplayDate(new DateTimeOffset(_weekStart.ToDateTime(TimeOnly.MinValue)));
+
+    private void CalNav_SelectedDatesChanged(CalendarView sender, CalendarViewSelectedDatesChangedEventArgs e)
+    {
+        if (e.AddedDates.Count == 0) return;
+        _weekStart = MondayOf(DateOnly.FromDateTime(e.AddedDates[0].DateTime));
+        CalNavFlyout.Hide();
+        RefreshWeek();
     }
 
     private void PrevWeekBtn_Click(object sender, RoutedEventArgs e) { _weekStart = _weekStart.AddDays(-7); RefreshWeek(); }
