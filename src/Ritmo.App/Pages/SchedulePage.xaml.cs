@@ -69,6 +69,13 @@ public sealed partial class SchedulePage : Page
         GridRoot.PointerMoved += GridRoot_PointerMoved;
         GridRoot.PointerReleased += GridRoot_PointerReleased;
         GridRoot.PointerCaptureLost += (_, _) => CancelDrag();
+
+        // Indicador de "ahora" reactivo: se recoloca cada 30 s mientras la página vive. #115
+        _nowTimer = DispatcherQueue.CreateTimer();
+        _nowTimer.Interval = TimeSpan.FromSeconds(30);
+        _nowTimer.Tick += (_, _) => OnNowTick();
+        Loaded += (_, _) => _nowTimer.Start();
+        Unloaded += (_, _) => _nowTimer.Stop();
     }
 
     private void CancelDrag()
@@ -216,6 +223,7 @@ public sealed partial class SchedulePage : Page
         var settings = AppState.Load();
 
         var today = DateOnly.FromDateTime(DateTime.Now);
+        _builtDate = today;
         var phase = settings.Plan.GetActivePhase(today)
                     ?? settings.Plan.OrderedPhases.FirstOrDefault();
         var schedule = phase?.Schedule ?? settings.Schedule;
@@ -437,29 +445,70 @@ public sealed partial class SchedulePage : Page
             }
         }
 
-        // Línea de "ahora" sobre la columna de hoy, si la hora está dentro del rango visible.
-        if (todayCol >= 0)
-        {
-            double nowHours = now.Hour + now.Minute / 60.0 - startH;
-            if (nowHours >= 0 && nowHours <= hours)
-            {
-                double slot = nowHours * slotsPerHour;
-                int rowAt = 1 + (int)Math.Floor(slot);
-                double offset = (slot - Math.Floor(slot)) * rowHeight;
-                var nowLine = new Border
-                {
-                    Height = 2, Background = new SolidColorBrush(accentColor),
-                    VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(0, offset, 0, 0),
-                    IsHitTestVisible = false
-                };
-                Grid.SetRow(nowLine, rowAt); Grid.SetColumn(nowLine, todayCol + 1);
-                Grid.SetRowSpan(nowLine, 1);
-                g.Children.Add(nowLine);
-            }
-        }
+        // Indicador de "ahora" sobre la columna de hoy (línea + punto), reposicionable
+        // por el temporizador sin reconstruir la rejilla. #115
+        _nowStartH = startH; _nowHours = hours; _nowTodayCol = todayCol;
+        PlaceNowIndicator();
 
         OverlayCalendar(g, startH, hours);   // eventos del calendario sobre la rejilla (#112)
+    }
+
+    // ---------- Indicador de la hora actual ("ahora"), reactivo (#115) ----------
+
+    private int _nowStartH, _nowHours, _nowTodayCol = -1;     // contexto de la rejilla pintada
+    private readonly List<UIElement> _nowParts = new();       // línea + punto actuales en GridRoot
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _nowTimer;
+    private DateOnly _builtDate;                               // día con el que se construyó (para detectar cambio de día)
+
+    /// <summary>
+    /// Coloca (o recoloca) la línea + punto de la hora actual en la columna de hoy.
+    /// Es ligero: solo quita/añade esos 2 elementos, sin reconstruir la rejilla.
+    /// Si no estamos en la semana actual o la hora cae fuera del rango, no pinta nada.
+    /// </summary>
+    private void PlaceNowIndicator()
+    {
+        foreach (var e in _nowParts) GridRoot.Children.Remove(e);
+        _nowParts.Clear();
+        if (_nowTodayCol < 0) return;
+
+        var now = DateTime.Now;
+        double nowHours = now.Hour + now.Minute / 60.0 + now.Second / 3600.0 - _nowStartH;
+        if (nowHours < 0 || nowHours > _nowHours) return;
+
+        double slot = nowHours * SlotsPerHour;
+        int rowAt = 1 + (int)Math.Floor(slot);
+        double offset = (slot - Math.Floor(slot)) * RowHeight;
+        var accent = ((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color;
+        var brush = new SolidColorBrush(accent);
+
+        var line = new Border
+        {
+            Height = 2, Background = brush,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, offset, 0, 0),
+            IsHitTestVisible = false
+        };
+        Grid.SetRow(line, rowAt); Grid.SetColumn(line, _nowTodayCol + 1); Grid.SetRowSpan(line, 1);
+
+        var dot = new Microsoft.UI.Xaml.Shapes.Ellipse
+        {
+            Width = 9, Height = 9, Fill = brush,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(-3, offset - 3.5, 0, 0),
+            IsHitTestVisible = false
+        };
+        Grid.SetRow(dot, rowAt); Grid.SetColumn(dot, _nowTodayCol + 1); Grid.SetRowSpan(dot, 1);
+
+        GridRoot.Children.Add(line); GridRoot.Children.Add(dot);
+        _nowParts.Add(line); _nowParts.Add(dot);
+    }
+
+    /// <summary>Tick del temporizador: si cambió el día, reconstruye; si no, recoloca el "ahora".</summary>
+    private void OnNowTick()
+    {
+        if (DateOnly.FromDateTime(DateTime.Now) != _builtDate) RefreshWeek();   // cruzó medianoche
+        else PlaceNowIndicator();
     }
 
     // ---------- Calendarios externos sobre la rejilla (#112) ----------
