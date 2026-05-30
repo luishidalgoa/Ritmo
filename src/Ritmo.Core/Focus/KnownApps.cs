@@ -41,7 +41,7 @@ public static class KnownApps
         new("Battle.net", "Battle.net", AppCategory.Juegos, "https://www.blizzard.com/apps/battle.net/desktop", "battle.net"),
 
         new("Spotify", "Spotify", AppCategory.Musica, "https://www.spotify.com/download", "spotify", "spotify:"),
-        new("VLC", "vlc", AppCategory.Musica, "https://www.videolan.org/vlc/", "vlc"),
+        // Navidrome (servidor propio) se integra aparte vía API Subsonic, no como app de proceso (#107).
     ];
 
     /// <summary>Etiqueta legible de una categoría.</summary>
