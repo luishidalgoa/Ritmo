@@ -38,9 +38,13 @@ dotnet build         # compila la solución
 
 ## Estado
 
-- [x] Núcleo: modelo + planificador semanal (con avisos previos, sesión activa, cruce de medianoche).
-- [x] Tests del planificador (11/11 verdes).
-- [ ] Motor Pomodoro (máquina de estados sesión/descanso).
-- [ ] Servicio en segundo plano (timers sobre el planificador).
-- [ ] UI WinUI 3 (editor de horario, bandeja, temporizador).
-- [ ] Integración SO: No molestar, bloqueo Edge, cerrar apps, música, lista "Estudio".
+El inventario vivo de lo implementado (y lo que la IA puede configurar) está en
+**[CHANGELOG.md](CHANGELOG.md)** — la fuente única de «qué hace Ritmo hoy».
+
+En síntesis, ya están: núcleo + planificador semanal por fases, motor Pomodoro,
+servicio en segundo plano, UI WinUI 3 (horario, entornos, ajustes, notas, isla de
+concentración), integración con el SO (No molestar, Edge, apps, música/Navidrome,
+calendarios) y un **servidor MCP** para configurar la app desde una IA
+(ver [docs/CONECTAR-IA.md](docs/CONECTAR-IA.md)).
+
+> 🤖 Conectar una IA: [docs/CONECTAR-IA.md](docs/CONECTAR-IA.md).

@@ -1,0 +1,177 @@
+# Changelog de Ritmo
+
+Todo lo que Ritmo sabe hacer hoy, y qué se ha ido añadiendo. Formato inspirado en
+[Keep a Changelog](https://keepachangelog.com/); fechas en `yyyy-MM-dd`.
+
+Este archivo tiene **dos partes**:
+
+1. **[Capacidades actuales](#capacidades-actuales)** — el inventario vivo de lo que
+   está implementado, agrupado por área. Incluye la subsección **🤖 La IA (MCP)**
+   con todo lo que una IA puede ver y configurar.
+2. **[Registro de cambios](#registro-de-cambios)** — orden cronológico (lo más
+   nuevo arriba). Aquí se anota cada mejora cuando se implementa.
+
+> **Regla del harness** (ver `AGENTS.md`): al implementar una mejora o funcionalidad
+> nueva, **se registra aquí**: una línea datada en el «Registro de cambios» con su
+> nº de issue, y —si introduce o cambia una capacidad— se actualiza también la
+> sección «Capacidades actuales» (incluida la subsección 🤖 IA/MCP si se tocan las
+> herramientas del servidor).
+
+---
+
+## Capacidades actuales
+
+### 🤖 La IA (servidor MCP) — 40 herramientas
+
+Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
+**ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
+fachada validada `ConfigurationService` (misma que usa la UI) y se guarda en el
+`settings.json` compartido (`%USERPROFILE%\.ritmo\settings.json`), así que los
+cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
+[`docs/CONECTAR-IA.md`](docs/CONECTAR-IA.md).
+
+**Inspección (leer el estado)**
+- `get_status` — resumen corto (fases, entornos, notas).
+- `get_config` — **toda** la configuración en JSON, con los ids e índices que usan
+  las herramientas de editar/borrar.
+- `list_known_apps` — catálogo de apps conocidas con sus nombres de proceso válidos.
+
+**Horario y plan**
+- Fases: `add_phase`, `update_phase`, `remove_phase`.
+- Sesiones recurrentes: `add_session`, `update_session`, `remove_session`.
+- Sesiones provisionales (con fecha): `add_one_off_session`, `remove_one_off_session`.
+- Rango horario visible: `set_view_hours`.
+
+**Pomodoro**
+- Pomodoro por defecto: `set_pomodoro`.
+- Ritmos propios: `add_rhythm`, `update_rhythm`, `remove_rhythm`.
+
+**Entornos de concentración**
+- Entorno: `upsert_focus_environment` (crear/editar; *merge* que conserva enlaces,
+  tareas y perfiles), `remove_environment`, `set_default_environment`.
+- Enlaces del entorno: `add_environment_link`, `remove_environment_link`.
+- Tareas del entorno: `add_environment_task`, `toggle_environment_task`, `remove_environment_task`.
+- Perfiles por tipo de sesión (qué se abre en cada bloque): `set_session_profile`, `clear_session_profile`.
+- Mapeo tipo de bloque → entorno: `map_environment_to_kind`, `clear_environment_kind`.
+
+**Notas y atajos**
+- Notas (markdown, opcional post-it de sesión): `add_note`, `update_note`, `remove_note`.
+- Atajos globales: `add_shortcut`, `remove_shortcut`.
+
+**Música, calendarios y solapamientos**
+- Navidrome (servidor + usuario; **sin contraseña**, esa va en el almacén seguro):
+  `set_navidrome_connection`, `clear_navidrome_connection`.
+- Calendarios externos ICS: `add_calendar_feed`, `remove_calendar_feed`.
+- Prioridad ante solapamiento horario↔calendario: `set_overlap_priority`, `clear_overlap_priority`.
+
+**Respaldo**
+- `import_config` — reemplaza toda la configuración desde un JSON (formato de `get_config`).
+
+### ⏱️ Pomodoro
+
+- Motor de estados (Idle / Focus / Break / LongBreak) con tick que recibe el «ahora»
+  (determinista y testeable). Pausar / reanudar / saltar / reiniciar. (#13–#16)
+- Configuración de duraciones y ciclos (#14). Presets **Clásico** (25/5/15) y
+  **Profundo** (50/10/20). **Ritmos propios** con nombre, creables en Ajustes y
+  asignables a un entorno (#96).
+
+### 🗓️ Horario semanal y plan por fases
+
+- Modelo de **fases temporales** (`SchedulePhase` + `SchedulePlan`): de una fecha a
+  otra rige un horario; al pasar la fecha límite entra la siguiente fase (#39, #119).
+- **Gestor de fases** con acceso a versiones futuras/pasadas (#46).
+- Sesiones: crear/editar/eliminar (día, hora, **hora de fin** en vez de duración, tipo) (#26, #80);
+  crear el mismo bloque en **varios días a la vez** (#81); **fusión visual** de sesiones
+  idénticas en días contiguos (#86); **arrastrar y redimensionar** estilo Excel sin solapar (#82, #88–#90).
+- Bloques **tentativos** y tipo «Por definir»; sesiones **no-concentración** para ver la
+  semana completa (#40, #63).
+- **Sesión provisional**: superponer un bloque extraordinario solo en la semana de su fecha (#103).
+- **Navegación entre semanas** + navegador de calendario mes/año (#113, #119).
+- **Hoy resaltado** + **línea reactiva de la hora actual** en la columna de hoy (#69, #115).
+- **Rejilla responsive**: las columnas de día llenan el ancho disponible (#117).
+- **Panel lateral de detalle** de sesión y **resolución de solapamientos** con eventos del
+  calendario (elegir qué lado prioriza) (#114).
+- Avisos previos configurables por sesión (1 h / 10 min / 5 min, hasta 2; desplegables con
+  variedad + personalizado) (#6, #27, #87).
+
+### 🎯 Concentración (modo focus)
+
+- Al concentrarse: **No molestar**, ocultar distractores, **cerrar/silenciar** apps de
+  ruido, **bloquear webs** en Edge, **abrir apps** de estudio, **abrir un Workspace** de
+  Edge, opción de **escritorio virtual nuevo** de Windows (#30, #32, #34, #35, #108–#110).
+- **Isla flotante estilo StandBy**: al entrar en focus la app se minimiza y aparece una
+  ventana arriba a la derecha con la **hora del sistema** en grande + mini-controles del
+  Pomodoro (abrir en grande / pausar / reanudar / saltar) (#118).
+- Concentrarse en un bloque concreto o con un entorno desde el panel derecho (#67, #69, #111).
+
+### 🧰 Entornos de trabajo
+
+- Modelo `FocusEnvironment` + persistencia + entorno por defecto (#51, #52).
+- Gestor de entornos (crear/editar/elegir), creación y edición **desde el panel derecho**
+  con nav desplegable, selector fácil del entorno activo (#53, #92, #102, #104).
+- **Apps** por categoría con catálogo + detección de instaladas (incl. apps de la Store) (#94, #97).
+- **Enlaces/herramientas** agrupados, **módulo de Tareas** por entorno (#74, #77).
+- **Webs a bloquear** con favicon (#99); apps a cerrar clarificadas (#100).
+- **Comportamiento por tipo de sesión**: qué apps/enlaces se abren en cada tipo de bloque (#70, #116).
+- Asociar tipo de bloque → entorno (#70).
+
+### 🎵 Música
+
+- Lanzar app de música configurable (#10). Elegir entre apps instaladas (#98).
+- **Navidrome** (API Subsonic) en vez de VLC; la contraseña vive en el almacén seguro
+  del sistema, nunca en el JSON (#107).
+
+### 📝 Notas
+
+- Notas personalizables con **markdown** (#41, #72), como **post-its de sesión** en panel
+  lateral (#73).
+
+### 📅 Calendarios externos
+
+- Suscripción a calendarios por enlace **ICS** (Google/Outlook/iCloud, solo lectura) e
+  **import/export iCalendar** del horario (#44, #112).
+
+### ⚙️ Ajustes, persistencia e infraestructura
+
+- Pantalla de **Ajustes** central; editar notas y atajos desde Ajustes (#54, #55).
+- Persistencia JSON local (plan, fases, notas, view-config, entornos) (#19, #43, #52).
+- **Exportar/importar** configuración completa como respaldo (#56).
+- **Servicio en segundo plano**: bucle de timers sobre el planificador, arranque con
+  Windows y bandeja del sistema (#3, #18, #20).
+- **Toasts** de Windows conectados a los avisos previos (#28, #29).
+- **Capa de comandos** `ConfigurationService` como punto único de validación para UI e IA (#57).
+
+### 📚 Ayuda
+
+- **Enciclopedia/wiki** con tooltips modernos sobre los términos (#93, #95).
+
+### 🖥️ Plataforma
+
+- App WinUI 3 (Fluent/Mica, estilo Reloj de Windows 11), sin login ni usuarios.
+- Núcleo `Ritmo.Core` 100% puro y testeable (xUnit); UI y SO son *hosts* tontos.
+
+---
+
+## Registro de cambios
+
+### 2026-05-31
+
+- **#120 — Control total de la configuración desde la IA (MCP).** `RitmoTools` pasa de
+  6 a **40 herramientas**, cubriendo toda la superficie de `ConfigurationService`: la IA
+  puede ver (`get_config`/`list_known_apps`) y configurar fases, sesiones, provisionales,
+  Pomodoro y ritmos, rango horario, notas, atajos, entornos (apps/enlaces/tareas/perfiles),
+  Navidrome, calendarios, solapamientos e importar. Verificado por `tools/call` real.
+- **#65 (bug) — La IA y la app comparten `settings.json`.** La ruta pasa a
+  `%USERPROFILE%\.ritmo\settings.json` (fuera de la redirección MSIX) con migración
+  automática de la configuración antigua, para que la app empaquetada y el servidor MCP
+  lean/escriban el mismo archivo.
+- **#106 — cancelado.** Se descarta el login OAuth de Spotify; la música se queda con Navidrome.
+
+### Base inicial (hasta 2026-05-30)
+
+Primera gran tanda de funcionalidad (milestones M1–M5): núcleo + planificador, motor
+Pomodoro, servicio en segundo plano, UI WinUI 3 completa (horario, entornos, ajustes,
+notas, isla de concentración), integración con el SO (No molestar, Edge, apps, música,
+calendarios) y el servidor MCP. El detalle por funcionalidad está arriba, en
+**Capacidades actuales**, con el nº de issue de cada una; el histórico completo de issues
+cerrados y sus milestones vive en GitHub (Project #12).

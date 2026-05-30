@@ -9,19 +9,21 @@ y tus entornos de concentración** hablándole en lenguaje natural.
 
 ## Qué puede hacer la IA
 
-El servidor expone estas herramientas:
+El servidor expone **40 herramientas** que cubren toda la configuración de la app:
+inspeccionar el estado (`get_status`, `get_config`, `list_known_apps`), gestionar el
+horario (fases, sesiones, provisionales, rango horario), Pomodoro y ritmos, notas y
+atajos, entornos de concentración (apps a abrir/cerrar/silenciar, enlaces, tareas,
+perfiles por tipo de sesión, entorno por defecto y por tipo de bloque), música
+(Navidrome), calendarios ICS, prioridades de solapamiento e importar configuración.
 
-| Herramienta | Para qué |
-|---|---|
-| `get_status` | Ver qué hay configurado (fases, entornos, notas). |
-| `add_phase` | Crear una fase temporal (de X a Y fecha). |
-| `add_session` | Añadir una sesión de estudio a una fase. |
-| `upsert_focus_environment` | Crear/editar un entorno de concentración (qué pasa al entrar en focus). |
-| `set_default_environment` | Fijar el entorno por defecto. |
-| `map_environment_to_kind` | Asociar un tipo de bloque (p. ej. Simulacro) a un entorno. |
+> El listado completo y agrupado está en el [CHANGELOG](../CHANGELOG.md#-la-ia-servidor-mcp--40-herramientas).
+> Empieza siempre por `get_config` para ver el estado con los ids e índices que usan las
+> herramientas de editar/borrar.
 
-Todo se guarda en el mismo `settings.json` que usa la app, en
-`%LOCALAPPDATA%\Ritmo\settings.json`. Lo que configure la IA lo ve la app y al revés.
+Todo pasa por la misma capa validada que usa la app (`ConfigurationService`) y se guarda
+en el `settings.json` compartido, en `%USERPROFILE%\.ritmo\settings.json`. Lo que
+configure la IA lo ve la app y al revés. La **contraseña de Navidrome no se configura por
+la IA** (vive en el almacén seguro del sistema; la introduces tú en la app).
 
 ## Requisitos
 
@@ -84,7 +86,7 @@ dotnet run --project tests\Ritmo.Mcp.SmokeTest -- `
   "C:\Users\luish\Projects\Ritmo\src\Ritmo.Mcp\bin\Debug\net9.0\Ritmo.Mcp.dll"
 ```
 
-Debe listar las 6 herramientas, crear una fase de prueba y terminar con `SMOKE_OK`.
+Debe listar las herramientas (40), crear una fase de prueba y terminar con `SMOKE_OK`.
 
 ## Notas de seguridad
 

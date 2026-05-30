@@ -30,6 +30,12 @@
 - **Determinismo testeable.** Las piezas que dependen del tiempo reciben el
   "ahora" como parámetro (no leen el reloj por dentro). Así se testean sin esperar.
 - **Idioma.** Código y nombres en inglés; comentarios y commits en español.
+- **Mantén el CHANGELOG.** Cada mejora o funcionalidad nueva que implementes se registra
+  en [`CHANGELOG.md`](CHANGELOG.md): añade una línea datada en el «Registro de cambios»
+  (lo más nuevo arriba) con su nº de issue, y —si introduce o cambia una capacidad—
+  actualiza también la sección «Capacidades actuales». Si tocas las herramientas del
+  servidor MCP, refleja el cambio en la subsección **🤖 La IA (MCP)** (y su recuento).
+  El CHANGELOG es la fuente única de «qué hace Ritmo hoy».
 - **Documenta lo no obvio.** Siempre que añadas algo que no sea evidente para el
   usuario, regístralo en la enciclopedia y explícalo con un tooltip de ayuda:
   1. Añade/ajusta la entrada en el glosario del núcleo
