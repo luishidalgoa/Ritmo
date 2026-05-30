@@ -141,37 +141,57 @@ public sealed partial class HomePage : Page
     private void BuildNotes(Ritmo.Core.Persistence.AppSettings settings)
     {
         NotesPanel.Children.Clear();
-        var notes = settings.Notes;
-        NotesSection.Visibility = notes.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-        foreach (var note in notes.OrderBy(n => n.Order))
-        {
-            var stack = new StackPanel { Spacing = 2 };
-            stack.Children.Add(new TextBlock { Text = note.Title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
-            if (!string.IsNullOrWhiteSpace(note.Content))
-            {
-                var md = MarkdownRenderer.Build(note.Content);   // #72: render Markdown
-                md.Opacity = 0.85;
-                stack.Children.Add(md);
-            }
 
-            var border = new Border
+        // Post-its de las sesiones de HOY (#73) + notas generales (sueltas).
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var phase = settings.Plan.GetActivePhase(today) ?? settings.Plan.OrderedPhases.FirstOrDefault();
+        var schedule = phase?.Schedule ?? settings.Schedule;
+        var todayTitles = schedule.Sessions.Where(s => s.Day == today.DayOfWeek).Select(s => s.Title.Trim())
+            .Concat(settings.OneOffSessions.Where(o => o.Date == today).Select(o => o.Title.Trim()))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var notes = settings.Notes
+            .Where(n => string.IsNullOrEmpty(n.SessionTitle) || todayTitles.Contains(n.SessionTitle!.Trim()))
+            .OrderBy(n => n.SessionTitle is null ? 1 : 0)   // primero las de las sesiones de hoy
+            .ThenBy(n => n.Order)
+            .ToList();
+
+        NotesSection.Visibility = notes.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var note in notes) NotesPanel.Children.Add(NoteCard(note));
+    }
+
+    private FrameworkElement NoteCard(StudyNote note)
+    {
+        var stack = new StackPanel { Spacing = 2 };
+        if (!string.IsNullOrEmpty(note.SessionTitle))
+            stack.Children.Add(new TextBlock
             {
-                Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorSecondaryBrush"],
-                BorderBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(14, 10, 14, 10),
-                Child = stack
-            };
-            // Acento por el lado izquierdo si la nota tiene color.
-            if (!string.IsNullOrWhiteSpace(note.AccentColor) &&
-                TryParseHex(note.AccentColor!, out var color))
-            {
-                border.BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(color);
-                border.BorderThickness = new Thickness(4, 1, 1, 1);
-            }
-            NotesPanel.Children.Add(border);
+                Text = note.SessionTitle, FontSize = 11, Opacity = 0.55,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
+            });
+        stack.Children.Add(new TextBlock { Text = note.Title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        if (!string.IsNullOrWhiteSpace(note.Content))
+        {
+            var md = MarkdownRenderer.Build(note.Content);   // #72: render Markdown
+            md.Opacity = 0.85;
+            stack.Children.Add(md);
         }
+
+        var border = new Border
+        {
+            Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorSecondaryBrush"],
+            BorderBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(14, 10, 14, 10),
+            Child = stack
+        };
+        if (!string.IsNullOrWhiteSpace(note.AccentColor) && TryParseHex(note.AccentColor!, out var color))
+        {
+            border.BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(color);
+            border.BorderThickness = new Thickness(4, 1, 1, 1);
+        }
+        return border;
     }
 
     private static void OpenUrl(string url)

@@ -279,8 +279,11 @@ public sealed class ConfigurationService
 
     // ---------- Notas y enlaces-atajo (#55) ----------
 
-    /// <summary>Añade una nota fijada (markdown). Devuelve su Id en el mensaje.</summary>
-    public CommandResult AddNote(string title, string content, string? accentColor = null)
+    /// <summary>
+    /// Añade una nota fijada (markdown). Devuelve su Id en el mensaje. Si se pasa
+    /// <paramref name="sessionTitle"/>, la nota es un "post-it" de esa sesión (#73).
+    /// </summary>
+    public CommandResult AddNote(string title, string content, string? accentColor = null, string? sessionTitle = null)
     {
         if (string.IsNullOrWhiteSpace(title))
             return CommandResult.Fail("La nota necesita un título.");
@@ -292,7 +295,8 @@ public sealed class ConfigurationService
             Title = title.Trim(),
             Content = content ?? "",
             AccentColor = accentColor,
-            Order = order
+            Order = order,
+            SessionTitle = string.IsNullOrWhiteSpace(sessionTitle) ? null : sessionTitle.Trim()
         };
         _store.Save(s with { Notes = [.. s.Notes, note] });
         return CommandResult.Ok(note.Id);

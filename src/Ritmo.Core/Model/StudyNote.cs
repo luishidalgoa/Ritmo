@@ -17,4 +17,9 @@ public sealed record StudyNote
     public string? AccentColor { get; init; }
     /// <summary>Orden de aparición (menor = antes).</summary>
     public int Order { get; init; }
+    /// <summary>
+    /// Si la nota es un "post-it" de una sesión, el título de esa sesión (#73).
+    /// null = nota general/suelta (no asociada a ninguna sesión).
+    /// </summary>
+    public string? SessionTitle { get; init; }
 }

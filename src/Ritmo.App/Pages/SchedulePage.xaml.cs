@@ -58,6 +58,7 @@ public sealed partial class SchedulePage : Page
     private IReadOnlyList<StudySession> _sessions = [];        // sesiones de la fase visible (para detectar conflictos)
     private IReadOnlyList<OverlapPriority> _priorities = [];   // decisiones de prioridad guardadas
     private IReadOnlyList<OneOffSession> _oneOffs = [];        // sesiones provisionales (con fecha) (#103)
+    private IReadOnlyList<StudyNote> _notes = [];             // notas (post-its de sesión, #73)
     private string? _selectedSessionKey;                       // sesión resaltada en la rejilla
     private string? _selectedEventKey;                         // evento resaltado en la rejilla
     private SessionGroup? _selectedGroup;                      // grupo mostrado en el panel
@@ -249,6 +250,7 @@ public sealed partial class SchedulePage : Page
         _sessions = schedule.Sessions;
         _priorities = settings.OverlapPriorities;
         _oneOffs = settings.OneOffSessions;
+        _notes = settings.Notes;
 
         // Extiende el rango si una sesión provisional de esta semana cae fuera (#103).
         foreach (var o in _oneOffs)
@@ -455,6 +457,25 @@ public sealed partial class SchedulePage : Page
                 Grid.SetRow(focusBtn, startSlot); Grid.SetRowSpan(focusBtn, spanSlots);
                 Grid.SetColumn(focusBtn, dayCol + 1); Grid.SetColumnSpan(focusBtn, group.DaySpan);
                 g.Children.Add(focusBtn);
+            }
+
+            // Badge de post-its: nº de notas de esta sesión (#73).
+            int noteCount = _notes.Count(n => string.Equals(n.SessionTitle, s.Title, StringComparison.OrdinalIgnoreCase));
+            if (noteCount > 0)
+            {
+                var badge = new Border
+                {
+                    Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+                    BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+                    BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(5, 0, 5, 1),
+                    HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom,
+                    Margin = new Thickness(0, 0, 5, 4), IsHitTestVisible = false,
+                    Child = new TextBlock { Text = $"📝 {noteCount}", FontSize = 10 }
+                };
+                Grid.SetRow(badge, startSlot); Grid.SetRowSpan(badge, spanSlots);
+                Grid.SetColumn(badge, dayCol + 1); Grid.SetColumnSpan(badge, group.DaySpan);
+                g.Children.Add(badge);
             }
         }
 
@@ -1043,6 +1064,8 @@ public sealed partial class SchedulePage : Page
         behaviorBtn.Click += async (_, _) => await ShowSessionBehavior(rep.Title);
         content.Children.Add(behaviorBtn);
 
+        AppendSessionNotes(rep.Title);   // post-its de la sesión (#73)
+
         // Solapamientos con el calendario en los días en que se repite la sesión.
         var resolvers = new List<FrameworkElement>();
         foreach (var day in group.Members.Select(m => m.Day).Distinct().OrderBy(d => Array.IndexOf(Days, d)))
@@ -1145,6 +1168,96 @@ public sealed partial class SchedulePage : Page
             BorderThickness = new Thickness(1),
             Child = box
         };
+    }
+
+    // ---------- Notas como post-it de la sesión (#73) ----------
+
+    private void AppendSessionNotes(string sessionTitle)
+    {
+        var content = DetailContent;
+        content.Children.Add(SectionLabel("NOTAS"));
+        var notes = _notes
+            .Where(n => string.Equals(n.SessionTitle, sessionTitle, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(n => n.Order).ToList();
+        if (notes.Count == 0)
+            content.Children.Add(new TextBlock { Text = "Sin notas para esta sesión.", Opacity = 0.55, FontSize = 12 });
+        foreach (var note in notes) content.Children.Add(SessionNoteCard(note));
+
+        var add = new HyperlinkButton { Content = "+ Añadir nota", Padding = new Thickness(0) };
+        add.Click += async (_, _) => await AddSessionNote(sessionTitle);
+        content.Children.Add(add);
+    }
+
+    private FrameworkElement SessionNoteCard(StudyNote note)
+    {
+        var header = new Grid();
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var t = new TextBlock { Text = note.Title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(t, 0);
+        var edit = IconButton(Symbol.Edit, "Editar nota", () => _ = EditSessionNote(note));
+        Grid.SetColumn(edit, 1);
+        var del = IconButton(Symbol.Delete, "Eliminar nota", () => RemoveSessionNote(note));
+        Grid.SetColumn(del, 2);
+        header.Children.Add(t); header.Children.Add(edit); header.Children.Add(del);
+
+        var stack = new StackPanel { Spacing = 4 };
+        stack.Children.Add(header);
+        if (!string.IsNullOrWhiteSpace(note.Content))
+        {
+            var md = MarkdownRenderer.Build(note.Content);
+            md.Opacity = 0.85;
+            stack.Children.Add(md);
+        }
+        return new Border
+        {
+            Padding = new Thickness(10, 8, 6, 8), CornerRadius = new CornerRadius(8),
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorSecondaryBrush"],
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"], BorderThickness = new Thickness(1),
+            Child = stack
+        };
+    }
+
+    private static Button IconButton(Symbol symbol, string tooltip, Action onClick)
+    {
+        var b = new Button
+        {
+            Content = new SymbolIcon(symbol) { },
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(0), Padding = new Thickness(6, 2, 6, 2),
+            MinWidth = 0, VerticalAlignment = VerticalAlignment.Top
+        };
+        ToolTipService.SetToolTip(b, tooltip);
+        b.Click += (_, _) => onClick();
+        return b;
+    }
+
+    private async Task AddSessionNote(string sessionTitle)
+    {
+        var dlg = new NoteDialog { XamlRoot = this.XamlRoot };
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
+        {
+            AppState.Config.AddNote(dlg.TitleText, dlg.ContentText, sessionTitle: sessionTitle);
+            if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup);
+        }
+    }
+
+    private async Task EditSessionNote(StudyNote note)
+    {
+        var dlg = new NoteDialog { XamlRoot = this.XamlRoot };
+        dlg.LoadFrom(note);
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
+        {
+            AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText);
+            if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup);
+        }
+    }
+
+    private void RemoveSessionNote(StudyNote note)
+    {
+        AppState.Config.RemoveNote(note.Id);
+        if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup);
     }
 
     /// <summary>Abre el diálogo "qué se abre al concentrarme" para un tipo de sesión (#116).</summary>
