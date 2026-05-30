@@ -20,13 +20,43 @@ public sealed class JsonSettingsStore : ISettingsStore
 
     public JsonSettingsStore(string filePath) => FilePath = filePath;
 
-    /// <summary>Ruta por defecto: %LOCALAPPDATA%\Ritmo\settings.json.</summary>
+    /// <summary>
+    /// Ruta por defecto: %USERPROFILE%\.ritmo\settings.json. Se usa esta y NO
+    /// %LOCALAPPDATA% a propósito (#65): la app empaquetada (MSIX) redirige
+    /// %LOCALAPPDATA% al LocalCache del paquete, mientras que el servidor MCP
+    /// (proceso sin empaquetar) ve el AppData\Local real → acababan en archivos
+    /// distintos y no compartían estado. %USERPROFILE%\.ritmo no sufre esa
+    /// redirección, así que ambos procesos leen/escriben el MISMO archivo.
+    /// </summary>
     public static JsonSettingsStore Default()
     {
-        var dir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Ritmo");
-        return new JsonSettingsStore(Path.Combine(dir, "settings.json"));
+        var shared = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".ritmo", "settings.json");
+        MigrateLegacyIfNeeded(shared);
+        return new JsonSettingsStore(shared);
+    }
+
+    /// <summary>
+    /// Si aún no existe el archivo compartido pero sí el antiguo (%LOCALAPPDATA%\
+    /// Ritmo, posiblemente redirigido por MSIX), lo copia para no perder la
+    /// configuración existente al cambiar de ubicación (#65). Best-effort.
+    /// </summary>
+    private static void MigrateLegacyIfNeeded(string sharedPath)
+    {
+        try
+        {
+            if (File.Exists(sharedPath)) return;
+            var legacy = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Ritmo", "settings.json");
+            if (!File.Exists(legacy)) return;
+
+            var dir = Path.GetDirectoryName(sharedPath);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            File.Copy(legacy, sharedPath);
+        }
+        catch { /* best-effort: si falla, se arranca con configuración nueva */ }
     }
 
     public AppSettings Load()

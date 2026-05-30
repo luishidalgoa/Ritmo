@@ -133,10 +133,11 @@ public class SettingsStoreTests : IDisposable
     }
 
     [Fact]
-    public void Default_apunta_a_LocalAppData_Ritmo()
+    public void Default_apunta_a_ruta_compartida_ritmo()
     {
+        // Ruta compartida app↔MCP fuera de AppData (#65): %USERPROFILE%\.ritmo\settings.json
         var store = JsonSettingsStore.Default();
-        Assert.Contains("Ritmo", store.FilePath);
+        Assert.Contains(".ritmo", store.FilePath);
         Assert.EndsWith("settings.json", store.FilePath);
     }
 }
