@@ -324,6 +324,53 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Enlace eliminado.");
     }
 
+    // ---------- Tareas por entorno (#77) ----------
+
+    private CommandResult MutateEnvironment(string environmentId, Func<FocusEnvironment, FocusEnvironment> change, string okMsg)
+    {
+        var s = _store.Load();
+        var env = s.FocusEnvironments.FirstOrDefault(e => e.Id == environmentId);
+        if (env is null) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
+        var updated = change(env);
+        _store.Save(s with { FocusEnvironments = s.FocusEnvironments.Select(e => e.Id == environmentId ? updated : e).ToList() });
+        return CommandResult.Ok(okMsg);
+    }
+
+    /// <summary>Añade una tarea al entorno. Devuelve su Id en el mensaje.</summary>
+    public CommandResult AddEnvironmentTask(string environmentId, string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return CommandResult.Fail("La tarea necesita texto.");
+        var id = $"task-{Guid.NewGuid():N}"[..12];
+        return MutateEnvironment(environmentId, env =>
+        {
+            var order = env.Tasks.Count == 0 ? 0 : env.Tasks.Max(t => t.Order) + 1;
+            return env with { Tasks = [.. env.Tasks, new EnvironmentTask { Id = id, Text = text.Trim(), Order = order }] };
+        }, id);
+    }
+
+    /// <summary>Marca/desmarca una tarea como hecha.</summary>
+    public CommandResult ToggleEnvironmentTask(string environmentId, string taskId)
+    {
+        var s = _store.Load();
+        var env = s.FocusEnvironments.FirstOrDefault(e => e.Id == environmentId);
+        if (env is null) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
+        if (env.Tasks.All(t => t.Id != taskId)) return CommandResult.Fail("No existe la tarea.");
+        return MutateEnvironment(environmentId, e =>
+            e with { Tasks = e.Tasks.Select(t => t.Id == taskId ? t with { Done = !t.Done } : t).ToList() },
+            "Tarea actualizada.");
+    }
+
+    /// <summary>Elimina una tarea del entorno.</summary>
+    public CommandResult RemoveEnvironmentTask(string environmentId, string taskId)
+    {
+        var s = _store.Load();
+        var env = s.FocusEnvironments.FirstOrDefault(e => e.Id == environmentId);
+        if (env is null) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
+        if (env.Tasks.All(t => t.Id != taskId)) return CommandResult.Fail("No existe la tarea.");
+        return MutateEnvironment(environmentId, e =>
+            e with { Tasks = e.Tasks.Where(t => t.Id != taskId).ToList() }, "Tarea eliminada.");
+    }
+
     /// <summary>Fija el entorno por defecto (debe existir).</summary>
     public CommandResult SetDefaultEnvironment(string environmentId)
     {

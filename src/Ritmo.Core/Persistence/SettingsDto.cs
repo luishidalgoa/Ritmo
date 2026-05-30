@@ -44,6 +44,15 @@ internal sealed class FocusEnvironmentDto
     public List<string> AppsToMute { get; set; } = [];
     public MusicDto? Music { get; set; }
     public List<ShortcutDto> Links { get; set; } = [];
+    public List<EnvTaskDto> Tasks { get; set; } = [];
+}
+
+internal sealed class EnvTaskDto
+{
+    public string Id { get; set; } = "";
+    public string Text { get; set; } = "";
+    public bool Done { get; set; }
+    public int Order { get; set; }
 }
 
 internal sealed class SessionDto
@@ -135,7 +144,8 @@ internal static class SettingsMapper
             Name = e.Music.Name, Target = e.Music.Target,
             Arguments = e.Music.Arguments, AutoPlay = e.Music.AutoPlay
         },
-        Links = e.Links.Select(l => new ShortcutDto { Title = l.Title, Url = l.Url }).ToList()
+        Links = e.Links.Select(l => new ShortcutDto { Title = l.Title, Url = l.Url }).ToList(),
+        Tasks = e.Tasks.Select(t => new EnvTaskDto { Id = t.Id, Text = t.Text, Done = t.Done, Order = t.Order }).ToList()
     };
 
     private static SessionDto ToDto(StudySession x) => new()
@@ -204,7 +214,8 @@ internal static class SettingsMapper
             Name = e.Music.Name, Target = e.Music.Target,
             Arguments = e.Music.Arguments, AutoPlay = e.Music.AutoPlay
         },
-        Links = e.Links.Select(l => new ShortcutLink { Title = l.Title, Url = l.Url }).ToList()
+        Links = e.Links.Select(l => new ShortcutLink { Title = l.Title, Url = l.Url }).ToList(),
+        Tasks = e.Tasks.Select(t => new EnvironmentTask { Id = t.Id, Text = t.Text, Done = t.Done, Order = t.Order }).ToList()
     };
 
     private static StudySession FromDto(SessionDto x) => new()

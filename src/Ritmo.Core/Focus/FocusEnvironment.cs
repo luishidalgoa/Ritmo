@@ -1,5 +1,14 @@
 namespace Ritmo.Core.Focus;
 
+/// <summary>Una tarea (to-do) propia de un entorno de trabajo. #77</summary>
+public sealed record EnvironmentTask
+{
+    public required string Id { get; init; }
+    public required string Text { get; init; }
+    public bool Done { get; init; }
+    public int Order { get; init; }
+}
+
 /// <summary>
 /// Qué app de música lanzar al entrar en concentración. Identifica el ejecutable
 /// o el protocolo/URI (p. ej. Spotify: "spotify:", o ruta a Aonsoku).
@@ -57,6 +66,9 @@ public sealed record FocusEnvironment
     /// el campus, el BOE, etc.). Accesos rápidos del "entorno de trabajo". #74
     /// </summary>
     public IReadOnlyList<Ritmo.Core.Model.ShortcutLink> Links { get; init; } = [];
+
+    /// <summary>Lista de tareas (to-do) propia del entorno. #77</summary>
+    public IReadOnlyList<EnvironmentTask> Tasks { get; init; } = [];
 
     /// <summary>Preset cómodo: estudio profundo con todo el silencio activado.</summary>
     public static FocusEnvironment DeepStudy => new()
