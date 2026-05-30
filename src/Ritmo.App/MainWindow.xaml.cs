@@ -67,16 +67,64 @@ public sealed partial class MainWindow : Window
     private void RebuildEnvNavItems()
     {
         WorkEnvNav.MenuItems.Clear();
-        foreach (var env in Services.AppState.Load().FocusEnvironments)
+        var settings = Services.AppState.Load();
+        foreach (var env in settings.FocusEnvironments)
         {
             WorkEnvNav.MenuItems.Add(new NavigationViewItem
             {
-                Content = env.Name,
                 Tag = $"env:{env.Id}",
                 SelectsOnInvoked = false,
-                Icon = new SymbolIcon(Symbol.Tag)
+                Icon = new SymbolIcon(Symbol.Tag),
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                Content = EnvNavContent(env, env.Id == settings.DefaultFocusEnvironmentId)
             });
         }
+    }
+
+    /// <summary>Contenido de un sub-item de entorno: nombre + "Seleccionar" o marca de activo (#104).</summary>
+    private FrameworkElement EnvNavContent(Ritmo.Core.Focus.FocusEnvironment env, bool isSelected)
+    {
+        var name = new TextBlock
+        {
+            Text = env.Name,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        Grid.SetColumn(name, 0);
+
+        FrameworkElement trailing;
+        if (isSelected)
+        {
+            var check = new SymbolIcon(Symbol.Accept)
+            {
+                Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"]
+            };
+            ToolTipService.SetToolTip(check, "Entorno activo");
+            trailing = check;
+        }
+        else
+        {
+            var sel = new Button
+            {
+                Content = "Seleccionar",
+                FontSize = 12,
+                Padding = new Thickness(8, 2, 8, 2)
+            };
+            sel.Click += (_, _) =>
+            {
+                Services.AppState.Config.SetDefaultEnvironment(env.Id);
+                RebuildEnvNavItems();
+            };
+            trailing = sel;
+        }
+        Grid.SetColumn(trailing, 1);
+
+        var grid = new Grid { ColumnSpacing = 8, HorizontalAlignment = HorizontalAlignment.Stretch };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(name);
+        grid.Children.Add(trailing);
+        return grid;
     }
 
     private void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

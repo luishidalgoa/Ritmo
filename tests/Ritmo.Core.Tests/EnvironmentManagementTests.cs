@@ -81,4 +81,20 @@ public class EnvironmentManagementTests
         var (svc, _) = New();
         Assert.False(svc.SetDefaultEnvironment("nope").Success);
     }
+
+    [Fact]
+    public void SetDefault_null_o_vacio_limpia_la_seleccion()
+    {
+        var (svc, store) = New();
+        svc.UpsertEnvironment(Env("e1", "A"));
+        svc.SetDefaultEnvironment("e1");
+        Assert.Equal("e1", store.Load().DefaultFocusEnvironmentId);
+
+        Assert.True(svc.SetDefaultEnvironment(null).Success);
+        Assert.Null(store.Load().DefaultFocusEnvironmentId);
+
+        svc.SetDefaultEnvironment("e1");
+        Assert.True(svc.SetDefaultEnvironment("").Success);
+        Assert.Null(store.Load().DefaultFocusEnvironmentId);
+    }
 }

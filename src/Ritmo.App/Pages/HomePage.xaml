@@ -9,7 +9,7 @@
     mc:Ignorable="d">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="32" Spacing="20" MaxWidth="640" HorizontalAlignment="Stretch">
+        <StackPanel Padding="32" Spacing="20" MaxWidth="1280" HorizontalAlignment="Stretch">
             <StackPanel Spacing="2">
                 <TextBlock Text="Hoy" FontSize="28" FontWeight="SemiBold" />
                 <TextBlock x:Name="DateText" Opacity="0.7" FontSize="13" />
@@ -24,6 +24,15 @@
                     <TextBlock x:Name="NowTitle" FontSize="22" FontWeight="SemiBold"
                                TextTrimming="CharacterEllipsis" />
                     <TextBlock x:Name="NowMeta" Opacity="0.7" />
+                    <Border x:Name="ActiveEnvChip" Visibility="Collapsed" HorizontalAlignment="Left"
+                            Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                            CornerRadius="12" Padding="10,3" Margin="0,2,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE821;" FontSize="12" Opacity="0.7" />
+                            <TextBlock x:Name="ActiveEnvText" FontSize="12" />
+                        </StackPanel>
+                    </Border>
                     <Button x:Name="StartBtn" Click="StartBtn_Click" Margin="0,4,0,0"
                             Style="{StaticResource AccentButtonStyle}">
                         <StackPanel Orientation="Horizontal" Spacing="8">

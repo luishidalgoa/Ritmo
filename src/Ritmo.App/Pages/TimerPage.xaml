@@ -17,6 +17,9 @@
                        HorizontalAlignment="Center" TextAlignment="Center" />
         </StackPanel>
 
+        <ComboBox x:Name="EnvBox" Header="Entorno" HorizontalAlignment="Center" MinWidth="240"
+                  SelectionChanged="EnvBox_SelectionChanged" />
+
         <Border x:Name="PhaseBadge" Padding="14,5" CornerRadius="14" HorizontalAlignment="Center"
                 Background="{ThemeResource AccentFillColorDefaultBrush}">
             <TextBlock x:Name="PhaseText" Text="Listo para empezar" FontWeight="SemiBold"

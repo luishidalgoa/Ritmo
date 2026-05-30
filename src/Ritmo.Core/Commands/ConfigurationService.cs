@@ -432,9 +432,14 @@ public sealed class ConfigurationService
     }
 
     /// <summary>Fija el entorno por defecto (debe existir).</summary>
-    public CommandResult SetDefaultEnvironment(string environmentId)
+    public CommandResult SetDefaultEnvironment(string? environmentId)
     {
         var s = _store.Load();
+        if (string.IsNullOrEmpty(environmentId))   // limpiar la selección (modo automático)
+        {
+            _store.Save(s with { DefaultFocusEnvironmentId = null });
+            return CommandResult.Ok("Sin entorno por defecto.");
+        }
         if (s.FocusEnvironments.All(e => e.Id != environmentId))
             return CommandResult.Fail($"No existe el entorno con id «{environmentId}».");
         _store.Save(s with { DefaultFocusEnvironmentId = environmentId });

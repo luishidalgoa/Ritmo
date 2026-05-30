@@ -45,9 +45,12 @@ public sealed partial class TimerPage : Page
         Unloaded += (_, _) => { _ticker?.Stop(); _focus.Exit(); };
     }
 
+    private bool _loadingEnv;
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         ResolveContext();
+        BuildEnvSelector(AppState.Load());
 
         _ticker = DispatcherQueue.CreateTimer();
         _ticker.Interval = TimeSpan.FromMilliseconds(250);
@@ -89,10 +92,12 @@ public sealed partial class TimerPage : Page
         }
         else
         {
-            _activeEnv = settings.ResolveEnvironment(StudyKind.Otro);   // cae al entorno por defecto
-            config = settings.Pomodoro;
+            _activeEnv = settings.ResolveEnvironment(StudyKind.Otro);   // el entorno seleccionado/por defecto
+            config = _activeEnv is not null
+                ? PomodoroRhythms.Resolve(_activeEnv.PomodoroPreset, settings.Rhythms, settings.Pomodoro)
+                : settings.Pomodoro;
             SubjectText.Text = "Sin bloque ahora";
-            SubjectMeta.Text = "Concentración libre";
+            SubjectMeta.Text = _activeEnv is not null ? $"Concentración libre · {_activeEnv.Name}" : "Concentración libre";
         }
         SubjectBadge.Visibility = Visibility.Visible;
 
@@ -102,6 +107,33 @@ public sealed partial class TimerPage : Page
         PresetInfo.Text =
             $"Concentración {config.Focus.TotalMinutes:0} · descanso {config.ShortBreak.TotalMinutes:0} · " +
             $"largo {config.LongBreak.TotalMinutes:0} cada {config.FocusesPerLongBreak} focos";
+    }
+
+    /// <summary>Llena el desplegable de entorno activo: "Automático" + cada entorno (#104).</summary>
+    private void BuildEnvSelector(Ritmo.Core.Persistence.AppSettings settings)
+    {
+        _loadingEnv = true;
+        EnvBox.Items.Clear();
+        EnvBox.Items.Add(new ComboBoxItem { Content = "Automático (según el bloque)", Tag = "" });
+        foreach (var env in settings.FocusEnvironments)
+            EnvBox.Items.Add(new ComboBoxItem { Content = env.Name, Tag = env.Id });
+
+        var sel = settings.DefaultFocusEnvironmentId ?? "";
+        int idx = 0;
+        for (int i = 0; i < EnvBox.Items.Count; i++)
+            if (EnvBox.Items[i] is ComboBoxItem it && (string)it.Tag == sel) { idx = i; break; }
+        EnvBox.SelectedIndex = idx;
+        EnvBox.Visibility = settings.FocusEnvironments.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        _loadingEnv = false;
+    }
+
+    private void EnvBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingEnv) return;
+        var id = (EnvBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+        AppState.Config.SetDefaultEnvironment(string.IsNullOrEmpty(id) ? null : id);
+        if (_engine.Phase == PomodoroPhase.Idle) ResolveContext();   // refresca preset/entorno si no hay sesión en curso
+        Refresh();
     }
 
     private void StartBtn_Click(object sender, RoutedEventArgs e)

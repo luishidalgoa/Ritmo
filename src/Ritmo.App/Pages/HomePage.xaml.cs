@@ -77,6 +77,15 @@ public sealed partial class HomePage : Page
             AlertMeta.Text = "No hay nada programado por delante";
         }
 
+        // Entorno activo (#104): chip informativo de cuál se usará en la concentración libre.
+        var activeEnv = settings.FocusEnvironments.FirstOrDefault(e => e.Id == settings.DefaultFocusEnvironmentId);
+        if (activeEnv is not null)
+        {
+            ActiveEnvText.Text = $"Entorno: {activeEnv.Name}";
+            ActiveEnvChip.Visibility = Visibility.Visible;
+        }
+        else ActiveEnvChip.Visibility = Visibility.Collapsed;
+
         BuildShortcuts(settings);
         BuildNotes(settings);
     }
