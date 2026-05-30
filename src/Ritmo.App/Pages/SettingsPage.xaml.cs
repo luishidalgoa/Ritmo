@@ -58,7 +58,9 @@ public sealed partial class SettingsPage : Page
     {
         NavServerBox.Text = s.NavidromeServerUrl ?? "";
         NavUserBox.Text = s.NavidromeUser ?? "";
-        NavStatus.Text = NavidromeService.IsConnected(s) ? "✓ Conectado" : "No conectado";
+        bool connected = NavidromeService.IsConnected(s);
+        NavStatus.Text = connected ? "✓ Conectado" : "No conectado";
+        NavHeaderStatus.Text = connected ? "· Conectado" : "";
     }
 
     private async void NavConnectBtn_Click(object sender, RoutedEventArgs e)
@@ -80,6 +82,7 @@ public sealed partial class SettingsPage : Page
             NavidromeService.StorePassword(pass);
             NavPassBox.Password = "";
             NavStatus.Text = $"✓ Conectado · {playlists.Count} playlist(s)";
+            NavHeaderStatus.Text = "· Conectado";
         }
         catch (Exception ex)
         {
@@ -94,6 +97,7 @@ public sealed partial class SettingsPage : Page
         NavidromeService.ClearPassword();
         NavServerBox.Text = ""; NavUserBox.Text = ""; NavPassBox.Password = "";
         NavStatus.Text = "No conectado";
+        NavHeaderStatus.Text = "";
     }
 
     // ---------- Ritmos Pomodoro personalizados (#96) ----------

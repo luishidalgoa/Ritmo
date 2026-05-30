@@ -81,9 +81,11 @@ public sealed partial class EnvironmentDialog : ContentDialog
 
     private void UpdateNavidromeLabel()
     {
-        if (!Services.NavidromeService.IsConnected(Services.AppState.Load()))
+        bool connected = Services.NavidromeService.IsConnected(Services.AppState.Load());
+        ConfigureNavidromeBtn.IsEnabled = connected;   // sin conexión global → botón deshabilitado
+        if (!connected)
         {
-            NavidromeLabel.Text = "Conecta Navidrome en Ajustes primero.";
+            NavidromeLabel.Text = "Conecta Navidrome en Ajustes → Apps vinculadas.";
             return;
         }
         NavidromeLabel.Text = _navPlaylistName is { Length: > 0 }

@@ -100,28 +100,43 @@
                 </StackPanel>
             </Border>
 
-            <!-- Música: Navidrome (conexión global, #107) -->
+            <!-- Apps vinculadas (#107) -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Música (Navidrome)" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Text="Apps vinculadas" FontSize="18" FontWeight="SemiBold" />
                     <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                               Text="Conecta tu servidor de Navidrome una vez. Luego, en cada entorno, solo eliges una playlist. La contraseña se guarda en el almacén seguro de Windows, nunca en la copia de seguridad." />
-                    <TextBox x:Name="NavServerBox" Header="URL del servidor" PlaceholderText="https://music.midominio.com" />
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="NavUserBox" Grid.Column="0" Header="Usuario" />
-                        <PasswordBox x:Name="NavPassBox" Grid.Column="1" Header="Contraseña" />
-                    </Grid>
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <Button x:Name="NavConnectBtn" Click="NavConnectBtn_Click" Content="Conectar" Style="{StaticResource AccentButtonStyle}" />
-                        <Button x:Name="NavDisconnectBtn" Click="NavDisconnectBtn_Click" Content="Desconectar" />
-                        <TextBlock x:Name="NavStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="13" />
-                    </StackPanel>
+                               Text="Conecta servicios externos una vez aquí; luego los usas en tus entornos." />
+
+                    <TextBlock Text="MÚSICA" FontSize="11" FontWeight="SemiBold" Opacity="0.55" />
+                    <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <FontIcon Glyph="&#xE93C;" FontSize="15" VerticalAlignment="Center" />
+                                <TextBlock Text="Navidrome" VerticalAlignment="Center" />
+                                <TextBlock x:Name="NavHeaderStatus" VerticalAlignment="Center" FontSize="12" Opacity="0.6" />
+                            </StackPanel>
+                        </Expander.Header>
+                        <StackPanel Spacing="12" Padding="4,8,4,4">
+                            <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                                       Text="Conecta tu servidor de Navidrome. En cada entorno solo eliges una playlist. La contraseña se guarda en el almacén seguro de Windows, nunca en la copia de seguridad." />
+                            <TextBox x:Name="NavServerBox" Header="URL del servidor" PlaceholderText="https://music.midominio.com" />
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="NavUserBox" Grid.Column="0" Header="Usuario" />
+                                <PasswordBox x:Name="NavPassBox" Grid.Column="1" Header="Contraseña" />
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <Button x:Name="NavConnectBtn" Click="NavConnectBtn_Click" Content="Conectar" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="NavDisconnectBtn" Click="NavDisconnectBtn_Click" Content="Desconectar" />
+                                <TextBlock x:Name="NavStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="13" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
                 </StackPanel>
             </Border>
 
