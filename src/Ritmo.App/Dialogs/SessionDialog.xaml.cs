@@ -24,6 +24,7 @@ public sealed partial class SessionDialog : ContentDialog
             (DayThu, DayOfWeek.Thursday), (DayFri, DayOfWeek.Friday), (DaySat, DayOfWeek.Saturday),
             (DaySun, DayOfWeek.Sunday)
         ];
+        AlertHelp.Content = Ritmo_App.Services.HelpHint.Icon("prealert");   // ayuda (#93)
     }
 
     /// <summary>Días marcados (uno o varios). El que crea la sesión itera sobre ellos.</summary>

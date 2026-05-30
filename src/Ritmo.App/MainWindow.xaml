@@ -42,6 +42,11 @@
                     <FontIcon Glyph="&#xE821;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="Ayuda" Tag="help">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE897;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem Content="Ajustes" Tag="settings">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE713;" />

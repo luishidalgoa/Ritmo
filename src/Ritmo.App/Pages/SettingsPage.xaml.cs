@@ -44,6 +44,7 @@ public sealed partial class SettingsPage : Page
 
         BuildEnvList();
         BuildNotes();
+        PomodoroHelp.Content = HelpHint.Icon("pomodoro");   // ayuda (#93)
         _ = LoadAutostartState();
     }
 

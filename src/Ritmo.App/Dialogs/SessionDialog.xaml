@@ -52,7 +52,10 @@
         </ComboBox>
 
         <StackPanel Spacing="6">
-            <TextBlock Text="Avisos previos" FontWeight="SemiBold" />
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Avisos previos" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <ContentControl x:Name="AlertHelp" VerticalAlignment="Center" />
+            </StackPanel>
 
             <ComboBox x:Name="Alert1Box" Header="Aviso 1" HorizontalAlignment="Stretch"
                       SelectionChanged="Alert1Box_SelectionChanged">

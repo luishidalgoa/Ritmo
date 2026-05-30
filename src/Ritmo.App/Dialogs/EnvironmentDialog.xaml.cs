@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Ritmo.Core.Focus;
 using Ritmo.Core.Model;
+using Ritmo_App.Services;
 
 namespace Ritmo_App.Dialogs;
 
@@ -22,6 +23,11 @@ public sealed partial class EnvironmentDialog : ContentDialog
         PresetBox.SelectedIndex = 2;   // Profundo
         DndCheck.IsChecked = true;
         BadgesCheck.IsChecked = true;
+
+        // Tooltips de ayuda (#93): el desplegable y cada preset.
+        HelpHint.Attach(PresetBox, "pomodoro");
+        foreach (var it in PresetBox.Items.OfType<ComboBoxItem>())
+            HelpHint.Attach(it, (string)it.Tag switch { "Classic" => "classic", "DeepWork" => "deep-work", _ => "pomodoro" });
     }
 
     private void BuildLinksList()
