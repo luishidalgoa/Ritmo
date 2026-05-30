@@ -111,4 +111,18 @@ public class SessionProfileTests
         Assert.True(svc.ClearSessionProfile("env-1", "Legislación").Success);
         Assert.Empty(store.Load().FocusEnvironments.Single().SessionProfiles);
     }
+
+    [Fact]
+    public void Mapear_y_desmapear_tipo_a_entorno()
+    {
+        var store = new InMemorySettingsStore();
+        var svc = new ConfigurationService(store);
+        svc.UpsertEnvironment(Env());
+
+        Assert.True(svc.MapEnvironmentToKind(StudyKind.Tecnico, "env-1").Success);
+        Assert.Equal("env-1", store.Load().EnvironmentByKind[StudyKind.Tecnico]);
+
+        Assert.True(svc.ClearEnvironmentKind(StudyKind.Tecnico).Success);
+        Assert.False(store.Load().EnvironmentByKind.ContainsKey(StudyKind.Tecnico));
+    }
 }

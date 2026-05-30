@@ -565,6 +565,16 @@ public sealed class ConfigurationService
         _store.Save(s with { EnvironmentByKind = map });
         return CommandResult.Ok($"Tipo {kind} asociado al entorno «{environmentId}».");
     }
+
+    /// <summary>Quita la asociación tipo→entorno: ese tipo vuelve a usar el predeterminado. #70</summary>
+    public CommandResult ClearEnvironmentKind(StudyKind kind)
+    {
+        var s = _store.Load();
+        if (!s.EnvironmentByKind.ContainsKey(kind)) return CommandResult.Ok("Sin cambios.");
+        var map = s.EnvironmentByKind.Where(kv => kv.Key != kind).ToDictionary(kv => kv.Key, kv => kv.Value);
+        _store.Save(s with { EnvironmentByKind = map });
+        return CommandResult.Ok($"Tipo {kind} usa el entorno predeterminado.");
+    }
 }
 
 /// <summary>Resumen del estado de la app (respuesta para IA / UI).</summary>

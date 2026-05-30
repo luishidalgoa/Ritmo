@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Ritmo.Core.Focus;
+using Ritmo.Core.Model;
 using Ritmo.Core.Pomodoro;
 using Ritmo_App.Dialogs;
 using Ritmo_App.Services;
@@ -415,6 +416,63 @@ public sealed partial class SettingsPage : Page
 
         foreach (var env in s.FocusEnvironments)
             EnvList.Children.Add(EnvRow(env, env.Id == s.DefaultFocusEnvironmentId));
+
+        BuildKindEnvMap();   // la asignación tipo→entorno depende de la lista de entornos (#70)
+    }
+
+    // ---------- Entorno por tipo de bloque (#70) ----------
+
+    private bool _loadingKindMap;
+
+    private void BuildKindEnvMap()
+    {
+        if (KindEnvList is null) return;
+        _loadingKindMap = true;
+        KindEnvList.Children.Clear();
+
+        var s = AppState.Load();
+        if (s.FocusEnvironments.Count == 0)
+        {
+            KindEnvHint.Visibility = Visibility.Visible;
+            _loadingKindMap = false;
+            return;
+        }
+        KindEnvHint.Visibility = Visibility.Collapsed;
+
+        foreach (var kind in Enum.GetValues<StudyKind>())
+        {
+            if (!kind.IsFocusKind()) continue;   // solo los tipos que disparan concentración
+
+            var label = new TextBlock { Text = kind.Label(), VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(label, 0);
+
+            var combo = new ComboBox { MinWidth = 240, HorizontalAlignment = HorizontalAlignment.Right };
+            combo.Items.Add(new ComboBoxItem { Content = "Por defecto (★)", Tag = "" });
+            foreach (var env in s.FocusEnvironments)
+                combo.Items.Add(new ComboBoxItem { Content = env.Name, Tag = env.Id });
+
+            var current = s.EnvironmentByKind.TryGetValue(kind, out var id) ? id : "";
+            combo.SelectedIndex = 0;
+            for (int i = 0; i < combo.Items.Count; i++)
+                if (combo.Items[i] is ComboBoxItem it && (string)it.Tag == current) { combo.SelectedIndex = i; break; }
+
+            var thisKind = kind;
+            combo.SelectionChanged += (_, _) =>
+            {
+                if (_loadingKindMap) return;
+                var sel = (combo.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+                if (string.IsNullOrEmpty(sel)) AppState.Config.ClearEnvironmentKind(thisKind);
+                else AppState.Config.MapEnvironmentToKind(thisKind, sel);
+            };
+            Grid.SetColumn(combo, 1);
+
+            var grid = new Grid { ColumnSpacing = 12 };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.Children.Add(label); grid.Children.Add(combo);
+            KindEnvList.Children.Add(grid);
+        }
+        _loadingKindMap = false;
     }
 
     private FrameworkElement EnvRow(FocusEnvironment env, bool isDefault)
