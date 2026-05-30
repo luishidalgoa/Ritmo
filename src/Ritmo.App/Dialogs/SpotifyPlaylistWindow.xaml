@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Ritmo_App.Dialogs.SpotifyPlaylistWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Elegir playlist de Spotify">
+
+    <Grid Background="#121212" RequestedTheme="Dark" Padding="20" RowSpacing="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Cabecera -->
+        <StackPanel Grid.Row="0" Spacing="2">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <FontIcon Glyph="&#xE8D6;" FontSize="18" Foreground="#1DB954" />
+                <TextBlock Text="Spotify" FontSize="20" FontWeight="Bold" Foreground="White" />
+            </StackPanel>
+            <TextBlock Text="Elige una playlist para este entorno." Foreground="#B3B3B3" FontSize="13" />
+        </StackPanel>
+
+        <!-- Contenido: estados -->
+        <Grid Grid.Row="1">
+            <!-- Conectar -->
+            <StackPanel x:Name="ConnectPanel" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16" Visibility="Collapsed">
+                <TextBlock Text="Conecta tu cuenta para ver tus playlists." Foreground="#B3B3B3" HorizontalAlignment="Center" />
+                <Button x:Name="ConnectBtn" Click="ConnectBtn_Click" HorizontalAlignment="Center"
+                        Background="#1DB954" Foreground="Black" CornerRadius="20" Padding="22,10">
+                    <TextBlock Text="Conectar con Spotify" FontWeight="SemiBold" />
+                </Button>
+            </StackPanel>
+
+            <!-- Cargando -->
+            <StackPanel x:Name="LoadingPanel" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12" Visibility="Collapsed">
+                <ProgressRing IsActive="True" Width="40" Height="40" Foreground="#1DB954" />
+                <TextBlock x:Name="LoadingText" Text="Cargando tus playlists…" Foreground="#B3B3B3" HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Error -->
+            <StackPanel x:Name="ErrorPanel" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12" Visibility="Collapsed">
+                <TextBlock x:Name="ErrorText" Foreground="#FF6B6B" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="360" />
+                <Button Content="Reintentar" Click="ConnectBtn_Click" HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Lista -->
+            <Grid x:Name="ListPanel" RowSpacing="10" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBox x:Name="SearchBox" Grid.Row="0" PlaceholderText="Buscar playlist…"
+                         TextChanged="SearchBox_TextChanged" />
+                <GridView x:Name="PlaylistGrid" Grid.Row="1" SelectionMode="Single"
+                          IsItemClickEnabled="True" ItemClick="PlaylistGrid_ItemClick"
+                          SelectionChanged="PlaylistGrid_SelectionChanged">
+                    <GridView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Width="150" Margin="6" Padding="8" CornerRadius="8" Background="#181818">
+                                <StackPanel Spacing="8">
+                                    <Border CornerRadius="6" Background="#2A2A2A" Width="134" Height="134">
+                                        <Image Source="{Binding Cover}" Stretch="UniformToFill" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="134" />
+                                    <TextBlock Text="{Binding Meta}" Foreground="#B3B3B3" FontSize="12"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="134" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </GridView.ItemTemplate>
+                </GridView>
+            </Grid>
+        </Grid>
+
+        <!-- Pie -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="UseBtn" Click="UseBtn_Click" IsEnabled="False"
+                    Background="#1DB954" Foreground="Black" CornerRadius="20" Padding="18,8">
+                <TextBlock Text="Usar esta playlist" FontWeight="SemiBold" />
+            </Button>
+            <Button Content="Cancelar" Click="CancelBtn_Click" CornerRadius="20" Padding="18,8" />
+        </StackPanel>
+    </Grid>
+</Window>

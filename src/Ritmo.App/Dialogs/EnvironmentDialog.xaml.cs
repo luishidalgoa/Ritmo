@@ -21,6 +21,8 @@ public sealed partial class EnvironmentDialog : ContentDialog
     private HashSet<string> _installed = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _blockedWebsites = [];   // #99
     private readonly List<string> _otherClose = [];        // apps fuera del catálogo (#100)
+    private string? _spotifyPlaylistUri;                   // #106
+    private string? _spotifyPlaylistName;
 
     public EnvironmentDialog()
     {
@@ -82,7 +84,28 @@ public sealed partial class EnvironmentDialog : ContentDialog
         if (app is not null && string.Equals(app.ProcessName, "Spotify", StringComparison.OrdinalIgnoreCase))
         {
             var t = music.Target ?? "";
-            SpotifyPlaylistBox.Text = t is "spotify:" or "" ? "" : t;
+            _spotifyPlaylistUri = t is "spotify:" or "" ? null : t;
+            _spotifyPlaylistName = string.IsNullOrWhiteSpace(music.Arguments) ? null : music.Arguments;
+            UpdateSpotifyLabel();
+        }
+    }
+
+    private void UpdateSpotifyLabel()
+    {
+        SpotifyPlaylistLabel.Text = _spotifyPlaylistName is { Length: > 0 }
+            ? $"Playlist: {_spotifyPlaylistName}"
+            : (_spotifyPlaylistUri is { Length: > 0 } ? "Playlist guardada" : "Sin playlist elegida");
+    }
+
+    private async void ChoosePlaylistBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var win = new SpotifyPlaylistWindow();
+        var pick = await win.PickAsync();
+        if (pick is not null)
+        {
+            _spotifyPlaylistUri = pick.Uri;
+            _spotifyPlaylistName = pick.Name;
+            UpdateSpotifyLabel();
         }
     }
 
@@ -380,11 +403,18 @@ public sealed partial class EnvironmentDialog : ContentDialog
         if (string.IsNullOrEmpty(tag)) return null;
         var app = KnownApps.ByProcess(tag);
         if (app is null) return null;
+        bool autoPlay = AutoPlayCheck.IsChecked == true;
 
-        string target = string.Equals(app.ProcessName, "Spotify", StringComparison.OrdinalIgnoreCase)
-            ? MusicLaunch.SpotifyTarget(SpotifyPlaylistBox.Text)
-            : (string.IsNullOrEmpty(app.LaunchTarget) ? app.ProcessName : app.LaunchTarget);
+        if (string.Equals(app.ProcessName, "Spotify", StringComparison.OrdinalIgnoreCase))
+            return new MusicLauncher
+            {
+                Name = "Spotify",
+                Target = string.IsNullOrEmpty(_spotifyPlaylistUri) ? "spotify:" : _spotifyPlaylistUri,
+                Arguments = _spotifyPlaylistName,
+                AutoPlay = autoPlay
+            };
 
-        return new MusicLauncher { Name = app.Name, Target = target, AutoPlay = AutoPlayCheck.IsChecked == true };
+        var target = string.IsNullOrEmpty(app.LaunchTarget) ? app.ProcessName : app.LaunchTarget;
+        return new MusicLauncher { Name = app.Name, Target = target, AutoPlay = autoPlay };
     }
 }
