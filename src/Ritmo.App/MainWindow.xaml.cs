@@ -86,16 +86,27 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    /// <summary>Rellena el panel derecho con cada entorno y sus enlaces (#74).</summary>
+    /// <summary>Rellena el panel derecho con cada entorno, sus enlaces y tareas (#74/#77).</summary>
     private void BuildWorkEnvPanel()
     {
         WorkEnvPanel.Children.Clear();
+
+        // Botón para crear un entorno desde aquí mismo (#92).
+        var newBtn = new Button { HorizontalAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 0, 0, 4) };
+        newBtn.Content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center,
+            Children = { new SymbolIcon(Symbol.Add), new TextBlock { Text = "Nuevo entorno" } }
+        };
+        newBtn.Click += (_, _) => _ = NewEnvironment();
+        WorkEnvPanel.Children.Add(newBtn);
+
         var envs = Services.AppState.Load().FocusEnvironments;
         if (envs.Count == 0)
         {
             WorkEnvPanel.Children.Add(new TextBlock
             {
-                Text = "Aún no hay entornos. Créalos en Ajustes y añádeles enlaces.",
+                Text = "Aún no hay entornos. Crea uno para agrupar tu música/apps, enlaces y tareas.",
                 Opacity = 0.6, FontSize = 13, TextWrapping = TextWrapping.Wrap
             });
             return;
@@ -178,6 +189,16 @@ public sealed partial class MainWindow : Window
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.Children.Add(chk); grid.Children.Add(del);
         return grid;
+    }
+
+    private async System.Threading.Tasks.Task NewEnvironment()
+    {
+        var dlg = new Dialogs.EnvironmentDialog { XamlRoot = RightPanel.XamlRoot };
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+        {
+            Services.AppState.Config.UpsertEnvironment(dlg.ToEnvironment());
+            BuildWorkEnvPanel();
+        }
     }
 
     private static void OpenUrl(string url)

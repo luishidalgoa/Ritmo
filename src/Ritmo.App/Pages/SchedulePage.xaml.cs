@@ -124,8 +124,8 @@ public sealed partial class SchedulePage : Page
 
         if (!moved)
         {
-            if (mode == DragMode.Move) _ = ShowEditGroup(group);   // clic sin arrastre = editar
-            else Build();                                           // toque en un borde: repintar
+            // Un clic sin arrastre (en cualquier zona de la tarjeta) abre el editor (#91).
+            _ = ShowEditGroup(group);
             return;
         }
 
