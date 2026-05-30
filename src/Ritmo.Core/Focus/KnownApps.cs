@@ -13,7 +13,8 @@ public sealed record KnownApp(
     string ProcessName,
     AppCategory Category,
     string InstallUrl,
-    string MatchTerm);
+    string MatchTerm,
+    string LaunchTarget = "");
 
 /// <summary>
 /// Catálogo curado de apps comunes por categoría. Datos puros (sin Windows) para
@@ -39,7 +40,7 @@ public static class KnownApps
         new("Epic Games", "EpicGamesLauncher", AppCategory.Juegos, "https://store.epicgames.com/", "epic games"),
         new("Battle.net", "Battle.net", AppCategory.Juegos, "https://www.blizzard.com/apps/battle.net/desktop", "battle.net"),
 
-        new("Spotify", "Spotify", AppCategory.Musica, "https://www.spotify.com/download", "spotify"),
+        new("Spotify", "Spotify", AppCategory.Musica, "https://www.spotify.com/download", "spotify", "spotify:"),
         new("VLC", "vlc", AppCategory.Musica, "https://www.videolan.org/vlc/", "vlc"),
     ];
 

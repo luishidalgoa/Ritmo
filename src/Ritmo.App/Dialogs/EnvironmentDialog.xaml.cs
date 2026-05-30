@@ -19,6 +19,8 @@ public sealed partial class EnvironmentDialog : ContentDialog
     // Acción por app del catálogo: processName → "close" | "mute" (#94).
     private readonly Dictionary<string, string> _appActions = new(StringComparer.OrdinalIgnoreCase);
     private HashSet<string> _installed = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<string> _blockedWebsites = [];   // #99
+    private readonly List<string> _otherClose = [];        // apps fuera del catálogo (#100)
 
     public EnvironmentDialog()
     {
@@ -32,6 +34,155 @@ public sealed partial class EnvironmentDialog : ContentDialog
         // Catálogo de apps por categoría + detección de instaladas (#94).
         _installed = Services.InstalledApps.DetectInstalled();
         BuildAppsSelector();
+        BuildMusicSelector();   // #98
+        BuildWebsList();        // #99
+        BuildOtherApps();       // #100
+    }
+
+    // ---------- Música: elegir entre apps instaladas + playlist de Spotify (#98) ----------
+
+    private void BuildMusicSelector()
+    {
+        MusicAppBox.Items.Clear();
+        MusicAppBox.Items.Add(new ComboBoxItem { Content = "Ninguna", Tag = "" });
+        foreach (var app in KnownApps.Catalog.Where(a => a.Category == AppCategory.Musica))
+        {
+            bool installed = _installed.Contains(app.ProcessName);
+            MusicAppBox.Items.Add(new ComboBoxItem
+            {
+                Content = app.Name + (installed ? "" : "  (no instalada)"),
+                Tag = app.ProcessName
+            });
+        }
+        MusicAppBox.SelectedIndex = 0;
+    }
+
+    private void MusicAppBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var tag = (MusicAppBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+        var isSpotify = string.Equals(tag, "Spotify", StringComparison.OrdinalIgnoreCase);
+        if (SpotifyPanel is not null)
+            SpotifyPanel.Visibility = isSpotify ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void SelectMusic(MusicLauncher? music)
+    {
+        if (music is null) { MusicAppBox.SelectedIndex = 0; return; }
+
+        var app = KnownApps.Catalog.FirstOrDefault(a => a.Category == AppCategory.Musica &&
+            (string.Equals(a.Name, music.Name, StringComparison.OrdinalIgnoreCase)
+             || string.Equals(a.ProcessName, music.Name, StringComparison.OrdinalIgnoreCase)));
+        if (app is null && (music.Target?.Contains("spotify", StringComparison.OrdinalIgnoreCase) ?? false))
+            app = KnownApps.ByProcess("Spotify");
+
+        var tag = app?.ProcessName ?? "";
+        for (int i = 0; i < MusicAppBox.Items.Count; i++)
+            if (MusicAppBox.Items[i] is ComboBoxItem it && (string)it.Tag == tag) { MusicAppBox.SelectedIndex = i; break; }
+
+        if (app is not null && string.Equals(app.ProcessName, "Spotify", StringComparison.OrdinalIgnoreCase))
+        {
+            var t = music.Target ?? "";
+            SpotifyPlaylistBox.Text = t is "spotify:" or "" ? "" : t;
+        }
+    }
+
+    // ---------- Webs a bloquear: input + lista con favicon + quitar (#99) ----------
+
+    private void AddWebBtn_Click(object sender, RoutedEventArgs e) => AddWeb(WebInputBox.Text);
+
+    private void WebInputBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.Key == Windows.System.VirtualKey.Enter) { AddWeb(WebInputBox.Text); e.Handled = true; }
+    }
+
+    private void AddWeb(string raw)
+    {
+        var domain = WebDomain.Normalize(raw);
+        if (domain.Length == 0) return;
+        if (!_blockedWebsites.Any(d => string.Equals(d, domain, StringComparison.OrdinalIgnoreCase)))
+            _blockedWebsites.Add(domain);
+        WebInputBox.Text = "";
+        BuildWebsList();
+    }
+
+    private void BuildWebsList()
+    {
+        WebsList.Children.Clear();
+        foreach (var d in _blockedWebsites) WebsList.Children.Add(WebRow(d));
+    }
+
+    private FrameworkElement WebRow(string domain)
+    {
+        // Favicon con globo de respaldo si falla la carga.
+        var fav = new Image { Width = 16, Height = 16, Visibility = Visibility.Collapsed };
+        var globe = new SymbolIcon(Symbol.World) { Opacity = 0.6 };
+        try
+        {
+            var bmp = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(
+                new Uri($"https://www.google.com/s2/favicons?domain={domain}&sz=32"));
+            bmp.ImageOpened += (_, _) => { fav.Visibility = Visibility.Visible; globe.Visibility = Visibility.Collapsed; };
+            bmp.ImageFailed += (_, _) => { fav.Visibility = Visibility.Collapsed; globe.Visibility = Visibility.Visible; };
+            fav.Source = bmp;
+        }
+        catch { }
+        var iconHost = new Grid { Width = 16, Height = 16, VerticalAlignment = VerticalAlignment.Center };
+        iconHost.Children.Add(globe); iconHost.Children.Add(fav);
+        Grid.SetColumn(iconHost, 0);
+
+        var text = new TextBlock { Text = domain, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+        Grid.SetColumn(text, 1);
+
+        var x = MakeRemoveButton("Quitar de la lista", () => { _blockedWebsites.Remove(domain); BuildWebsList(); });
+        Grid.SetColumn(x, 2);
+
+        var grid = new Grid { ColumnSpacing = 8, Margin = new Thickness(0, 1, 0, 1) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(iconHost); grid.Children.Add(text); grid.Children.Add(x);
+        return grid;
+    }
+
+    /// <summary>Botón de quitar: fondo transparente, rojo al pasar el ratón (#99).</summary>
+    private static Button MakeRemoveButton(string tooltip, Action onClick)
+    {
+        var transparent = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        var hoverRed = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(60, 232, 17, 35));
+        var btn = new Button
+        {
+            Content = new SymbolIcon(Symbol.Cancel),
+            Background = transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(6, 2, 6, 2),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        ToolTipService.SetToolTip(btn, tooltip);
+        btn.PointerEntered += (_, _) => btn.Background = hoverRed;
+        btn.PointerExited += (_, _) => btn.Background = transparent;
+        btn.Click += (_, _) => onClick();
+        return btn;
+    }
+
+    // ---------- Otras apps fuera del catálogo: chips quitables, sin escribir texto (#100) ----------
+
+    private void BuildOtherApps()
+    {
+        OtherAppsPanel.Children.Clear();
+        if (_otherClose.Count == 0) return;
+        OtherAppsPanel.Children.Add(new TextBlock { Text = "Otras apps a cerrar", Opacity = 0.6, FontSize = 12 });
+        foreach (var p in _otherClose.ToList())
+        {
+            var name = new TextBlock { Text = p, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(name, 0);
+            var local = p;
+            var x = MakeRemoveButton("Quitar", () => { _otherClose.Remove(local); BuildOtherApps(); });
+            Grid.SetColumn(x, 1);
+            var g = new Grid { ColumnSpacing = 6 };
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            g.Children.Add(name); g.Children.Add(x);
+            OtherAppsPanel.Children.Add(g);
+        }
     }
 
     /// <summary>Llena el desplegable de ritmos: por defecto de la app + de por defecto + propios (#96).</summary>
@@ -164,20 +315,24 @@ public sealed partial class EnvironmentDialog : ContentDialog
         DndCheck.IsChecked = env.EnableDoNotDisturb;
         BadgesCheck.IsChecked = env.HideTaskbarBadges;
         EdgeCheck.IsChecked = env.OpenStudyListInEdge;
-        MusicNameBox.Text = env.Music?.Name ?? "";
-        MusicTargetBox.Text = env.Music?.Target ?? "";
         AutoPlayCheck.IsChecked = env.Music?.AutoPlay ?? false;
-        WebsitesBox.Text = string.Join(", ", env.BlockedWebsites);
+        SelectMusic(env.Music);   // #98
 
-        // Apps: catálogo → acción; las que no están en el catálogo → "Otras a cerrar".
+        // Webs (#99): normalizadas a dominio.
+        _blockedWebsites.Clear();
+        _blockedWebsites.AddRange(env.BlockedWebsites.Select(WebDomain.Normalize).Where(d => d.Length > 0).Distinct());
+        BuildWebsList();
+
+        // Apps: catálogo → acción; las que no están en el catálogo → chips quitables (#100).
         _appActions.Clear();
-        var others = new List<string>();
+        _otherClose.Clear();
         foreach (var p in env.AppsToClose)
-            if (KnownApps.ByProcess(p) is not null) _appActions[p] = "close"; else others.Add(p);
+            if (KnownApps.ByProcess(p) is not null) _appActions[p] = "close";
+            else if (!_otherClose.Contains(p)) _otherClose.Add(p);
         foreach (var p in env.AppsToMute)
-            if (KnownApps.ByProcess(p) is not null) _appActions[p] = "mute"; else others.Add(p);
-        OtherCloseBox.Text = string.Join(", ", others.Distinct());
+            if (KnownApps.ByProcess(p) is not null) _appActions[p] = "mute";
         BuildAppsSelector();
+        BuildOtherApps();
 
         _links.Clear();
         _links.AddRange(env.Links);
@@ -201,16 +356,6 @@ public sealed partial class EnvironmentDialog : ContentDialog
         var preset = (PresetBox.SelectedItem as ComboBoxItem)?.Tag as string;
         if (string.IsNullOrEmpty(preset)) preset = null;
 
-        MusicLauncher? music = null;
-        var target = MusicTargetBox.Text.Trim();
-        if (!string.IsNullOrWhiteSpace(target))
-            music = new MusicLauncher
-            {
-                Name = string.IsNullOrWhiteSpace(MusicNameBox.Text) ? "Música" : MusicNameBox.Text.Trim(),
-                Target = target,
-                AutoPlay = AutoPlayCheck.IsChecked == true
-            };
-
         return new FocusEnvironment
         {
             Id = _id ?? $"env-{Guid.NewGuid():N}"[..12],
@@ -220,19 +365,26 @@ public sealed partial class EnvironmentDialog : ContentDialog
             HideTaskbarBadges = BadgesCheck.IsChecked == true,
             OpenStudyListInEdge = EdgeCheck.IsChecked == true,
             ShowDayPreview = true,
-            AppsToClose = [.. _appActions.Where(kv => kv.Value == "close").Select(kv => kv.Key), .. SplitCsv(OtherCloseBox.Text)],
+            AppsToClose = [.. _appActions.Where(kv => kv.Value == "close").Select(kv => kv.Key), .. _otherClose],
             AppsToMute = _appActions.Where(kv => kv.Value == "mute").Select(kv => kv.Key).Distinct().ToList(),
-            BlockedWebsites = SplitCsv(WebsitesBox.Text),
-            Music = music,
+            BlockedWebsites = _blockedWebsites.ToList(),
+            Music = BuildMusic(),
             Links = _links.ToList()
         };
     }
 
-    /// <summary>Separa una lista por comas, recortando espacios y descartando vacíos.</summary>
-    private static IReadOnlyList<string> SplitCsv(string? raw) =>
-        string.IsNullOrWhiteSpace(raw)
-            ? []
-            : raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                 .Distinct()
-                 .ToList();
+    /// <summary>Construye el MusicLauncher desde el picker (Spotify resuelve la playlist). #98</summary>
+    private MusicLauncher? BuildMusic()
+    {
+        var tag = (MusicAppBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+        if (string.IsNullOrEmpty(tag)) return null;
+        var app = KnownApps.ByProcess(tag);
+        if (app is null) return null;
+
+        string target = string.Equals(app.ProcessName, "Spotify", StringComparison.OrdinalIgnoreCase)
+            ? MusicLaunch.SpotifyTarget(SpotifyPlaylistBox.Text)
+            : (string.IsNullOrEmpty(app.LaunchTarget) ? app.ProcessName : app.LaunchTarget);
+
+        return new MusicLauncher { Name = app.Name, Target = target, AutoPlay = AutoPlayCheck.IsChecked == true };
+    }
 }

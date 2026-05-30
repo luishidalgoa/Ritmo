@@ -27,10 +27,13 @@
 
             <StackPanel Spacing="6">
                 <TextBlock Text="Música" FontWeight="SemiBold" />
-                <TextBox x:Name="MusicNameBox" Header="Nombre" PlaceholderText="Spotify, Aonsoku…" />
-                <TextBox x:Name="MusicTargetBox" Header="Ejecutable o URI"
-                         PlaceholderText="spotify: o C:\…\Aonsoku.exe" />
-                <CheckBox x:Name="AutoPlayCheck" Content="Intentar reproducir automáticamente" />
+                <ComboBox x:Name="MusicAppBox" Header="App de música" HorizontalAlignment="Stretch"
+                          SelectionChanged="MusicAppBox_SelectionChanged" />
+                <StackPanel x:Name="SpotifyPanel" Spacing="4" Visibility="Collapsed">
+                    <TextBox x:Name="SpotifyPlaylistBox" Header="Playlist predeterminada"
+                             PlaceholderText="pega el enlace de una playlist de Spotify" />
+                </StackPanel>
+                <CheckBox x:Name="AutoPlayCheck" Content="Intentar reproducir automáticamente al concentrarte" />
             </StackPanel>
 
             <StackPanel Spacing="6">
@@ -38,12 +41,23 @@
                 <TextBlock Text="Marca qué hacer con cada app. Las no instaladas se pueden instalar."
                            Opacity="0.6" FontSize="12" />
                 <StackPanel x:Name="AppsPanel" Spacing="4" />
-                <TextBox x:Name="OtherCloseBox" Header="Otras a cerrar (separadas por comas)"
-                         PlaceholderText="otra-app" />
+                <StackPanel x:Name="OtherAppsPanel" Spacing="4" />
             </StackPanel>
 
-            <TextBox x:Name="WebsitesBox" Header="Webs a bloquear (separadas por comas)"
-                     PlaceholderText="youtube.com, twitter.com" />
+            <StackPanel Spacing="6">
+                <TextBlock Text="Webs a bloquear" FontWeight="SemiBold" />
+                <Grid ColumnSpacing="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="WebInputBox" Grid.Column="0" PlaceholderText="youtube.com"
+                             AutomationProperties.Name="Web a bloquear" KeyDown="WebInputBox_KeyDown" />
+                    <Button x:Name="AddWebBtn" Grid.Column="1" Click="AddWebBtn_Click" Content="Añadir"
+                            AutomationProperties.Name="Agregar web a la lista" />
+                </Grid>
+                <StackPanel x:Name="WebsList" Spacing="2" />
+            </StackPanel>
 
             <StackPanel Spacing="6">
                 <TextBlock Text="Enlaces y herramientas del entorno" FontWeight="SemiBold" />
