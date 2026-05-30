@@ -41,6 +41,14 @@
             <Button x:Name="ResetBtn" Click="ResetBtn_Click" IsEnabled="False" Content="Reiniciar" />
         </StackPanel>
 
+        <HyperlinkButton x:Name="CompactBtn" Click="CompactBtn_Click" HorizontalAlignment="Center"
+                         AutomationProperties.Name="Activar modo isla">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <FontIcon Glyph="&#xE944;" FontSize="13" />
+                <TextBlock Text="Modo isla (minimizar a la esquina)" />
+            </StackPanel>
+        </HyperlinkButton>
+
         <TextBlock x:Name="PresetInfo" Opacity="0.55" FontSize="12"
                    TextAlignment="Center" HorizontalAlignment="Center" />
 

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Ritmo_App.FocusOverlayWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!-- Estilo "modo reposo (StandBy)" de iPhone: fondo negro, hora gigante de color. -->
+    <Grid x:Name="Root" RequestedTheme="Dark" Background="#0A0A0B" Padding="24,16,22,14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Fila principal: hora grande (izquierda) + info (derecha) -->
+        <Grid Grid.Row="0" ColumnSpacing="18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="ClockText" Grid.Column="0" Text="00:00"
+                       FontSize="100" FontWeight="Bold" LineHeight="100"
+                       FontFamily="Segoe UI Variable Display"
+                       Foreground="{ThemeResource AccentFillColorDefaultBrush}"
+                       VerticalAlignment="Center" />
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2" MinWidth="104">
+                <TextBlock x:Name="DateText" Text="" FontSize="15" FontWeight="SemiBold" Opacity="0.95" />
+                <TextBlock x:Name="PhaseLabel" Text="CONCENTRACIÓN" FontSize="11" FontWeight="SemiBold"
+                           Opacity="0.5" CharacterSpacing="100" Margin="0,6,0,0"
+                           TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                    <FontIcon x:Name="PomoGlyph" Glyph="&#xE916;" FontSize="13" Opacity="0.85" />
+                    <TextBlock x:Name="PomoText" Text="00:00" FontSize="15" FontWeight="SemiBold" FontFamily="Consolas" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <!-- Progreso + controles -->
+        <StackPanel Grid.Row="1" Spacing="10" Margin="0,12,0,0">
+            <ProgressBar x:Name="Prog" Minimum="0" Maximum="1" Value="0" Height="3" />
+            <Grid ColumnSpacing="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="PauseBtn" Grid.Column="0" Click="PauseBtn_Click" Padding="12,6"
+                        ToolTipService.ToolTip="Pausar / Reanudar">
+                    <FontIcon x:Name="PauseIcon" Glyph="&#xE769;" FontSize="14" />
+                </Button>
+                <Button x:Name="SkipBtn" Grid.Column="1" Click="SkipBtn_Click" Padding="12,6"
+                        ToolTipService.ToolTip="Saltar a la siguiente fase">
+                    <FontIcon Glyph="&#xE893;" FontSize="14" />
+                </Button>
+                <Button x:Name="ExpandBtn" Grid.Column="2" Click="ExpandBtn_Click" HorizontalAlignment="Right"
+                        Style="{StaticResource AccentButtonStyle}" Padding="14,6"
+                        ToolTipService.ToolTip="Abrir la app y cerrar esta ventana">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE740;" FontSize="14" />
+                        <TextBlock Text="Abrir" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Window>

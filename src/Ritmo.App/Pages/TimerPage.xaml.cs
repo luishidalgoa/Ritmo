@@ -34,6 +34,10 @@ public sealed partial class TimerPage : Page
     private FocusEnvironment? _activeEnv;
     private string? _activeSessionTitle;   // título de la sesión activa (perfil por tipo, #116)
 
+    // Isla flotante de concentración (#118).
+    private FocusOverlayWindow? _overlay;
+    private bool _compact;
+
     /// <summary>
     /// Si otra pantalla (Hoy / Horario) pide "empezar ya", lo deja marcado aquí;
     /// el Timer lo consume al cargarse y arranca la concentración automáticamente.
@@ -44,7 +48,7 @@ public sealed partial class TimerPage : Page
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        Unloaded += (_, _) => { _ticker?.Stop(); _focus.Exit(); };
+        Unloaded += (_, _) => { _ticker?.Stop(); _focus.Exit(); _overlay?.Close(); _overlay = null; };
     }
 
     private bool _loadingEnv;
@@ -141,7 +145,8 @@ public sealed partial class TimerPage : Page
 
     private void StartBtn_Click(object sender, RoutedEventArgs e)
     {
-        if (_engine.Phase == PomodoroPhase.Idle)
+        bool wasIdle = _engine.Phase == PomodoroPhase.Idle;
+        if (wasIdle)
         {
             ResolveContext();          // recoge el bloque vigente en el momento de arrancar
             _engine.Start(_clock.Now);
@@ -149,6 +154,7 @@ public sealed partial class TimerPage : Page
         else if (!_engine.IsRunning) _engine.Resume(_clock.Now);
         _ticker?.Start();
         Refresh();
+        if (wasIdle) EnterCompact();   // al entrar en concentración, minimiza a la isla (#118)
     }
 
     private void PauseBtn_Click(object sender, RoutedEventArgs e)
@@ -168,6 +174,7 @@ public sealed partial class TimerPage : Page
     {
         _engine.Reset();
         _ticker?.Stop();
+        if (_compact) ExitCompact();   // al parar, vuelve a la app y cierra la isla (#118)
         Refresh();
     }
 
@@ -202,7 +209,68 @@ public sealed partial class TimerPage : Page
         ResetBtn.IsEnabled = !idle;
 
         SyncFocusMode();
+
+        // Isla flotante (#118): la hora del sistema manda + el cronómetro Pomodoro.
+        if (_compact && _overlay is not null)
+        {
+            var es = new System.Globalization.CultureInfo("es-ES");
+            string phaseLabel = _engine.Phase switch
+            {
+                PomodoroPhase.Focus => "CONCENTRACIÓN",
+                PomodoroPhase.ShortBreak => "DESCANSO CORTO",
+                PomodoroPhase.LongBreak => "DESCANSO LARGO",
+                _ => "EN PAUSA"
+            };
+            _overlay.UpdateView(
+                clock: now.ToString("HH\\:mm"),
+                date: Capitalize(now.ToString("dddd d 'de' MMMM", es)),
+                phaseLabel: phaseLabel,
+                pomo: $"{(int)remaining.TotalMinutes:00}:{remaining.Seconds:00}",
+                progress: Math.Clamp(prog, 0.0, 1.0),
+                isRunning: running,
+                canSkip: !idle);
+        }
     }
+
+    private static string Capitalize(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpper(s[0]) + s[1..];
+
+    // ---------- Isla flotante de concentración (#118) ----------
+
+    /// <summary>Minimiza la app y muestra la isla flotante arriba a la derecha.</summary>
+    private void EnterCompact()
+    {
+        if (_overlay is null)
+        {
+            _overlay = new FocusOverlayWindow();
+            _overlay.ExpandRequested += ExitCompact;
+            _overlay.PauseResumeRequested += () =>
+            {
+                if (_engine.IsRunning) PauseBtn_Click(this, new RoutedEventArgs());
+                else StartBtn_Click(this, new RoutedEventArgs());   // reanuda
+            };
+            _overlay.SkipRequested += () => SkipBtn_Click(this, new RoutedEventArgs());
+            _overlay.Closed += (_, _) => { _overlay = null; _compact = false; };
+        }
+        _compact = true;
+        _overlay.Activate();
+        (MainWindow.Current?.AppWindow.Presenter as Microsoft.UI.Windowing.OverlappedPresenter)?.Minimize();
+        Refresh();   // pinta la isla de inmediato
+    }
+
+    /// <summary>Cierra la isla y restaura la app a tamaño normal.</summary>
+    private void ExitCompact()
+    {
+        _compact = false;
+        if (_overlay is not null) { var o = _overlay; _overlay = null; o.Close(); }
+        var main = MainWindow.Current;
+        if (main is not null)
+        {
+            (main.AppWindow.Presenter as Microsoft.UI.Windowing.OverlappedPresenter)?.Restore();
+            main.Activate();
+        }
+    }
+
+    private void CompactBtn_Click(object sender, RoutedEventArgs e) => EnterCompact();
 
     /// <summary>
     /// Mantiene el "No molestar" del SO sincronizado: activo SOLO mientras hay
