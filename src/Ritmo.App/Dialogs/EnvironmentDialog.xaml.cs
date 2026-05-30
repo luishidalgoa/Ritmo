@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Ritmo.Core.Focus;
 using Ritmo.Core.Model;
+using Ritmo.Core.Pomodoro;
 using Ritmo_App.Services;
 
 namespace Ritmo_App.Dialogs;
@@ -22,19 +23,41 @@ public sealed partial class EnvironmentDialog : ContentDialog
     public EnvironmentDialog()
     {
         InitializeComponent();
-        // Valores por defecto sensatos para uno nuevo.
-        PresetBox.SelectedIndex = 2;   // Profundo
+        BuildPresetList();
+        // Valores por defecto sensatos para uno nuevo: "Profundo".
+        SelectPreset(PomodoroRhythms.DeepWorkId);
         DndCheck.IsChecked = true;
         BadgesCheck.IsChecked = true;
-
-        // Tooltips de ayuda (#93): el desplegable y cada preset.
-        HelpHint.Attach(PresetBox, "pomodoro");
-        foreach (var it in PresetBox.Items.OfType<ComboBoxItem>())
-            HelpHint.Attach(it, (string)it.Tag switch { "Classic" => "classic", "DeepWork" => "deep-work", _ => "pomodoro" });
 
         // Catálogo de apps por categoría + detección de instaladas (#94).
         _installed = Services.InstalledApps.DetectInstalled();
         BuildAppsSelector();
+    }
+
+    /// <summary>Llena el desplegable de ritmos: por defecto de la app + de por defecto + propios (#96).</summary>
+    private void BuildPresetList()
+    {
+        PresetBox.Items.Clear();
+        var dflt = new ComboBoxItem { Content = "Por defecto de la app", Tag = "" };
+        HelpHint.Attach(dflt, "pomodoro");
+        PresetBox.Items.Add(dflt);
+
+        foreach (var r in PomodoroRhythms.All(Services.AppState.Load().Rhythms))
+        {
+            var item = new ComboBoxItem
+            {
+                Content = $"{r.Name} ({r.FocusMinutes}/{r.ShortBreakMinutes}/{r.LongBreakMinutes})",
+                Tag = r.Id
+            };
+            HelpHint.Attach(item, r.Id switch
+            {
+                PomodoroRhythms.ClassicId => "classic",
+                PomodoroRhythms.DeepWorkId => "deep-work",
+                _ => "pomodoro"
+            });
+            PresetBox.Items.Add(item);
+        }
+        HelpHint.Attach(PresetBox, "pomodoro");
     }
 
     private void BuildAppsSelector()
@@ -163,9 +186,10 @@ public sealed partial class EnvironmentDialog : ContentDialog
 
     private void SelectPreset(string? preset)
     {
-        var tag = preset ?? "";
+        // Tolera ids nuevos y nombres heredados ("Classic"/"DeepWork").
+        var tag = PomodoroRhythms.Find(preset, Services.AppState.Load().Rhythms)?.Id ?? "";
         for (int i = 0; i < PresetBox.Items.Count; i++)
-            if (PresetBox.Items[i] is ComboBoxItem it && (string)it.Tag == tag)
+            if (PresetBox.Items[i] is ComboBoxItem it && string.Equals((string)it.Tag, tag, StringComparison.OrdinalIgnoreCase))
             { PresetBox.SelectedIndex = i; return; }
         PresetBox.SelectedIndex = 0;
     }

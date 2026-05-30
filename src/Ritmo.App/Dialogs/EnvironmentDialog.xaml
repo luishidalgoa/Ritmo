@@ -16,11 +16,7 @@
         <StackPanel Spacing="14" Width="360">
             <TextBox x:Name="NameBox" Header="Nombre" PlaceholderText="p. ej. Estudio profundo" />
 
-            <ComboBox x:Name="PresetBox" Header="Ritmo Pomodoro" HorizontalAlignment="Stretch">
-                <ComboBoxItem Content="Por defecto de la app" Tag="" />
-                <ComboBoxItem Content="Clásico (25/5/15)" Tag="Classic" />
-                <ComboBoxItem Content="Profundo (50/10/20)" Tag="DeepWork" />
-            </ComboBox>
+            <ComboBox x:Name="PresetBox" Header="Ritmo Pomodoro" HorizontalAlignment="Stretch" />
 
             <StackPanel Spacing="6">
                 <TextBlock Text="Al concentrarte" FontWeight="SemiBold" />

@@ -25,13 +25,36 @@ public static class InstalledApps
             catch { /* sin permisos: ignorar */ }
         }
 
-        // 2) Programas instalados (registro de desinstalación) por nombre.
+        // 2) Programas instalados (registro de desinstalación) + paquetes de la
+        //    Microsoft Store (apps UWP como WhatsApp, que NO están en el registro).
         var names = InstalledDisplayNames();
+        names.AddRange(StorePackageNames());
         foreach (var app in KnownApps.Catalog)
             if (names.Any(n => n.Contains(app.MatchTerm)))
                 installed.Add(app.ProcessName);
 
         return installed;
+    }
+
+    /// <summary>
+    /// Nombres (en minúsculas) de los paquetes de la Store instalados para el usuario
+    /// actual. Cubre apps UWP que no aparecen en el registro de desinstalación, como
+    /// WhatsApp. Mejor esfuerzo: si el SO no lo permite, devuelve vacío. #97
+    /// </summary>
+    private static List<string> StorePackageNames()
+    {
+        var names = new List<string>();
+        try
+        {
+            var pm = new Windows.Management.Deployment.PackageManager();
+            foreach (var pkg in pm.FindPackagesForUser(string.Empty))
+            {
+                try { if (pkg.Id?.Name is { Length: > 0 } id) names.Add(id.ToLowerInvariant()); } catch { }
+                try { if (pkg.DisplayName is { Length: > 0 } dn) names.Add(dn.ToLowerInvariant()); } catch { }
+            }
+        }
+        catch { /* sin permiso de consulta de paquetes: ignorar */ }
+        return names;
     }
 
     private static List<string> InstalledDisplayNames()

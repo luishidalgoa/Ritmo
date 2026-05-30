@@ -13,6 +13,7 @@ internal sealed class SettingsDto
     // Compatibilidad: horario suelto del formato original.
     public List<SessionDto> Sessions { get; set; } = [];
     public PomodoroDto Pomodoro { get; set; } = new();
+    public List<PomodoroRhythmDto> Rhythms { get; set; } = [];
     // Nuevo: horario por fases, notas y configuración de vista.
     public List<PhaseDto> Phases { get; set; } = [];
     public List<NoteDto> Notes { get; set; } = [];
@@ -74,6 +75,16 @@ internal sealed class PomodoroDto
     public int FocusesPerLongBreak { get; set; } = 2;
 }
 
+internal sealed class PomodoroRhythmDto
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public int FocusMinutes { get; set; } = 25;
+    public int ShortBreakMinutes { get; set; } = 5;
+    public int LongBreakMinutes { get; set; } = 15;
+    public int FocusesPerLongBreak { get; set; } = 4;
+}
+
 internal sealed class PhaseDto
 {
     public string Name { get; set; } = "";
@@ -123,6 +134,12 @@ internal static class SettingsMapper
             LongBreakMinutes = (int)s.Pomodoro.LongBreak.TotalMinutes,
             FocusesPerLongBreak = s.Pomodoro.FocusesPerLongBreak
         },
+        Rhythms = s.Rhythms.Where(r => !r.IsBuiltIn).Select(r => new PomodoroRhythmDto
+        {
+            Id = r.Id, Name = r.Name,
+            FocusMinutes = r.FocusMinutes, ShortBreakMinutes = r.ShortBreakMinutes,
+            LongBreakMinutes = r.LongBreakMinutes, FocusesPerLongBreak = r.FocusesPerLongBreak
+        }).ToList(),
         Phases = s.Plan.Phases.Select(ToDto).ToList(),
         Notes = s.Notes.Select(ToDto).ToList(),
         ViewConfig = ToDto(s.ViewConfig),
@@ -191,6 +208,12 @@ internal static class SettingsMapper
             TimeSpan.FromMinutes(d.Pomodoro.ShortBreakMinutes),
             TimeSpan.FromMinutes(d.Pomodoro.LongBreakMinutes),
             d.Pomodoro.FocusesPerLongBreak),
+        Rhythms = d.Rhythms.Select(r => new PomodoroRhythm
+        {
+            Id = r.Id, Name = r.Name,
+            FocusMinutes = r.FocusMinutes, ShortBreakMinutes = r.ShortBreakMinutes,
+            LongBreakMinutes = r.LongBreakMinutes, FocusesPerLongBreak = r.FocusesPerLongBreak
+        }).ToList(),
         Plan = new SchedulePlan { Phases = d.Phases.Select(FromDto).ToList() },
         Notes = d.Notes.Select(FromDto).ToList(),
         ViewConfig = d.ViewConfig is null ? new ScheduleViewConfig() : FromDto(d.ViewConfig),

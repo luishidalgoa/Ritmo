@@ -21,6 +21,10 @@ public static class Glossary
         new("classic", "Ritmo clásico (25/5/15)",
             "Preset de Pomodoro tradicional: 25 min de concentración, 5 de descanso corto y 15 de " +
             "descanso largo cada 4 focos. Bueno para tareas cortas o para arrancar."),
+        new("rhythm", "Ritmo Pomodoro",
+            "Un conjunto de duraciones con nombre (concentración, descansos y cada cuántos focos toca el " +
+            "largo). Además de los de por defecto (Clásico, Profundo), puedes crear los tuyos en Ajustes y " +
+            "elegirlos al configurar un entorno."),
         new("prealert", "Avisos previos",
             "Recordatorios antes de que empiece una sesión (p. ej. 10 minutos antes). Suenan como " +
             "notificación de Windows aunque la ventana esté cerrada."),

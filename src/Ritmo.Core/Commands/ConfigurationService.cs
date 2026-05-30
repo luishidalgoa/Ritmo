@@ -1,6 +1,7 @@
 using Ritmo.Core.Focus;
 using Ritmo.Core.Model;
 using Ritmo.Core.Persistence;
+using Ritmo.Core.Pomodoro;
 
 namespace Ritmo.Core.Commands;
 
@@ -178,6 +179,65 @@ public sealed class ConfigurationService
         {
             return CommandResult.Fail(ex.Message);
         }
+    }
+
+    // ---------- Ritmos Pomodoro personalizados (#96) ----------
+
+    /// <summary>Crea un ritmo Pomodoro propio. Devuelve su Id en el mensaje.</summary>
+    public CommandResult AddRhythm(string name, int focusMin, int shortMin, int longMin, int focusesPerLong)
+    {
+        var error = ValidateRhythm(name, focusMin, focusesPerLong);
+        if (error is not null) return CommandResult.Fail(error);
+
+        var s = _store.Load();
+        var rhythm = new PomodoroRhythm
+        {
+            Id = $"rhythm-{Guid.NewGuid():N}"[..14],
+            Name = name.Trim(),
+            FocusMinutes = focusMin,
+            ShortBreakMinutes = Math.Max(0, shortMin),
+            LongBreakMinutes = Math.Max(0, longMin),
+            FocusesPerLongBreak = focusesPerLong
+        };
+        _store.Save(s with { Rhythms = [.. s.Rhythms, rhythm] });
+        return CommandResult.Ok(rhythm.Id);
+    }
+
+    /// <summary>Edita un ritmo propio existente (por Id).</summary>
+    public CommandResult UpdateRhythm(string id, string name, int focusMin, int shortMin, int longMin, int focusesPerLong)
+    {
+        var error = ValidateRhythm(name, focusMin, focusesPerLong);
+        if (error is not null) return CommandResult.Fail(error);
+
+        var s = _store.Load();
+        if (s.Rhythms.All(r => r.Id != id)) return CommandResult.Fail($"No existe el ritmo «{id}».");
+        var updated = s.Rhythms.Select(r => r.Id == id
+            ? r with
+            {
+                Name = name.Trim(), FocusMinutes = focusMin,
+                ShortBreakMinutes = Math.Max(0, shortMin), LongBreakMinutes = Math.Max(0, longMin),
+                FocusesPerLongBreak = focusesPerLong
+            }
+            : r).ToList();
+        _store.Save(s with { Rhythms = updated });
+        return CommandResult.Ok("Ritmo actualizado.");
+    }
+
+    /// <summary>Elimina un ritmo propio por Id.</summary>
+    public CommandResult RemoveRhythm(string id)
+    {
+        var s = _store.Load();
+        if (s.Rhythms.All(r => r.Id != id)) return CommandResult.Fail($"No existe el ritmo «{id}».");
+        _store.Save(s with { Rhythms = s.Rhythms.Where(r => r.Id != id).ToList() });
+        return CommandResult.Ok("Ritmo eliminado.");
+    }
+
+    private static string? ValidateRhythm(string name, int focusMin, int focusesPerLong)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "El ritmo necesita un nombre.";
+        if (focusMin <= 0) return "La concentración debe durar más de 0 minutos.";
+        if (focusesPerLong < 1) return "Debe haber al menos 1 foco por descanso largo.";
+        return null;
     }
 
     /// <summary>Actualiza el rango horario visible de la rejilla del horario.</summary>

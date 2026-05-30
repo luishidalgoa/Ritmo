@@ -22,6 +22,9 @@ public sealed record AppSettings
 
     public PomodoroConfig Pomodoro { get; init; } = PomodoroConfig.DeepWork;
 
+    /// <summary>Ritmos Pomodoro propios del usuario (los de por defecto van en código). #96</summary>
+    public IReadOnlyList<PomodoroRhythm> Rhythms { get; init; } = [];
+
     /// <summary>Notas fijadas por el usuario.</summary>
     public IReadOnlyList<StudyNote> Notes { get; init; } = [];
 

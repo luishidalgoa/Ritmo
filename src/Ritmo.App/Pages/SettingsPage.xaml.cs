@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Ritmo.Core.Focus;
+using Ritmo.Core.Pomodoro;
 using Ritmo_App.Dialogs;
 using Ritmo_App.Services;
 
@@ -43,9 +44,79 @@ public sealed partial class SettingsPage : Page
         };
 
         BuildEnvList();
+        BuildRhythms();
         BuildNotes();
         PomodoroHelp.Content = HelpHint.Icon("pomodoro");   // ayuda (#93)
+        RhythmsHelp.Content = HelpHint.Icon("rhythm");      // ayuda (#96)
         _ = LoadAutostartState();
+    }
+
+    // ---------- Ritmos Pomodoro personalizados (#96) ----------
+
+    private void BuildRhythms()
+    {
+        var s = AppState.Load();
+        RhythmsList.Children.Clear();
+        RhythmsEmpty.Visibility = s.Rhythms.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var r in s.Rhythms) RhythmsList.Children.Add(RhythmRow(r));
+    }
+
+    private FrameworkElement RhythmRow(PomodoroRhythm r)
+    {
+        var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        info.Children.Add(new TextBlock { Text = r.Name, FontWeight = FontWeights.SemiBold });
+        info.Children.Add(new TextBlock
+        {
+            Text = $"Concentración {r.FocusMinutes} · corto {r.ShortBreakMinutes} · largo {r.LongBreakMinutes} cada {r.FocusesPerLongBreak} focos",
+            Opacity = 0.65, FontSize = 12
+        });
+        Grid.SetColumn(info, 0);
+
+        var edit = new Button { Content = new SymbolIcon(Symbol.Edit) };
+        ToolTipService.SetToolTip(edit, "Editar");
+        edit.Click += (_, _) => _ = EditRhythm(r);
+        Grid.SetColumn(edit, 1);
+
+        var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
+        ToolTipService.SetToolTip(del, "Eliminar");
+        del.Click += (_, _) => { AppState.Config.RemoveRhythm(r.Id); BuildRhythms(); };
+        Grid.SetColumn(del, 2);
+
+        var grid = new Grid { ColumnSpacing = 6 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(info); grid.Children.Add(edit); grid.Children.Add(del);
+
+        return new Border
+        {
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(12, 8, 8, 8),
+            Child = grid
+        };
+    }
+
+    private async void AddRhythmBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new RhythmDialog { XamlRoot = this.XamlRoot };
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+        {
+            AppState.Config.AddRhythm(dlg.RhythmName, dlg.FocusMin, dlg.ShortMin, dlg.LongMin, dlg.FocusesPerLong);
+            BuildRhythms();
+        }
+    }
+
+    private async Task EditRhythm(PomodoroRhythm r)
+    {
+        var dlg = new RhythmDialog { XamlRoot = this.XamlRoot };
+        dlg.LoadFrom(r);
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+        {
+            AppState.Config.UpdateRhythm(r.Id, dlg.RhythmName, dlg.FocusMin, dlg.ShortMin, dlg.LongMin, dlg.FocusesPerLong);
+            BuildRhythms();
+        }
     }
 
     // ---------- Notas (#55). Los enlaces viven en los entornos de trabajo (#74). ----------
@@ -312,10 +383,8 @@ public sealed partial class SettingsPage : Page
 
     private static string Summary(FocusEnvironment env)
     {
-        var parts = new System.Collections.Generic.List<string>
-        {
-            env.PomodoroPreset switch { "Classic" => "Clásico", "DeepWork" => "Profundo", _ => "Pomodoro por defecto" }
-        };
+        var rhythm = PomodoroRhythms.Find(env.PomodoroPreset, AppState.Load().Rhythms);
+        var parts = new System.Collections.Generic.List<string> { rhythm?.Name ?? "Pomodoro por defecto" };
         if (env.EnableDoNotDisturb) parts.Add("No molestar");
         if (env.OpenStudyListInEdge) parts.Add("Edge");
         if (env.Music is not null) parts.Add($"música: {env.Music.Name}");

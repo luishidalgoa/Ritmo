@@ -83,7 +83,7 @@ public sealed partial class TimerPage : Page
         if (active is not null)
         {
             _activeEnv = settings.ResolveEnvironment(active.Kind);
-            config = PomodoroConfig.ByName(_activeEnv?.PomodoroPreset, settings.Pomodoro);
+            config = PomodoroRhythms.Resolve(_activeEnv?.PomodoroPreset, settings.Rhythms, settings.Pomodoro);
             SubjectText.Text = active.Title;
             SubjectMeta.Text = $"{active.Kind.Label()} · {active.Start:HH\\:mm}–{active.End:HH\\:mm}";
         }
