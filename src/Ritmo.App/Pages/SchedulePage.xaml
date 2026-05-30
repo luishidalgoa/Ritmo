@@ -59,8 +59,8 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <ScrollViewer Grid.Column="0" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto"
-                          VerticalScrollBarVisibility="Auto"
+            <ScrollViewer Grid.Column="0" x:Name="ScrollHost" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto" SizeChanged="ScrollHost_SizeChanged"
                           AutomationProperties.AutomationId="ScheduleScroller">
                 <!-- La rejilla se genera en el code-behind dentro de este Grid -->
                 <Grid x:Name="GridRoot" AutomationProperties.AutomationId="GridRoot" />

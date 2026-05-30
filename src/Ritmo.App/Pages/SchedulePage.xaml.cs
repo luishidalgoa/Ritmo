@@ -35,7 +35,8 @@ public sealed partial class SchedulePage : Page
 
     // Geometría de la rejilla (debe coincidir con BuildGrid).
     private const double HourColWidth = 64;
-    private const double DayColWidth = 150;
+    private const double DayColMinWidth = 150;   // ancho mínimo de columna de día (#117)
+    private double _dayColWidth = DayColMinWidth; // ancho actual: se estira para llenar el ancho visible
     private const double RowHeight = 26;      // alto de media hora
     private const int SlotsPerHour = 2;
 
@@ -98,7 +99,7 @@ public sealed partial class SchedulePage : Page
 
         if (_mode is DragMode.ResizeH or DragMode.ResizeBoth)
         {
-            int targetDay = (int)Math.Floor((pt.X - HourColWidth) / DayColWidth);
+            int targetDay = (int)Math.Floor((pt.X - HourColWidth) / _dayColWidth);
             targetDay = Math.Clamp(targetDay, _c0, _c0 + _maxDaySpan - 1);
             _curDaySpan = targetDay - _c0 + 1;
             Grid.SetColumnSpan(_card, _curDaySpan);
@@ -112,7 +113,7 @@ public sealed partial class SchedulePage : Page
         }
         if (_mode == DragMode.Move)
         {
-            int dayDelta = (int)Math.Round((pt.X - _startX) / DayColWidth);
+            int dayDelta = (int)Math.Round((pt.X - _startX) / _dayColWidth);
             int slotDelta = (int)Math.Round((pt.Y - _startY) / RowHeight);
             int dayIndex = Math.Clamp(_c0 + dayDelta, 0, 7 - _startDaySpan);
             int row = Math.Max(1, _startSlot + slotDelta);
@@ -263,7 +264,7 @@ public sealed partial class SchedulePage : Page
 
         g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(HourColWidth) });
         for (int c = 0; c < 7; c++)
-            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(DayColWidth) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(_dayColWidth) });
 
         g.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
         for (int r = 0; r < totalRows; r++)
@@ -451,6 +452,31 @@ public sealed partial class SchedulePage : Page
         PlaceNowIndicator();
 
         OverlayCalendar(g, startH, hours);   // eventos del calendario sobre la rejilla (#112)
+
+        ApplyColumnWidths();   // estira las columnas de día para llenar el ancho visible (#117)
+    }
+
+    // ---------- Responsive: las columnas de día llenan el ancho visible (#117) ----------
+
+    private void ScrollHost_SizeChanged(object sender, SizeChangedEventArgs e) => ApplyColumnWidths();
+
+    /// <summary>
+    /// Ajusta el ancho de las 7 columnas de día para llenar el viewport del scroll
+    /// (sin reconstruir la rejilla). Nunca baja del mínimo: si la ventana es estrecha,
+    /// se mantiene el mínimo y aparece scroll horizontal.
+    /// </summary>
+    private void ApplyColumnWidths()
+    {
+        if (ScrollHost is null || GridRoot.ColumnDefinitions.Count < 8) return;
+        double available = ScrollHost.ViewportWidth;
+        if (available <= 0) return;
+
+        // -2 de holgura para no provocar un scrollbar horizontal por redondeo.
+        double dw = Math.Max(DayColMinWidth, (available - HourColWidth - 2) / 7.0);
+        if (Math.Abs(dw - _dayColWidth) < 0.5) return;   // sin cambios apreciables
+        _dayColWidth = dw;
+        for (int c = 1; c < GridRoot.ColumnDefinitions.Count; c++)
+            GridRoot.ColumnDefinitions[c].Width = new GridLength(dw);
     }
 
     // ---------- Indicador de la hora actual ("ahora"), reactivo (#115) ----------
