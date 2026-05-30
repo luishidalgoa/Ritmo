@@ -1,4 +1,24 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Ritmo.Core.Focus;
+
+/// <summary>
+/// Perfil de apertura POR TIPO de sesión (agrupada por título) dentro de un entorno
+/// (#116). Indica qué subconjunto de los enlaces y de las apps-a-abrir del entorno
+/// se activan al concentrarse en una sesión de ese título. Si un título no tiene
+/// perfil, se abre TODO (comportamiento por defecto del entorno).
+/// </summary>
+public sealed record SessionAppProfile
+{
+    /// <summary>Título de la sesión (normalizado con Trim), clave del grupo.</summary>
+    public required string SessionTitle { get; init; }
+    /// <summary>URLs de los enlaces del entorno que SÍ se abren para este tipo.</summary>
+    public IReadOnlyList<string> EnabledLinks { get; init; } = [];
+    /// <summary>Nombres de proceso de las apps-a-abrir del entorno que SÍ se abren.</summary>
+    public IReadOnlyList<string> EnabledApps { get; init; } = [];
+}
 
 /// <summary>Una tarea (to-do) propia de un entorno de trabajo. #77</summary>
 public sealed record EnvironmentTask
@@ -81,6 +101,30 @@ public sealed record FocusEnvironment
 
     /// <summary>Lista de tareas (to-do) propia del entorno. #77</summary>
     public IReadOnlyList<EnvironmentTask> Tasks { get; init; } = [];
+
+    /// <summary>
+    /// Perfiles por tipo de sesión (título): qué enlaces/apps de los de arriba se
+    /// abren para cada tipo. Vacío = todos los tipos abren todo (por defecto). #116
+    /// </summary>
+    public IReadOnlyList<SessionAppProfile> SessionProfiles { get; init; } = [];
+
+    /// <summary>
+    /// Qué enlaces y apps abrir al concentrarse en una sesión con el título dado.
+    /// Si existe un perfil para ese título, devuelve solo su subconjunto (intersecado
+    /// con los actuales, por si se quitaron enlaces/apps); si no, devuelve TODO. #116
+    /// </summary>
+    public (IReadOnlyList<Ritmo.Core.Model.ShortcutLink> Links, IReadOnlyList<string> Apps) ResolveOpen(string? sessionTitle)
+    {
+        if (string.IsNullOrWhiteSpace(sessionTitle)) return (Links, AppsToOpen);
+        var key = sessionTitle.Trim();
+        var profile = SessionProfiles.FirstOrDefault(
+            p => string.Equals(p.SessionTitle.Trim(), key, StringComparison.OrdinalIgnoreCase));
+        if (profile is null) return (Links, AppsToOpen);
+
+        var links = Links.Where(l => profile.EnabledLinks.Contains(l.Url, StringComparer.OrdinalIgnoreCase)).ToList();
+        var apps = AppsToOpen.Where(a => profile.EnabledApps.Contains(a, StringComparer.OrdinalIgnoreCase)).ToList();
+        return (links, apps);
+    }
 
     /// <summary>Preset cómodo: estudio profundo con todo el silencio activado.</summary>
     public static FocusEnvironment DeepStudy => new()

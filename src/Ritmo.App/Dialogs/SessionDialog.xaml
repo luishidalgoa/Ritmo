@@ -13,7 +13,9 @@
     DefaultButton="Primary">
 
     <StackPanel Spacing="12" Width="320">
-        <TextBox x:Name="TitleBox" Header="Título" PlaceholderText="p. ej. Técnico" />
+        <!-- Editable: reutiliza títulos existentes del horario para no fragmentarlos (#116) -->
+        <ComboBox x:Name="TitleBox" Header="Título" IsEditable="True" HorizontalAlignment="Stretch"
+                  PlaceholderText="p. ej. Técnico (elige uno existente o escribe)" />
 
         <StackPanel Spacing="6">
             <TextBlock Text="Días" FontWeight="SemiBold" />

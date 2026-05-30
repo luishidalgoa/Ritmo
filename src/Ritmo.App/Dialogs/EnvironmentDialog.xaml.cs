@@ -23,6 +23,12 @@ public sealed partial class EnvironmentDialog : ContentDialog
     private readonly List<string> _otherClose = [];        // apps fuera del catálogo (#100)
     private string? _navPlaylistId, _navPlaylistName;   // Navidrome: solo playlist (conexión global) (#107)
 
+    // Perfiles por tipo de sesión (título → subconjunto de enlaces/apps). Si un título
+    // NO está en el dict, abre todo (por defecto). #116
+    private readonly Dictionary<string, (HashSet<string> Links, HashSet<string> Apps)> _sessionProfiles
+        = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<string> _knownTitles = [];
+
     public EnvironmentDialog()
     {
         InitializeComponent();
@@ -38,6 +44,109 @@ public sealed partial class EnvironmentDialog : ContentDialog
         BuildMusicSelector();   // #98
         BuildWebsList();        // #99
         BuildOtherApps();       // #100
+
+        // Tipos de sesión del horario para el bloque "Por tipo de sesión" (#116).
+        var s = Services.AppState.Load();
+        _knownTitles = Ritmo.Core.Scheduling.SessionGrouping.AllTitles(s.Plan, s.Schedule);
+        BuildSessionProfilesSection();
+    }
+
+    private IEnumerable<string> CurrentOpenApps()
+        => _appActions.Where(kv => kv.Value == "open").Select(kv => kv.Key);
+
+    /// <summary>Reconstruye el bloque "Por tipo de sesión" según los enlaces/apps actuales. #116</summary>
+    private void BuildSessionProfilesSection()
+    {
+        if (SessionProfilesPanel is null) return;
+        SessionProfilesPanel.Children.Clear();
+        if (_knownTitles.Count == 0) { NoTitlesHint.Visibility = Visibility.Visible; return; }
+        NoTitlesHint.Visibility = Visibility.Collapsed;
+
+        var openApps = CurrentOpenApps().ToList();
+        var links = _links.ToList();
+
+        foreach (var title in _knownTitles)
+        {
+            var t = title;
+            bool customized = _sessionProfiles.ContainsKey(t);
+
+            var lists = new StackPanel { Spacing = 4, Visibility = customized ? Visibility.Visible : Visibility.Collapsed };
+
+            void RebuildLists()
+            {
+                lists.Children.Clear();
+                if (!_sessionProfiles.TryGetValue(t, out var sets)) return;
+                if (openApps.Count == 0 && links.Count == 0)
+                {
+                    lists.Children.Add(new TextBlock { Text = "Añade arriba apps a abrir o enlaces para poder elegir.", Opacity = 0.6, FontSize = 12, TextWrapping = TextWrapping.Wrap });
+                    return;
+                }
+                if (openApps.Count > 0)
+                {
+                    lists.Children.Add(new TextBlock { Text = "Apps a abrir", FontSize = 12, Opacity = 0.7 });
+                    foreach (var p in openApps)
+                    {
+                        var proc = p;
+                        var cb = new CheckBox { Content = KnownApps.ByProcess(p)?.Name ?? p, IsChecked = sets.Apps.Contains(p), Margin = new Thickness(8, 0, 0, 0) };
+                        cb.Checked += (_, _) => sets.Apps.Add(proc);
+                        cb.Unchecked += (_, _) => sets.Apps.Remove(proc);
+                        lists.Children.Add(cb);
+                    }
+                }
+                if (links.Count > 0)
+                {
+                    lists.Children.Add(new TextBlock { Text = "Páginas", FontSize = 12, Opacity = 0.7 });
+                    foreach (var l in links)
+                    {
+                        var url = l.Url;
+                        var cb = new CheckBox { Content = l.Title, IsChecked = sets.Links.Contains(l.Url), Margin = new Thickness(8, 0, 0, 0) };
+                        cb.Checked += (_, _) => sets.Links.Add(url);
+                        cb.Unchecked += (_, _) => sets.Links.Remove(url);
+                        lists.Children.Add(cb);
+                    }
+                }
+            }
+
+            var toggle = new ToggleSwitch
+            {
+                Header = "Personalizar (si no, abre todo)",
+                OffContent = "Abre todo", OnContent = "Subconjunto",
+                IsOn = customized
+            };
+            toggle.Toggled += (_, _) =>
+            {
+                if (toggle.IsOn)
+                {
+                    if (!_sessionProfiles.ContainsKey(t))
+                        _sessionProfiles[t] = (
+                            new HashSet<string>(links.Select(l => l.Url), StringComparer.OrdinalIgnoreCase),
+                            new HashSet<string>(openApps, StringComparer.OrdinalIgnoreCase));
+                    lists.Visibility = Visibility.Visible;
+                    RebuildLists();
+                }
+                else
+                {
+                    _sessionProfiles.Remove(t);
+                    lists.Visibility = Visibility.Collapsed;
+                    lists.Children.Clear();
+                }
+            };
+
+            if (customized) RebuildLists();
+
+            var inner = new StackPanel { Spacing = 6, Margin = new Thickness(0, 4, 0, 0) };
+            inner.Children.Add(toggle);
+            inner.Children.Add(lists);
+
+            SessionProfilesPanel.Children.Add(new Expander
+            {
+                Header = title,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                IsExpanded = false,
+                Content = inner
+            });
+        }
     }
 
     // ---------- Música: Navidrome (servidor propio). Spotify desactivado (#106/#107) ----------
@@ -279,6 +388,7 @@ public sealed partial class EnvironmentDialog : ContentDialog
             var tag = (combo.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
             if (tag is "open" or "close" or "mute") _appActions[app.ProcessName] = tag;
             else _appActions.Remove(app.ProcessName);
+            BuildSessionProfilesSection();   // refleja apps "Abrir" en el bloque por tipo (#116)
         };
         Microsoft.UI.Xaml.Controls.Grid.SetColumn(combo, 1);
 
@@ -312,7 +422,7 @@ public sealed partial class EnvironmentDialog : ContentDialog
             Grid.SetColumn(text, 0);
 
             var del = new Button { Content = new SymbolIcon(Symbol.Delete) };
-            del.Click += (_, _) => { _links.RemoveAt(index); BuildLinksList(); };
+            del.Click += (_, _) => { _links.RemoveAt(index); BuildLinksList(); BuildSessionProfilesSection(); };
             Grid.SetColumn(del, 1);
 
             var g = new Grid { ColumnSpacing = 6 };
@@ -331,6 +441,7 @@ public sealed partial class EnvironmentDialog : ContentDialog
         _links.Add(new ShortcutLink { Title = title, Url = url });
         LinkTitleBox.Text = ""; LinkUrlBox.Text = "";
         BuildLinksList();
+        BuildSessionProfilesSection();   // el nuevo enlace aparece como opción por tipo (#116)
     }
 
     /// <summary>Carga un entorno existente para editarlo.</summary>
@@ -367,6 +478,14 @@ public sealed partial class EnvironmentDialog : ContentDialog
         _links.Clear();
         _links.AddRange(env.Links);
         BuildLinksList();
+
+        // Perfiles por tipo de sesión (#116).
+        _sessionProfiles.Clear();
+        foreach (var p in env.SessionProfiles)
+            _sessionProfiles[p.SessionTitle.Trim()] = (
+                new HashSet<string>(p.EnabledLinks, StringComparer.OrdinalIgnoreCase),
+                new HashSet<string>(p.EnabledApps, StringComparer.OrdinalIgnoreCase));
+        BuildSessionProfilesSection();
     }
 
     private void SelectPreset(string? preset)
@@ -401,7 +520,13 @@ public sealed partial class EnvironmentDialog : ContentDialog
             AppsToOpen = _appActions.Where(kv => kv.Value == "open").Select(kv => kv.Key).Distinct().ToList(),
             BlockedWebsites = _blockedWebsites.ToList(),
             Music = BuildMusic(),
-            Links = _links.ToList()
+            Links = _links.ToList(),
+            SessionProfiles = _sessionProfiles.Select(kv => new SessionAppProfile
+            {
+                SessionTitle = kv.Key,
+                EnabledLinks = kv.Value.Links.ToList(),
+                EnabledApps = kv.Value.Apps.ToList()
+            }).ToList()
         };
     }
 

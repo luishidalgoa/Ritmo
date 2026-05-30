@@ -803,10 +803,13 @@ public sealed partial class SchedulePage : Page
 
     private void AddBtn_Click(object sender, RoutedEventArgs e) => _ = ShowAddDialog();
 
+    private void TaskBehaviorBtn_Click(object sender, RoutedEventArgs e) => ShowTaskBehaviorList();
+
     private async Task ShowAddDialog(DayOfWeek? day = null, TimeOnly? start = null)
     {
         if (_activePhaseName is null) return;
         var dlg = new SessionDialog { XamlRoot = this.XamlRoot };
+        dlg.SetKnownTitles(AllTitles());
         dlg.LoadDefaults(day, start);
         var result = await dlg.ShowAsync();
         if (result == ContentDialogResult.Primary)
@@ -846,6 +849,7 @@ public sealed partial class SchedulePage : Page
             SecondaryButtonText = "Cancelar",
             CloseButtonText = "Eliminar"
         };
+        dlg.SetKnownTitles(AllTitles());
         dlg.LoadFrom(rep);
         dlg.PreselectDays(groupDays);   // todos los días del grupo marcados
 
@@ -868,6 +872,13 @@ public sealed partial class SchedulePage : Page
     }
 
     // ---------- Panel lateral de detalle + resolución de solapamientos (#114) ----------
+
+    /// <summary>Títulos únicos del horario (todas las fases + suelto) para sugerir en el diálogo. #116</summary>
+    private static IReadOnlyList<string> AllTitles()
+    {
+        var s = AppState.Load();
+        return SessionGrouping.AllTitles(s.Plan, s.Schedule);
+    }
 
     /// <summary>Identidad estable de una sesión, para resaltarla tras repintar la rejilla.</summary>
     private static string SessionKey(StudySession s)
@@ -902,6 +913,11 @@ public sealed partial class SchedulePage : Page
         focusBtn.Click += (_, _) => FocusNow();
         actions.Children.Add(editBtn); actions.Children.Add(focusBtn);
         content.Children.Add(actions);
+
+        // Atajo: qué apps/enlaces del entorno se abren para este tipo de sesión (#116).
+        var behaviorBtn = new HyperlinkButton { Content = "Qué se abre al concentrarme…", Padding = new Thickness(0) };
+        behaviorBtn.Click += async (_, _) => await ShowSessionBehavior(rep.Title);
+        content.Children.Add(behaviorBtn);
 
         // Solapamientos con el calendario en los días en que se repite la sesión.
         var resolvers = new List<FrameworkElement>();
@@ -1005,6 +1021,52 @@ public sealed partial class SchedulePage : Page
             BorderThickness = new Thickness(1),
             Child = box
         };
+    }
+
+    /// <summary>Abre el diálogo "qué se abre al concentrarme" para un tipo de sesión (#116).</summary>
+    private async Task ShowSessionBehavior(string title)
+    {
+        var dlg = new SessionBehaviorDialog { XamlRoot = this.XamlRoot };
+        dlg.Configure(title);
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary) dlg.Apply();
+    }
+
+    /// <summary>Lista agrupada de tipos de sesión (por título) en el panel, para configurar cada uno (#116).</summary>
+    private void ShowTaskBehaviorList()
+    {
+        _selectedGroup = null; _selectedEvent = null;
+        _selectedSessionKey = null; _selectedEventKey = null;
+        Build();   // quita resaltado de la rejilla
+
+        var content = DetailContent;
+        content.Children.Clear();
+        content.Children.Add(DetailHeader("Comportamiento por tarea"));
+        content.Children.Add(new TextBlock
+        {
+            Text = "Por cada tipo de sesión (agrupado por título) elige qué apps y enlaces del entorno se abren al concentrarte.",
+            Opacity = 0.7, FontSize = 12, TextWrapping = TextWrapping.Wrap
+        });
+
+        var titles = AllTitles();
+        if (titles.Count == 0)
+            content.Children.Add(new TextBlock { Text = "Aún no hay sesiones en el horario.", Opacity = 0.6, FontSize = 13, Margin = new Thickness(0, 6, 0, 0) });
+
+        foreach (var title in titles)
+        {
+            var t = title;
+            var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var name = new TextBlock { Text = t, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+            Grid.SetColumn(name, 0);
+            var btn = new Button { Content = "Configurar" };
+            btn.Click += async (_, _) => await ShowSessionBehavior(t);
+            Grid.SetColumn(btn, 1);
+            row.Children.Add(name); row.Children.Add(btn);
+            content.Children.Add(row);
+        }
+
+        DetailPanel.Visibility = Visibility.Visible;
     }
 
     /// <summary>Tras elegir prioridad: repinta la rejilla y refresca el panel en su contexto.</summary>

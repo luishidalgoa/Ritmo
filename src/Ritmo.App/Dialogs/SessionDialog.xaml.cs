@@ -27,6 +27,15 @@ public sealed partial class SessionDialog : ContentDialog
         AlertHelp.Content = Ritmo_App.Services.HelpHint.Icon("prealert");   // ayuda (#93)
     }
 
+    /// <summary>Carga los títulos existentes del horario como sugerencias del combo (#116).</summary>
+    public void SetKnownTitles(IEnumerable<string> titles)
+    {
+        var current = TitleBox.Text;
+        TitleBox.Items.Clear();
+        foreach (var t in titles) TitleBox.Items.Add(t);
+        TitleBox.Text = current;   // no perder lo escrito al rellenar las sugerencias
+    }
+
     /// <summary>Días marcados (uno o varios). El que crea la sesión itera sobre ellos.</summary>
     public IReadOnlyList<DayOfWeek> SelectedDays =>
         _dayToggles.Where(t => t.btn.IsChecked == true).Select(t => t.day).ToList();

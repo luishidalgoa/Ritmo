@@ -32,6 +32,7 @@ public sealed partial class TimerPage : Page
 
     // Contexto del bloque vigente (resuelto desde el horario).
     private FocusEnvironment? _activeEnv;
+    private string? _activeSessionTitle;   // título de la sesión activa (perfil por tipo, #116)
 
     /// <summary>
     /// Si otra pantalla (Hoy / Horario) pide "empezar ya", lo deja marcado aquí;
@@ -82,6 +83,7 @@ public sealed partial class TimerPage : Page
         var phase = settings.Plan.GetActivePhase(today) ?? settings.Plan.OrderedPhases.FirstOrDefault();
         var schedule = phase?.Schedule ?? settings.Schedule;
         var active = new SchedulePlanner(schedule).GetActiveSession(now);
+        _activeSessionTitle = active?.Title;   // tipo de sesión para resolver qué abrir (#116)
 
         PomodoroConfig config;
         if (active is not null)
@@ -226,9 +228,12 @@ public sealed partial class TimerPage : Page
                     }
                     MusicService.TryLaunch(env.Music);          // lanzar música (#10)
                     AppCloser.CloseAll(env.AppsToClose);         // cerrar apps de ruido (#35)
-                    AppLauncher.OpenAll(env.AppsToOpen);         // abrir herramientas de estudio (#109)
-                    if (env.OpenLinksInBrowser && env.Links.Count > 0)   // abrir enlaces en ventana nueva del navegador por defecto
-                        DefaultBrowser.OpenLinksInNewWindow(env.Links.Select(l => l.Url).ToList());
+                    // Solo el subconjunto de apps/enlaces del tipo de sesión activo (#116);
+                    // sin perfil para ese título, ResolveOpen devuelve todo (por defecto).
+                    var (openLinks, openApps) = env.ResolveOpen(_activeSessionTitle);
+                    AppLauncher.OpenAll(openApps);               // abrir herramientas de estudio (#109)
+                    if (env.OpenLinksInBrowser && openLinks.Count > 0)   // abrir enlaces en ventana nueva del navegador por defecto
+                        DefaultBrowser.OpenLinksInNewWindow(openLinks.Select(l => l.Url).ToList());
                 }
             }
         }

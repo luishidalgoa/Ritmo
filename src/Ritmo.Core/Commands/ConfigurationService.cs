@@ -384,6 +384,41 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Enlace eliminado.");
     }
 
+    // ---------- Perfiles de apertura por tipo de sesión (#116) ----------
+
+    /// <summary>
+    /// Fija qué enlaces (URLs) y apps (procesos) se abren para un tipo de sesión
+    /// (por título) dentro de un entorno. Reemplaza el perfil previo de ese título.
+    /// </summary>
+    public CommandResult SetSessionProfile(string environmentId, string sessionTitle,
+        IReadOnlyList<string> enabledLinks, IReadOnlyList<string> enabledApps)
+    {
+        if (string.IsNullOrWhiteSpace(sessionTitle)) return CommandResult.Fail("Falta el título de la sesión.");
+        var title = sessionTitle.Trim();
+        return MutateEnvironment(environmentId, env =>
+        {
+            var others = env.SessionProfiles.Where(p => !string.Equals(p.SessionTitle.Trim(), title, StringComparison.OrdinalIgnoreCase)).ToList();
+            others.Add(new SessionAppProfile
+            {
+                SessionTitle = title,
+                EnabledLinks = enabledLinks.ToList(),
+                EnabledApps = enabledApps.ToList()
+            });
+            return env with { SessionProfiles = others };
+        }, "Comportamiento de la sesión actualizado.");
+    }
+
+    /// <summary>Olvida el perfil de un tipo de sesión (vuelve a "abrir todo").</summary>
+    public CommandResult ClearSessionProfile(string environmentId, string sessionTitle)
+    {
+        var title = (sessionTitle ?? "").Trim();
+        return MutateEnvironment(environmentId, env => env with
+        {
+            SessionProfiles = env.SessionProfiles
+                .Where(p => !string.Equals(p.SessionTitle.Trim(), title, StringComparison.OrdinalIgnoreCase)).ToList()
+        }, "Comportamiento de la sesión restablecido.");
+    }
+
     // ---------- Tareas por entorno (#77) ----------
 
     private CommandResult MutateEnvironment(string environmentId, Func<FocusEnvironment, FocusEnvironment> change, string okMsg)

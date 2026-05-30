@@ -69,6 +69,14 @@ internal sealed class FocusEnvironmentDto
     public MusicDto? Music { get; set; }
     public List<ShortcutDto> Links { get; set; } = [];
     public List<EnvTaskDto> Tasks { get; set; } = [];
+    public List<SessionAppProfileDto> SessionProfiles { get; set; } = [];
+}
+
+internal sealed class SessionAppProfileDto
+{
+    public string SessionTitle { get; set; } = "";
+    public List<string> EnabledLinks { get; set; } = [];
+    public List<string> EnabledApps { get; set; } = [];
 }
 
 internal sealed class EnvTaskDto
@@ -194,7 +202,13 @@ internal static class SettingsMapper
             PlaylistId = e.Music.PlaylistId, PlaylistName = e.Music.PlaylistName
         },
         Links = e.Links.Select(l => new ShortcutDto { Title = l.Title, Url = l.Url }).ToList(),
-        Tasks = e.Tasks.Select(t => new EnvTaskDto { Id = t.Id, Text = t.Text, Done = t.Done, Order = t.Order }).ToList()
+        Tasks = e.Tasks.Select(t => new EnvTaskDto { Id = t.Id, Text = t.Text, Done = t.Done, Order = t.Order }).ToList(),
+        SessionProfiles = e.SessionProfiles.Select(p => new SessionAppProfileDto
+        {
+            SessionTitle = p.SessionTitle,
+            EnabledLinks = p.EnabledLinks.ToList(),
+            EnabledApps = p.EnabledApps.ToList()
+        }).ToList()
     };
 
     private static SessionDto ToDto(StudySession x) => new()
@@ -280,7 +294,15 @@ internal static class SettingsMapper
             PlaylistId = e.Music.PlaylistId, PlaylistName = e.Music.PlaylistName
         },
         Links = e.Links.Select(l => new ShortcutLink { Title = l.Title, Url = l.Url }).ToList(),
-        Tasks = e.Tasks.Select(t => new EnvironmentTask { Id = t.Id, Text = t.Text, Done = t.Done, Order = t.Order }).ToList()
+        Tasks = e.Tasks.Select(t => new EnvironmentTask { Id = t.Id, Text = t.Text, Done = t.Done, Order = t.Order }).ToList(),
+        SessionProfiles = e.SessionProfiles
+            .Where(p => !string.IsNullOrWhiteSpace(p.SessionTitle))
+            .Select(p => new SessionAppProfile
+            {
+                SessionTitle = p.SessionTitle,
+                EnabledLinks = p.EnabledLinks.ToList(),
+                EnabledApps = p.EnabledApps.ToList()
+            }).ToList()
     };
 
     private static StudySession FromDto(SessionDto x) => new()

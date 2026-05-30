@@ -39,9 +39,9 @@
             </StackPanel>
 
             <StackPanel Spacing="6">
-                <TextBlock Text="Apps al concentrarte" FontWeight="SemiBold" />
-                <TextBlock Text="Marca qué hacer con cada app. Las no instaladas se pueden instalar."
-                           Opacity="0.6" FontSize="12" />
+                <TextBlock Text="Apps al concentrarte (por defecto)" FontWeight="SemiBold" />
+                <TextBlock Text="Comportamiento por defecto del entorno. Marca qué hacer con cada app. Las apps marcadas como «Abrir» se abren en TODAS las sesiones, salvo que abajo, en «Por tipo de sesión», elijas un subconjunto."
+                           Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
                 <StackPanel x:Name="AppsPanel" Spacing="4" />
                 <StackPanel x:Name="OtherAppsPanel" Spacing="4" />
             </StackPanel>
@@ -62,7 +62,9 @@
             </StackPanel>
 
             <StackPanel Spacing="6">
-                <TextBlock Text="Enlaces y herramientas del entorno" FontWeight="SemiBold" />
+                <TextBlock Text="Enlaces y herramientas del entorno (por defecto)" FontWeight="SemiBold" />
+                <TextBlock Text="Por defecto se abren todos al concentrarte. Abajo, en «Por tipo de sesión», puedes abrir solo algunos según la sesión."
+                           Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
                 <StackPanel x:Name="LinksList" Spacing="4" />
                 <Grid ColumnSpacing="6">
                     <Grid.ColumnDefinitions>
@@ -74,6 +76,16 @@
                     <TextBox x:Name="LinkUrlBox" Grid.Column="1" PlaceholderText="https://…" />
                     <Button x:Name="AddLinkBtn" Grid.Column="2" Click="AddLinkBtn_Click" Content="Añadir" />
                 </Grid>
+            </StackPanel>
+
+            <!-- Comportamiento por tipo de sesión (#116) -->
+            <StackPanel Spacing="6">
+                <TextBlock Text="Por tipo de sesión" FontWeight="SemiBold" />
+                <TextBlock Text="Para cada tipo de sesión del horario (agrupado por título) puedes elegir qué subconjunto de las apps y enlaces de arriba se abre. Si no lo personalizas, se abre todo."
+                           Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
+                <StackPanel x:Name="SessionProfilesPanel" Spacing="4" />
+                <TextBlock x:Name="NoTitlesHint" Text="Aún no hay sesiones en el horario para configurar."
+                           Opacity="0.6" FontSize="12" Visibility="Collapsed" />
             </StackPanel>
         </StackPanel>
     </ScrollViewer>
