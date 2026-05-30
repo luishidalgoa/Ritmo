@@ -6,6 +6,7 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Ritmo.Core.Interop;
 using Ritmo.Core.Model;
 using Ritmo_App.Dialogs;
 using Ritmo_App.Services;
@@ -26,6 +27,7 @@ public sealed partial class SchedulePage : Page
         { "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO" };
 
     private string? _activePhaseName;
+    private IReadOnlyList<CalendarEvent> _calEvents = [];   // eventos del calendario de esta semana (#112)
 
     // Geometría de la rejilla (debe coincidir con BuildGrid).
     private const double HourColWidth = 64;
@@ -50,7 +52,7 @@ public sealed partial class SchedulePage : Page
     public SchedulePage()
     {
         InitializeComponent();
-        Loaded += (_, _) => Build();
+        Loaded += (_, _) => { Build(); _ = LoadCalendarAsync(); };
         // El movimiento/soltar se atienden a nivel de rejilla (con el puntero capturado).
         GridRoot.PointerMoved += GridRoot_PointerMoved;
         GridRoot.PointerReleased += GridRoot_PointerReleased;
@@ -436,6 +438,85 @@ public sealed partial class SchedulePage : Page
                 Grid.SetRowSpan(nowLine, 1);
                 g.Children.Add(nowLine);
             }
+        }
+
+        OverlayCalendar(g, startH, hours);   // eventos del calendario sobre la rejilla (#112)
+    }
+
+    // ---------- Calendarios externos sobre la rejilla (#112) ----------
+
+    private static readonly Windows.UI.Color[] CalPalette =
+    {
+        Windows.UI.Color.FromArgb(255, 38, 166, 154),   // teal
+        Windows.UI.Color.FromArgb(255, 126, 87, 194),   // morado
+        Windows.UI.Color.FromArgb(255, 236, 64, 122),   // rosa
+        Windows.UI.Color.FromArgb(255, 255, 160, 0),    // ámbar
+        Windows.UI.Color.FromArgb(255, 41, 121, 255),   // azul
+    };
+
+    private async Task LoadCalendarAsync()
+    {
+        var settings = AppState.Load();
+        if (settings.CalendarFeeds.Count == 0) return;
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        int offset = ((int)today.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        var weekStart = today.AddDays(-offset);
+        try { _calEvents = await CalendarService.FetchAsync(settings.CalendarFeeds, weekStart, weekStart.AddDays(6)); }
+        catch { return; }
+        if (_calEvents.Count > 0) Build();   // re-pinta con el overlay (sin volver a descargar)
+    }
+
+    private void OverlayCalendar(Grid g, int startH, int hours)
+    {
+        if (_calEvents.Count == 0) return;
+        int maxRow = 1 + hours * SlotsPerHour;
+        var colorByCal = new Dictionary<string, Windows.UI.Color>(StringComparer.OrdinalIgnoreCase);
+        int nextColor = 0;
+
+        foreach (var ev in _calEvents)
+        {
+            int dayCol = Array.IndexOf(Days, ev.Start.DayOfWeek);
+            if (dayCol < 0) continue;
+
+            var cal = string.IsNullOrEmpty(ev.Calendar) ? "Calendario" : ev.Calendar!;
+            if (!colorByCal.TryGetValue(cal, out var color)) { color = CalPalette[nextColor++ % CalPalette.Length]; colorByCal[cal] = color; }
+
+            int startSlot, spanSlots;
+            if (ev.AllDay) { startSlot = 1; spanSlots = 1; }
+            else
+            {
+                double startHours = ev.Start.Hour + ev.Start.Minute / 60.0 - startH;
+                if (startHours >= hours) continue;
+                startSlot = 1 + (int)Math.Round(Math.Max(0, startHours) * SlotsPerHour);
+                spanSlots = Math.Max(1, (int)Math.Round((ev.End - ev.Start).TotalHours * SlotsPerHour));
+                if (startSlot + spanSlots > maxRow) spanSlots = Math.Max(1, maxRow - startSlot);
+            }
+
+            var fill = color; fill.A = 210;             // translúcido (deja ver el bloque debajo)
+            var meta = ev.AllDay ? "Todo el día" : $"{ev.Start:HH\\:mm}–{ev.End:HH\\:mm}";
+            var card = new Border
+            {
+                Background = new SolidColorBrush(fill),
+                BorderBrush = new SolidColorBrush(color),
+                BorderThickness = new Thickness(4, 0, 0, 0),     // barra de acento a la izquierda
+                CornerRadius = new CornerRadius(4),
+                Margin = new Thickness(3, 1, 3, 1),
+                Padding = new Thickness(5, 2, 4, 2),
+                IsHitTestVisible = false,                         // read-only: no estorba el arrastre
+                Child = new StackPanel
+                {
+                    Children =
+                    {
+                        new TextBlock { Text = ev.Title, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), TextTrimming = TextTrimming.CharacterEllipsis },
+                        new TextBlock { Text = $"{meta} · {cal}", FontSize = 9, Opacity = 0.9,
+                            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), TextTrimming = TextTrimming.CharacterEllipsis }
+                    }
+                }
+            };
+            Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
+            Grid.SetColumn(card, dayCol + 1);
+            g.Children.Add(card);
         }
     }
 
