@@ -29,10 +29,13 @@ public static class KnownApps
         new("OneNote", "onenote", AppCategory.Productividad, "https://www.onenote.com/download", "onenote", "onenote:"),
         new("Microsoft Word", "WINWORD", AppCategory.Productividad, "https://www.microsoft.com/microsoft-365/word", "word", "winword"),
         new("Microsoft Excel", "EXCEL", AppCategory.Productividad, "https://www.microsoft.com/microsoft-365/excel", "excel", "excel"),
+        new("Microsoft PowerPoint", "POWERPNT", AppCategory.Productividad, "https://www.microsoft.com/microsoft-365/powerpoint", "powerpoint", "powerpnt"),
+        new("Microsoft Outlook", "OUTLOOK", AppCategory.Productividad, "https://www.microsoft.com/microsoft-365/outlook/email-and-calendar-software-microsoft-outlook", "outlook", "outlook"),
         new("Notion", "Notion", AppCategory.Productividad, "https://www.notion.so/desktop", "notion", "notion:"),
         new("Obsidian", "Obsidian", AppCategory.Productividad, "https://obsidian.md/download", "obsidian", "obsidian://"),
         new("Visual Studio Code", "Code", AppCategory.Productividad, "https://code.visualstudio.com/", "visual studio code", "code"),
 
+        new("Microsoft Edge", "msedge", AppCategory.Navegador, "https://www.microsoft.com/edge", "microsoft edge", "msedge"),
         new("Google Chrome", "chrome", AppCategory.Navegador, "https://www.google.com/chrome/", "google chrome"),
         new("Mozilla Firefox", "firefox", AppCategory.Navegador, "https://www.mozilla.org/firefox/", "firefox"),
         new("Brave", "brave", AppCategory.Navegador, "https://brave.com/download/", "brave"),

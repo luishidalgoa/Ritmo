@@ -25,7 +25,13 @@ public static class InstalledApps
             catch { /* sin permisos: ignorar */ }
         }
 
-        // 2) Programas instalados (registro de desinstalación) + paquetes de la
+        // 2) App Paths del registro: la forma fiable de detectar apps de escritorio
+        //    como Office (Word/Excel/Outlook) o Edge, que se instalan como un solo
+        //    producto y no aparecen por nombre en el registro de desinstalación. #110
+        foreach (var app in KnownApps.Catalog)
+            if (HasAppPath(app.ProcessName)) installed.Add(app.ProcessName);
+
+        // 3) Programas instalados (registro de desinstalación) + paquetes de la
         //    Microsoft Store (apps UWP como WhatsApp, que NO están en el registro).
         var names = InstalledDisplayNames();
         names.AddRange(StorePackageNames());
@@ -34,6 +40,19 @@ public static class InstalledApps
                 installed.Add(app.ProcessName);
 
         return installed;
+    }
+
+    /// <summary>¿Hay una entrada App Paths para &lt;processName&gt;.exe? (Office, Edge, etc.)</summary>
+    private static bool HasAppPath(string processName)
+    {
+        const string basePath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\";
+        var key = basePath + processName + ".exe";
+        foreach (var root in new[] { Registry.LocalMachine, Registry.CurrentUser })
+        {
+            try { using var k = root.OpenSubKey(key); if (k is not null) return true; }
+            catch { }
+        }
+        return false;
     }
 
     /// <summary>

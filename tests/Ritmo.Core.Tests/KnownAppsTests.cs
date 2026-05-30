@@ -54,4 +54,14 @@ public class KnownAppsTests
         Assert.NotNull(onenote);
         Assert.Equal("onenote:", onenote!.LaunchTarget);
     }
+
+    [Fact]
+    public void Incluye_edge_y_apps_office()
+    {
+        Assert.NotNull(KnownApps.ByProcess("msedge"));   // Edge en Navegadores
+        Assert.Equal(AppCategory.Navegador, KnownApps.ByProcess("msedge")!.Category);
+        Assert.NotNull(KnownApps.ByProcess("OUTLOOK"));
+        Assert.NotNull(KnownApps.ByProcess("WINWORD"));
+        Assert.NotNull(KnownApps.ByProcess("POWERPNT"));
+    }
 }
