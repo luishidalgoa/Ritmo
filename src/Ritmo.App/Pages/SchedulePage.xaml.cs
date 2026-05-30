@@ -136,14 +136,9 @@ public sealed partial class SchedulePage : Page
         if (_card is not null) _card.Opacity = group.Representative.IsTentative ? 0.6 : 1.0;
         _mode = DragMode.None; var card = _card; _card = null; _group = null;
 
-        if (!moved)
-        {
-            // Un clic sin arrastre abre el detalle en el panel lateral (#114).
-            // Se difiere al siguiente tick: abrir el panel llama a Build() (reconstruye
-            // la rejilla) y hacerlo DENTRO del propio PointerReleased aborta el evento.
-            DispatcherQueue.TryEnqueue(() => ShowSessionDetail(group));
-            return;
-        }
+        // El clic (sin arrastre) lo gestiona el gesto Tapped de la tarjeta (#114),
+        // que es fiable aunque el ScrollViewer robe la captura del puntero.
+        if (!moved) return;
 
         switch (mode)
         {
@@ -180,8 +175,9 @@ public sealed partial class SchedulePage : Page
         _maxDaySpan = MaxDaySpan(rep, c0, rep.Duration, _keptForDrag);
         _maxRows = MaxRows(rep, groupDays, _keptForDrag);
 
+        // Nota: NO marcamos e.Handled — eso suprimiría el gesto Tapped de la tarjeta
+        // (que es como se abre el detalle). El arrastre usa la captura del puntero.
         GridRoot.CapturePointer(e.Pointer);
-        e.Handled = true;
     }
 
     /// <summary>Máximo nº de columnas contiguas (desde c0) sin pisar otra sesión.</summary>
@@ -413,6 +409,10 @@ public sealed partial class SchedulePage : Page
                 var b = (SessionCard)o;
                 BeginDrag(b, thisGroup, ZoneMode(b, e), cardDayCol, cardStartSlot, thisGroup.DaySpan, cardSpanSlots, e);
             };
+            // Clic = abrir el detalle. Tapped es fiable dentro del ScrollViewer (no
+            // depende de la captura del puntero, que el SV roba); el mismo mecanismo
+            // que usan los eventos del calendario. El arrastre sigue por Pointer*. #114
+            card.Tapped += (_, _) => ShowSessionDetail(thisGroup);
             Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
             Grid.SetColumn(card, dayCol + 1); Grid.SetColumnSpan(card, group.DaySpan);
             g.Children.Add(card);
@@ -543,13 +543,18 @@ public sealed partial class SchedulePage : Page
             bool? prefer = _priorities.FirstOrDefault(p => p.EventKey == OverlapResolver.EventKey(ev))?.PreferCalendar;
             bool isSelected = _selectedEventKey is not null && OverlapResolver.EventKey(ev) == _selectedEventKey;
 
-            // La opacidad codifica quién gana: evento opaco = gana el evento; muy
-            // translúcido = gana la sesión (se ve por debajo); medio = sin decidir.
-            byte alpha = (byte)(conflict ? prefer switch { true => 245, false => 60, _ => 140 } : 210);
+            // Quién gana: el alfa del fondo da el matiz, pero la atenuación cuando
+            // gana la SESIÓN se aplica a TODA la tarjeta (fondo + barra + texto) con
+            // la opacidad del Border, para que el evento recede de verdad y no quede
+            // su barra/título flotando por encima. (#114)
+            byte alpha;
+            double cardOpacity = 1.0;
+            if (!conflict) alpha = 210;
+            else if (prefer == true) alpha = 245;                       // evento gana: opaco
+            else if (prefer == false) { alpha = 200; cardOpacity = 0.28; }   // sesión gana: el evento recede entero
+            else alpha = 150;                                            // sin decidir: medio (se ven ambos)
             var fill = color; fill.A = alpha;
-            bool faded = conflict && prefer == false;
-            double textOpacity = faded ? 0.55 : 1.0;
-            string warn = conflict && prefer is null ? "⚠ " : "";   // ⚠ sin decidir
+            string warn = conflict && prefer is null ? "⚠ " : "";       // ⚠ sin decidir
 
             var white = new SolidColorBrush(Microsoft.UI.Colors.White);
             var content = new StackPanel { Spacing = 0 };
@@ -558,23 +563,19 @@ public sealed partial class SchedulePage : Page
                 // Muy corto / todo el día: una sola línea que quepa en ~26px.
                 var oneLine = ev.AllDay ? ev.Title : $"{ev.Start:HH\\:mm}  {ev.Title}";
                 content.Children.Add(new TextBlock { Text = warn + oneLine, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    Foreground = white, Opacity = textOpacity, TextTrimming = TextTrimming.CharacterEllipsis });
+                    Foreground = white, TextTrimming = TextTrimming.CharacterEllipsis });
             }
             else
             {
                 var meta = ev.AllDay ? "Todo el día" : $"{ev.Start:HH\\:mm}–{ev.End:HH\\:mm}";
                 content.Children.Add(new TextBlock { Text = warn + ev.Title, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    Foreground = white, Opacity = textOpacity, TextTrimming = TextTrimming.CharacterEllipsis });
-                content.Children.Add(new TextBlock { Text = $"{meta} · {cal}", FontSize = 9, Opacity = 0.9 * textOpacity,
+                    Foreground = white, TextTrimming = TextTrimming.CharacterEllipsis });
+                content.Children.Add(new TextBlock { Text = $"{meta} · {cal}", FontSize = 9, Opacity = 0.9,
                     Foreground = white, TextTrimming = TextTrimming.CharacterEllipsis });
             }
 
             var borderColor = isSelected ? accent : (conflict && prefer is null ? WarnColor : color);
             var borderThk = isSelected || (conflict && prefer is null) ? new Thickness(2) : new Thickness(4, 0, 0, 0);
-
-            // Si hay conflicto, el evento se desplaza a la derecha de la columna para
-            // dejar la mitad izquierda de la sesión libre (clicable y arrastrable). #114
-            double leftMargin = conflict ? Math.Round(DayColWidth * 0.42) : 3;
 
             var card = new Border
             {
@@ -582,9 +583,10 @@ public sealed partial class SchedulePage : Page
                 BorderBrush = new SolidColorBrush(borderColor),
                 BorderThickness = borderThk,
                 CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(leftMargin, 1, 3, 1),
+                Margin = new Thickness(3, 1, 3, 1),                // ancho completo del día
                 Padding = new Thickness(5, 1, 4, 1),
                 VerticalAlignment = VerticalAlignment.Stretch,
+                Opacity = cardOpacity,                            // gana la sesión -> toda la tarjeta recede (#114)
                 Child = content                                   // clicable: abre el detalle del evento (#114)
             };
             var captured = ev;
