@@ -35,13 +35,13 @@
                     <FontIcon Glyph="&#xE787;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
-        </NavigationView.MenuItems>
-        <NavigationView.FooterMenuItems>
-            <NavigationViewItem Content="Entornos de trabajo" Tag="workenv" SelectsOnInvoked="False">
+            <NavigationViewItem x:Name="WorkEnvNav" Content="Entornos de trabajo" Tag="workenv" SelectsOnInvoked="False">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE821;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+        </NavigationView.MenuItems>
+        <NavigationView.FooterMenuItems>
             <NavigationViewItem Content="Ayuda" Tag="help">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE897;" />

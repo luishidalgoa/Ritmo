@@ -57,6 +57,26 @@ public sealed partial class MainWindow : Window
     {
         // Página inicial: Hoy.
         ContentFrame.Navigate(typeof(HomePage));
+        RebuildEnvNavItems();
+    }
+
+    /// <summary>
+    /// Llena "Entornos de trabajo" con un sub-item por entorno, de modo que el botón
+    /// sea desplegable y muestre los disponibles. Invocar uno abre el panel en él.
+    /// </summary>
+    private void RebuildEnvNavItems()
+    {
+        WorkEnvNav.MenuItems.Clear();
+        foreach (var env in Services.AppState.Load().FocusEnvironments)
+        {
+            WorkEnvNav.MenuItems.Add(new NavigationViewItem
+            {
+                Content = env.Name,
+                Tag = $"env:{env.Id}",
+                SelectsOnInvoked = false,
+                Icon = new SymbolIcon(Symbol.Tag)
+            });
+        }
     }
 
     private void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -79,16 +99,27 @@ public sealed partial class MainWindow : Window
 
     private void Nav_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
+        var tag = args.InvokedItemContainer?.Tag as string;
+
         // "Entornos de trabajo" no navega: abre/cierra el panel lateral derecho (#74).
-        if (args.InvokedItemContainer?.Tag as string == "workenv")
+        if (tag == "workenv")
         {
             if (!RightPanel.IsPaneOpen) BuildWorkEnvPanel();
             RightPanel.IsPaneOpen = !RightPanel.IsPaneOpen;
         }
+        // Un sub-item de entorno: abre el panel enfocado en ese entorno (#102).
+        else if (tag is not null && tag.StartsWith("env:"))
+        {
+            BuildWorkEnvPanel(tag["env:".Length..]);
+            RightPanel.IsPaneOpen = true;
+        }
     }
 
-    /// <summary>Rellena el panel derecho con cada entorno, sus enlaces y tareas (#74/#77).</summary>
-    private void BuildWorkEnvPanel()
+    /// <summary>
+    /// Rellena el panel derecho con cada entorno, sus enlaces y tareas (#74/#77).
+    /// Si se pasa <paramref name="focusEnvId"/>, solo ese queda expandido y se enfoca.
+    /// </summary>
+    private void BuildWorkEnvPanel(string? focusEnvId = null)
     {
         WorkEnvPanel.Children.Clear();
 
@@ -113,22 +144,52 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        Expander? focused = null;
         foreach (var env in envs)
         {
-            WorkEnvPanel.Children.Add(new Expander
+            var exp = new Expander
             {
                 Header = env.Name,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                IsExpanded = true,
+                IsExpanded = focusEnvId is null || env.Id == focusEnvId,
                 Content = BuildEnvContent(env)
-            });
+            };
+            if (env.Id == focusEnvId) focused = exp;
+            WorkEnvPanel.Children.Add(exp);
         }
+        focused?.StartBringIntoView();
     }
 
     private StackPanel BuildEnvContent(Ritmo.Core.Focus.FocusEnvironment env)
     {
         var root = new StackPanel { Spacing = 10 };
+
+        // --- Acciones del entorno: editar / eliminar (#102) ---
+        var editBtn = new Button
+        {
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal, Spacing = 6,
+                Children = { new SymbolIcon(Symbol.Edit), new TextBlock { Text = "Editar" } }
+            }
+        };
+        editBtn.Click += (_, _) => _ = EditEnvironment(env);
+
+        var delBtn = new Button
+        {
+            Content = new SymbolIcon(Symbol.Delete),
+            Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(0)
+        };
+        ToolTipService.SetToolTip(delBtn, "Eliminar entorno");
+        delBtn.Click += (_, _) => _ = DeleteEnvironment(env);
+
+        root.Children.Add(new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 6,
+            Children = { editBtn, delBtn }
+        });
 
         // --- Enlaces ---
         root.Children.Add(new TextBlock { Text = "ENLACES", FontSize = 10, Opacity = 0.55,
@@ -197,7 +258,42 @@ public sealed partial class MainWindow : Window
         var dlg = new Dialogs.EnvironmentDialog { XamlRoot = RightPanel.XamlRoot };
         if (await dlg.ShowAsync() == ContentDialogResult.Primary)
         {
+            var env = dlg.ToEnvironment();
+            Services.AppState.Config.UpsertEnvironment(env);
+            RebuildEnvNavItems();
+            BuildWorkEnvPanel(env.Id);
+        }
+    }
+
+    /// <summary>Edita un entorno desde el panel derecho (#102).</summary>
+    private async System.Threading.Tasks.Task EditEnvironment(Ritmo.Core.Focus.FocusEnvironment env)
+    {
+        var dlg = new Dialogs.EnvironmentDialog { XamlRoot = RightPanel.XamlRoot };
+        dlg.LoadFrom(env);
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+        {
             Services.AppState.Config.UpsertEnvironment(dlg.ToEnvironment());
+            RebuildEnvNavItems();
+            BuildWorkEnvPanel(env.Id);
+        }
+    }
+
+    /// <summary>Elimina un entorno desde el panel derecho, con confirmación (#102).</summary>
+    private async System.Threading.Tasks.Task DeleteEnvironment(Ritmo.Core.Focus.FocusEnvironment env)
+    {
+        var confirm = new ContentDialog
+        {
+            XamlRoot = RightPanel.XamlRoot,
+            Title = "Eliminar entorno",
+            Content = $"¿Eliminar «{env.Name}»? Esta acción no se puede deshacer.",
+            PrimaryButtonText = "Eliminar",
+            CloseButtonText = "Cancelar",
+            DefaultButton = ContentDialogButton.Close
+        };
+        if (await confirm.ShowAsync() == ContentDialogResult.Primary)
+        {
+            Services.AppState.Config.RemoveEnvironment(env.Id);
+            RebuildEnvNavItems();
             BuildWorkEnvPanel();
         }
     }
