@@ -267,16 +267,17 @@ public sealed partial class EnvironmentDialog : ContentDialog
         };
         Microsoft.UI.Xaml.Controls.Grid.SetColumn(name, 0);
 
-        var combo = new ComboBox { MinWidth = 110, VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
+        var combo = new ComboBox { MinWidth = 120, VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
         combo.Items.Add(new ComboBoxItem { Content = "No tocar", Tag = "" });
+        combo.Items.Add(new ComboBoxItem { Content = "Abrir", Tag = "open" });
         combo.Items.Add(new ComboBoxItem { Content = "Cerrar", Tag = "close" });
         combo.Items.Add(new ComboBoxItem { Content = "Silenciar", Tag = "mute" });
         var current = _appActions.TryGetValue(app.ProcessName, out var a) ? a : "";
-        combo.SelectedIndex = current switch { "close" => 1, "mute" => 2, _ => 0 };
+        combo.SelectedIndex = current switch { "open" => 1, "close" => 2, "mute" => 3, _ => 0 };
         combo.SelectionChanged += (_, _) =>
         {
             var tag = (combo.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
-            if (tag is "close" or "mute") _appActions[app.ProcessName] = tag;
+            if (tag is "open" or "close" or "mute") _appActions[app.ProcessName] = tag;
             else _appActions.Remove(app.ProcessName);
         };
         Microsoft.UI.Xaml.Controls.Grid.SetColumn(combo, 1);
@@ -341,6 +342,7 @@ public sealed partial class EnvironmentDialog : ContentDialog
         DndCheck.IsChecked = env.EnableDoNotDisturb;
         BadgesCheck.IsChecked = env.HideTaskbarBadges;
         OpenLinksCheck.IsChecked = env.OpenLinksInBrowser;
+        NewDesktopCheck.IsChecked = env.NewVirtualDesktop;   // #110
         AutoPlayCheck.IsChecked = env.Music?.AutoPlay ?? false;
         SelectMusic(env.Music);   // #98
 
@@ -357,6 +359,8 @@ public sealed partial class EnvironmentDialog : ContentDialog
             else if (!_otherClose.Contains(p)) _otherClose.Add(p);
         foreach (var p in env.AppsToMute)
             if (KnownApps.ByProcess(p) is not null) _appActions[p] = "mute";
+        foreach (var p in env.AppsToOpen)
+            if (KnownApps.ByProcess(p) is not null) _appActions[p] = "open";   // #109
         BuildAppsSelector();
         BuildOtherApps();
 
@@ -390,9 +394,11 @@ public sealed partial class EnvironmentDialog : ContentDialog
             EnableDoNotDisturb = DndCheck.IsChecked == true,
             HideTaskbarBadges = BadgesCheck.IsChecked == true,
             OpenLinksInBrowser = OpenLinksCheck.IsChecked == true,
+            NewVirtualDesktop = NewDesktopCheck.IsChecked == true,
             ShowDayPreview = true,
             AppsToClose = [.. _appActions.Where(kv => kv.Value == "close").Select(kv => kv.Key), .. _otherClose],
             AppsToMute = _appActions.Where(kv => kv.Value == "mute").Select(kv => kv.Key).Distinct().ToList(),
+            AppsToOpen = _appActions.Where(kv => kv.Value == "open").Select(kv => kv.Key).Distinct().ToList(),
             BlockedWebsites = _blockedWebsites.ToList(),
             Music = BuildMusic(),
             Links = _links.ToList()

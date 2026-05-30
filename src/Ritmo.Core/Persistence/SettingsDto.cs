@@ -49,6 +49,8 @@ internal sealed class FocusEnvironmentDto
     public List<string> BlockedWebsites { get; set; } = [];
     public List<string> AppsToClose { get; set; } = [];
     public List<string> AppsToMute { get; set; } = [];
+    public List<string> AppsToOpen { get; set; } = [];
+    public bool NewVirtualDesktop { get; set; }
     public MusicDto? Music { get; set; }
     public List<ShortcutDto> Links { get; set; } = [];
     public List<EnvTaskDto> Tasks { get; set; } = [];
@@ -164,6 +166,8 @@ internal static class SettingsMapper
         BlockedWebsites = e.BlockedWebsites.ToList(),
         AppsToClose = e.AppsToClose.ToList(),
         AppsToMute = e.AppsToMute.ToList(),
+        AppsToOpen = e.AppsToOpen.ToList(),
+        NewVirtualDesktop = e.NewVirtualDesktop,
         Music = e.Music is null ? null : new MusicDto
         {
             Name = e.Music.Name, Target = e.Music.Target,
@@ -244,6 +248,8 @@ internal static class SettingsMapper
         BlockedWebsites = e.BlockedWebsites.ToList(),
         AppsToClose = e.AppsToClose.ToList(),
         AppsToMute = e.AppsToMute.ToList(),
+        AppsToOpen = e.AppsToOpen.ToList(),
+        NewVirtualDesktop = e.NewVirtualDesktop,
         Music = e.Music is null ? null : new MusicLauncher
         {
             Name = e.Music.Name, Target = e.Music.Target,

@@ -95,6 +95,27 @@ public class FocusEnvironmentPersistenceTests : IDisposable
     }
 
     [Fact]
+    public void RoundTrip_appsToOpen_y_escritorio_virtual()
+    {
+        var store = new JsonSettingsStore(_file);
+        store.Save(new AppSettings
+        {
+            FocusEnvironments =
+            [
+                new FocusEnvironment
+                {
+                    Id = "e", Name = "Estudio",
+                    AppsToOpen = ["onenote", "Code"],
+                    NewVirtualDesktop = true
+                }
+            ]
+        });
+        var env = store.Load().FocusEnvironments.Single();
+        Assert.Equal(["onenote", "Code"], env.AppsToOpen.ToArray());
+        Assert.True(env.NewVirtualDesktop);
+    }
+
+    [Fact]
     public void ResolveEnvironment_usa_mapeo_por_tipo_y_luego_default()
     {
         var store = new JsonSettingsStore(_file);

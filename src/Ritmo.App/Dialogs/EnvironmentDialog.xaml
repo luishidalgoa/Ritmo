@@ -23,6 +23,7 @@
                 <CheckBox x:Name="DndCheck" Content="Activar No molestar" />
                 <CheckBox x:Name="BadgesCheck" Content="Ocultar avisos de la barra de tareas" />
                 <CheckBox x:Name="OpenLinksCheck" Content="Abrir los enlaces en una ventana nueva del navegador" />
+                <CheckBox x:Name="NewDesktopCheck" Content="Crear un escritorio virtual nuevo (Windows)" />
             </StackPanel>
 
             <StackPanel Spacing="6">

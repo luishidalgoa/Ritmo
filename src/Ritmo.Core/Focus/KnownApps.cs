@@ -1,7 +1,7 @@
 namespace Ritmo.Core.Focus;
 
 /// <summary>Categoría de una app conocida (para agrupar en el selector).</summary>
-public enum AppCategory { Navegador, Mensajeria, Juegos, Musica, Otros }
+public enum AppCategory { Productividad, Navegador, Mensajeria, Juegos, Musica, Otros }
 
 /// <summary>
 /// Una app conocida que suele distraer: su nombre visible, el nombre de proceso
@@ -25,6 +25,14 @@ public static class KnownApps
 {
     public static readonly System.Collections.Generic.IReadOnlyList<KnownApp> Catalog =
     [
+        // Productividad: herramientas de estudio. LaunchTarget = protocolo o nombre en App Paths (#109).
+        new("OneNote", "onenote", AppCategory.Productividad, "https://www.onenote.com/download", "onenote", "onenote:"),
+        new("Microsoft Word", "WINWORD", AppCategory.Productividad, "https://www.microsoft.com/microsoft-365/word", "word", "winword"),
+        new("Microsoft Excel", "EXCEL", AppCategory.Productividad, "https://www.microsoft.com/microsoft-365/excel", "excel", "excel"),
+        new("Notion", "Notion", AppCategory.Productividad, "https://www.notion.so/desktop", "notion", "notion:"),
+        new("Obsidian", "Obsidian", AppCategory.Productividad, "https://obsidian.md/download", "obsidian", "obsidian://"),
+        new("Visual Studio Code", "Code", AppCategory.Productividad, "https://code.visualstudio.com/", "visual studio code", "code"),
+
         new("Google Chrome", "chrome", AppCategory.Navegador, "https://www.google.com/chrome/", "google chrome"),
         new("Mozilla Firefox", "firefox", AppCategory.Navegador, "https://www.mozilla.org/firefox/", "firefox"),
         new("Brave", "brave", AppCategory.Navegador, "https://brave.com/download/", "brave"),
@@ -47,6 +55,7 @@ public static class KnownApps
     /// <summary>Etiqueta legible de una categoría.</summary>
     public static string Label(AppCategory c) => c switch
     {
+        AppCategory.Productividad => "Productividad",
         AppCategory.Navegador => "Navegadores",
         AppCategory.Mensajeria => "Mensajería",
         AppCategory.Juegos => "Juegos",

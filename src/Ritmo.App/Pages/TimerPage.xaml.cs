@@ -28,6 +28,7 @@ public sealed partial class TimerPage : Page
     private readonly IFocusController _focus = new WindowsFocusController();
     private DispatcherQueueTimer? _ticker;
     private bool _environmentApplied;
+    private bool _createdDesktop;   // #110: creamos un escritorio virtual esta sesión
 
     // Contexto del bloque vigente (resuelto desde el horario).
     private FocusEnvironment? _activeEnv;
@@ -218,19 +219,29 @@ public sealed partial class TimerPage : Page
                 var env = _activeEnv;
                 if (env is not null)
                 {
+                    if (env.NewVirtualDesktop)                   // escritorio virtual limpio PRIMERO (#110)
+                    {
+                        VirtualDesktops.CreateAndSwitch();
+                        _createdDesktop = true;
+                    }
                     MusicService.TryLaunch(env.Music);          // lanzar música (#10)
                     AppCloser.CloseAll(env.AppsToClose);         // cerrar apps de ruido (#35)
-                    if (env.OpenLinksInBrowser && env.Links.Count > 0)   // abrir enlaces en ventana nueva del navegador por defecto (#109)
+                    AppLauncher.OpenAll(env.AppsToOpen);         // abrir herramientas de estudio (#109)
+                    if (env.OpenLinksInBrowser && env.Links.Count > 0)   // abrir enlaces en ventana nueva del navegador por defecto
                         DefaultBrowser.OpenLinksInNewWindow(env.Links.Select(l => l.Url).ToList());
                 }
             }
         }
         else if (!shouldFocus && _focus.IsActive)
         {
-            _focus.Exit();
+            _focus.Exit();   // en descansos solo se restaura No molestar; el escritorio se mantiene
         }
 
-        if (_engine.Phase == PomodoroPhase.Idle) _environmentApplied = false;  // reset al parar
+        if (_engine.Phase == PomodoroPhase.Idle)
+        {
+            _environmentApplied = false;   // reset al parar
+            if (_createdDesktop) { VirtualDesktops.CloseCurrent(); _createdDesktop = false; }   // cerrar el escritorio de estudio
+        }
         DndBadge.Visibility = _focus.IsActive ? Visibility.Visible : Visibility.Collapsed;
     }
 }

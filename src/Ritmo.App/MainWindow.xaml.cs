@@ -213,7 +213,18 @@ public sealed partial class MainWindow : Window
     {
         var root = new StackPanel { Spacing = 10 };
 
-        // --- Acciones del entorno: editar / eliminar (#102) ---
+        // --- Acciones del entorno: concentrarse (#111) / editar / eliminar (#102) ---
+        var focusBtn = new Button
+        {
+            Style = (Style)Application.Current.Resources["AccentButtonStyle"],
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal, Spacing = 6,
+                Children = { new SymbolIcon(Symbol.Play), new TextBlock { Text = "Concentrarse" } }
+            }
+        };
+        focusBtn.Click += (_, _) => ConcentrateWith(env);
+
         var editBtn = new Button
         {
             Content = new StackPanel
@@ -236,7 +247,7 @@ public sealed partial class MainWindow : Window
         root.Children.Add(new StackPanel
         {
             Orientation = Orientation.Horizontal, Spacing = 6,
-            Children = { editBtn, delBtn }
+            Children = { focusBtn, editBtn, delBtn }
         });
 
         // --- Enlaces ---
@@ -311,6 +322,17 @@ public sealed partial class MainWindow : Window
             RebuildEnvNavItems();
             BuildWorkEnvPanel(env.Id);
         }
+    }
+
+    /// <summary>Selecciona el entorno y arranca el temporizador (cockpit, #111).</summary>
+    private void ConcentrateWith(Ritmo.Core.Focus.FocusEnvironment env)
+    {
+        Services.AppState.Config.SetDefaultEnvironment(env.Id);
+        RebuildEnvNavItems();
+        RightPanel.IsPaneOpen = false;
+        TimerPage.AutoStartPending = true;
+        foreach (var it in Nav.MenuItems.OfType<NavigationViewItem>())
+            if (it.Tag as string == "timer") { Nav.SelectedItem = it; break; }
     }
 
     /// <summary>Edita un entorno desde el panel derecho (#102).</summary>

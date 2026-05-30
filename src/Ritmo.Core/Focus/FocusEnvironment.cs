@@ -64,6 +64,11 @@ public sealed record FocusEnvironment
     public IReadOnlyList<string> AppsToClose { get; init; } = [];
     /// <summary>Nombres de procesos/apps a silenciar (sin cerrarlos).</summary>
     public IReadOnlyList<string> AppsToMute { get; init; } = [];
+    /// <summary>Apps a ABRIR al concentrarte (herramientas de estudio). #109</summary>
+    public IReadOnlyList<string> AppsToOpen { get; init; } = [];
+
+    /// <summary>Crear un escritorio virtual de Windows nuevo al concentrarte (aísla el contexto). #110</summary>
+    public bool NewVirtualDesktop { get; init; }
 
     /// <summary>App de música a lanzar (opcional).</summary>
     public MusicLauncher? Music { get; init; }
