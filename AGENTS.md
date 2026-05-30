@@ -30,6 +30,14 @@
 - **Determinismo testeable.** Las piezas que dependen del tiempo reciben el
   "ahora" como parámetro (no leen el reloj por dentro). Así se testean sin esperar.
 - **Idioma.** Código y nombres en inglés; comentarios y commits en español.
+- **Documenta lo no obvio.** Siempre que añadas algo que no sea evidente para el
+  usuario, regístralo en la enciclopedia y explícalo con un tooltip de ayuda:
+  1. Añade/ajusta la entrada en el glosario del núcleo
+     (`src/Ritmo.Core/Help/Glossary.cs`) → aparece en la página **Ayuda** (wiki).
+  2. Pon un tooltip ⓘ junto al término en la UI con `HelpHint.Icon(clave)` /
+     `HelpHint.Attach(elemento, clave)` / `HelpHint.Header(texto, clave)`.
+  El sistema de tooltips debe verse **moderno y legible** (título + descripción,
+  ancho acotado). Conceptos triviales no hace falta documentarlos.
 - **Commits** terminan con la línea de co-autoría que pida el harness global.
 
 ## Arquitectura

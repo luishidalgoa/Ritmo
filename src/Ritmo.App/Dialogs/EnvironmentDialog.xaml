@@ -37,10 +37,15 @@
                 <CheckBox x:Name="AutoPlayCheck" Content="Intentar reproducir automáticamente" />
             </StackPanel>
 
-            <TextBox x:Name="CloseBox" Header="Apps a cerrar (separadas por comas)"
-                     PlaceholderText="Discord, Steam" />
-            <TextBox x:Name="MuteBox" Header="Apps a silenciar (separadas por comas)"
-                     PlaceholderText="Spotify" />
+            <StackPanel Spacing="6">
+                <TextBlock Text="Apps al concentrarte" FontWeight="SemiBold" />
+                <TextBlock Text="Marca qué hacer con cada app. Las no instaladas se pueden instalar."
+                           Opacity="0.6" FontSize="12" />
+                <StackPanel x:Name="AppsPanel" Spacing="4" />
+                <TextBox x:Name="OtherCloseBox" Header="Otras a cerrar (separadas por comas)"
+                         PlaceholderText="otra-app" />
+            </StackPanel>
+
             <TextBox x:Name="WebsitesBox" Header="Webs a bloquear (separadas por comas)"
                      PlaceholderText="youtube.com, twitter.com" />
 

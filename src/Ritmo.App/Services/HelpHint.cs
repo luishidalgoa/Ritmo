@@ -30,10 +30,10 @@ public static class HelpHint
         var e = Glossary.Find(key);
         if (e is null) return;
 
-        var panel = new StackPanel { Spacing = 2, MaxWidth = 320 };
-        panel.Children.Add(new TextBlock { Text = e.Term, FontWeight = FontWeights.SemiBold });
-        panel.Children.Add(new TextBlock { Text = e.Description, TextWrapping = TextWrapping.Wrap, Opacity = 0.9 });
-        ToolTipService.SetToolTip(element, new ToolTip { Content = panel });
+        var panel = new StackPanel { Spacing = 4, MaxWidth = 300 };
+        panel.Children.Add(new TextBlock { Text = e.Term, FontWeight = FontWeights.SemiBold, FontSize = 14 });
+        panel.Children.Add(new TextBlock { Text = e.Description, TextWrapping = TextWrapping.Wrap, FontSize = 13, Opacity = 0.85 });
+        ToolTipService.SetToolTip(element, new ToolTip { Content = panel, Padding = new Thickness(12, 8, 12, 10) });
     }
 
     /// <summary>Un encabezado «texto + (?)» (para cabeceras de sección o de control).</summary>

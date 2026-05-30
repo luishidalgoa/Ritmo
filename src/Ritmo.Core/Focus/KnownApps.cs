@@ -1,0 +1,67 @@
+namespace Ritmo.Core.Focus;
+
+/// <summary>Categoría de una app conocida (para agrupar en el selector).</summary>
+public enum AppCategory { Navegador, Mensajeria, Juegos, Musica, Otros }
+
+/// <summary>
+/// Una app conocida que suele distraer: su nombre visible, el nombre de proceso
+/// (para cerrarla/silenciarla), su categoría, un término para detectar si está
+/// instalada (en el registro) y una URL opcional para instalarla. #94
+/// </summary>
+public sealed record KnownApp(
+    string Name,
+    string ProcessName,
+    AppCategory Category,
+    string InstallUrl,
+    string MatchTerm);
+
+/// <summary>
+/// Catálogo curado de apps comunes por categoría. Datos puros (sin Windows) para
+/// que el host detecte cuáles están instaladas y el usuario elija qué hacer con
+/// cada una al concentrarse. #94
+/// </summary>
+public static class KnownApps
+{
+    public static readonly System.Collections.Generic.IReadOnlyList<KnownApp> Catalog =
+    [
+        new("Google Chrome", "chrome", AppCategory.Navegador, "https://www.google.com/chrome/", "google chrome"),
+        new("Mozilla Firefox", "firefox", AppCategory.Navegador, "https://www.mozilla.org/firefox/", "firefox"),
+        new("Brave", "brave", AppCategory.Navegador, "https://brave.com/download/", "brave"),
+        new("Opera", "opera", AppCategory.Navegador, "https://www.opera.com/", "opera"),
+
+        new("Discord", "Discord", AppCategory.Mensajeria, "https://discord.com/download", "discord"),
+        new("Slack", "slack", AppCategory.Mensajeria, "https://slack.com/downloads", "slack"),
+        new("Telegram", "Telegram", AppCategory.Mensajeria, "https://telegram.org/", "telegram"),
+        new("WhatsApp", "WhatsApp", AppCategory.Mensajeria, "https://www.whatsapp.com/download", "whatsapp"),
+        new("Microsoft Teams", "ms-teams", AppCategory.Mensajeria, "https://www.microsoft.com/microsoft-teams/download-app", "teams"),
+
+        new("Steam", "steam", AppCategory.Juegos, "https://store.steampowered.com/about/", "steam"),
+        new("Epic Games", "EpicGamesLauncher", AppCategory.Juegos, "https://store.epicgames.com/", "epic games"),
+        new("Battle.net", "Battle.net", AppCategory.Juegos, "https://www.blizzard.com/apps/battle.net/desktop", "battle.net"),
+
+        new("Spotify", "Spotify", AppCategory.Musica, "https://www.spotify.com/download", "spotify"),
+        new("VLC", "vlc", AppCategory.Musica, "https://www.videolan.org/vlc/", "vlc"),
+    ];
+
+    /// <summary>Etiqueta legible de una categoría.</summary>
+    public static string Label(AppCategory c) => c switch
+    {
+        AppCategory.Navegador => "Navegadores",
+        AppCategory.Mensajeria => "Mensajería",
+        AppCategory.Juegos => "Juegos",
+        AppCategory.Musica => "Música",
+        _ => "Otros"
+    };
+
+    /// <summary>El catálogo agrupado por categoría (en el orden del enum).</summary>
+    public static System.Collections.Generic.IReadOnlyList<(AppCategory Category, System.Collections.Generic.IReadOnlyList<KnownApp> Apps)> ByCategory()
+        => System.Linq.Enumerable.ToList(
+               System.Linq.Enumerable.Select(
+                   System.Linq.Enumerable.GroupBy(Catalog, a => a.Category),
+                   g => (g.Key, (System.Collections.Generic.IReadOnlyList<KnownApp>)System.Linq.Enumerable.ToList(g))));
+
+    /// <summary>Busca una app del catálogo por nombre de proceso (sin distinguir mayúsculas).</summary>
+    public static KnownApp? ByProcess(string processName)
+        => System.Linq.Enumerable.FirstOrDefault(Catalog,
+               a => string.Equals(a.ProcessName, processName, System.StringComparison.OrdinalIgnoreCase));
+}

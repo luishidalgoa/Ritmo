@@ -15,6 +15,9 @@ public sealed partial class EnvironmentDialog : ContentDialog
 {
     private string? _id;   // null = entorno nuevo
     private readonly List<ShortcutLink> _links = [];
+    // Acción por app del catálogo: processName → "close" | "mute" (#94).
+    private readonly Dictionary<string, string> _appActions = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _installed = new(StringComparer.OrdinalIgnoreCase);
 
     public EnvironmentDialog()
     {
@@ -28,6 +31,71 @@ public sealed partial class EnvironmentDialog : ContentDialog
         HelpHint.Attach(PresetBox, "pomodoro");
         foreach (var it in PresetBox.Items.OfType<ComboBoxItem>())
             HelpHint.Attach(it, (string)it.Tag switch { "Classic" => "classic", "DeepWork" => "deep-work", _ => "pomodoro" });
+
+        // Catálogo de apps por categoría + detección de instaladas (#94).
+        _installed = Services.InstalledApps.DetectInstalled();
+        BuildAppsSelector();
+    }
+
+    private void BuildAppsSelector()
+    {
+        AppsPanel.Children.Clear();
+        foreach (var (cat, apps) in KnownApps.ByCategory())
+        {
+            var list = new StackPanel { Spacing = 2 };
+            foreach (var app in apps) list.Children.Add(AppRow(app));
+            AppsPanel.Children.Add(new Expander
+            {
+                Header = KnownApps.Label(cat),
+                HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Stretch,
+                IsExpanded = false,
+                Content = list
+            });
+        }
+    }
+
+    private Microsoft.UI.Xaml.FrameworkElement AppRow(KnownApp app)
+    {
+        bool installed = _installed.Contains(app.ProcessName);
+
+        var name = new TextBlock
+        {
+            Text = app.Name + (installed ? "" : "  (no instalada)"),
+            Opacity = installed ? 1.0 : 0.6,
+            VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center
+        };
+        Microsoft.UI.Xaml.Controls.Grid.SetColumn(name, 0);
+
+        var combo = new ComboBox { MinWidth = 110, VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
+        combo.Items.Add(new ComboBoxItem { Content = "No tocar", Tag = "" });
+        combo.Items.Add(new ComboBoxItem { Content = "Cerrar", Tag = "close" });
+        combo.Items.Add(new ComboBoxItem { Content = "Silenciar", Tag = "mute" });
+        var current = _appActions.TryGetValue(app.ProcessName, out var a) ? a : "";
+        combo.SelectedIndex = current switch { "close" => 1, "mute" => 2, _ => 0 };
+        combo.SelectionChanged += (_, _) =>
+        {
+            var tag = (combo.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+            if (tag is "close" or "mute") _appActions[app.ProcessName] = tag;
+            else _appActions.Remove(app.ProcessName);
+        };
+        Microsoft.UI.Xaml.Controls.Grid.SetColumn(combo, 1);
+
+        var grid = new Grid { ColumnSpacing = 6, Margin = new Microsoft.UI.Xaml.Thickness(0, 1, 0, 1) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = Microsoft.UI.Xaml.GridLength.Auto });
+        grid.Children.Add(name); grid.Children.Add(combo);
+
+        if (!installed)
+        {
+            var install = new HyperlinkButton { Content = "Instalar", Padding = new Microsoft.UI.Xaml.Thickness(6, 0, 0, 0) };
+            var url = app.InstallUrl;
+            install.Click += (_, _) => { try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = url, UseShellExecute = true }); } catch { } };
+            Microsoft.UI.Xaml.Controls.Grid.SetColumn(install, 2);
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = Microsoft.UI.Xaml.GridLength.Auto });
+            grid.Children.Add(install);
+        }
+        return grid;
     }
 
     private void BuildLinksList()
@@ -76,9 +144,18 @@ public sealed partial class EnvironmentDialog : ContentDialog
         MusicNameBox.Text = env.Music?.Name ?? "";
         MusicTargetBox.Text = env.Music?.Target ?? "";
         AutoPlayCheck.IsChecked = env.Music?.AutoPlay ?? false;
-        CloseBox.Text = string.Join(", ", env.AppsToClose);
-        MuteBox.Text = string.Join(", ", env.AppsToMute);
         WebsitesBox.Text = string.Join(", ", env.BlockedWebsites);
+
+        // Apps: catálogo → acción; las que no están en el catálogo → "Otras a cerrar".
+        _appActions.Clear();
+        var others = new List<string>();
+        foreach (var p in env.AppsToClose)
+            if (KnownApps.ByProcess(p) is not null) _appActions[p] = "close"; else others.Add(p);
+        foreach (var p in env.AppsToMute)
+            if (KnownApps.ByProcess(p) is not null) _appActions[p] = "mute"; else others.Add(p);
+        OtherCloseBox.Text = string.Join(", ", others.Distinct());
+        BuildAppsSelector();
+
         _links.Clear();
         _links.AddRange(env.Links);
         BuildLinksList();
@@ -119,8 +196,8 @@ public sealed partial class EnvironmentDialog : ContentDialog
             HideTaskbarBadges = BadgesCheck.IsChecked == true,
             OpenStudyListInEdge = EdgeCheck.IsChecked == true,
             ShowDayPreview = true,
-            AppsToClose = SplitCsv(CloseBox.Text),
-            AppsToMute = SplitCsv(MuteBox.Text),
+            AppsToClose = [.. _appActions.Where(kv => kv.Value == "close").Select(kv => kv.Key), .. SplitCsv(OtherCloseBox.Text)],
+            AppsToMute = _appActions.Where(kv => kv.Value == "mute").Select(kv => kv.Key).Distinct().ToList(),
             BlockedWebsites = SplitCsv(WebsitesBox.Text),
             Music = music,
             Links = _links.ToList()
