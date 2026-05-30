@@ -10,19 +10,30 @@ public sealed record EnvironmentTask
 }
 
 /// <summary>
-/// Qué app de música lanzar al entrar en concentración. Identifica el ejecutable
-/// o el protocolo/URI (p. ej. Spotify: "spotify:", o ruta a Aonsoku).
+/// Qué música lanzar al entrar en concentración. Puede ser una app/URI a lanzar
+/// (<see cref="Target"/>) o un proveedor configurable como Navidrome (#107).
 /// </summary>
 public sealed record MusicLauncher
 {
-    /// <summary>Nombre visible (p. ej. "Spotify", "Aonsoku").</summary>
+    /// <summary>Nombre visible (p. ej. "Navidrome", "Spotify").</summary>
     public required string Name { get; init; }
-    /// <summary>Ejecutable, ruta o URI a lanzar (p. ej. "spotify:" o "C:\\...\\Aonsoku.exe").</summary>
+    /// <summary>Ejecutable, ruta o URL a lanzar (p. ej. la URL web de la playlist).</summary>
     public required string Target { get; init; }
-    /// <summary>Argumentos opcionales (p. ej. una playlist URI).</summary>
+    /// <summary>Argumentos opcionales.</summary>
     public string? Arguments { get; init; }
     /// <summary>Si debe intentar empezar a reproducir automáticamente.</summary>
     public bool AutoPlay { get; init; }
+
+    /// <summary>Proveedor: "navidrome" (servidor Subsonic) o null (app/URI directa). #107</summary>
+    public string? Provider { get; init; }
+    /// <summary>URL del servidor (Navidrome).</summary>
+    public string? ServerUrl { get; init; }
+    /// <summary>Usuario del servidor (Navidrome). La contraseña NO se persiste.</summary>
+    public string? User { get; init; }
+    /// <summary>Id de la playlist elegida en el servidor.</summary>
+    public string? PlaylistId { get; init; }
+    /// <summary>Nombre de la playlist (para mostrar).</summary>
+    public string? PlaylistName { get; init; }
 }
 
 /// <summary>

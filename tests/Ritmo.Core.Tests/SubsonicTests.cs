@@ -49,4 +49,42 @@ public class SubsonicTests
         var url = Subsonic.BuildUrl("https://m.example.com", "stream", "u", "t", "s", extra: extra);
         Assert.Contains("&id=pl%207%26x", url);
     }
+
+    [Fact]
+    public void ParsePlaylists_array()
+    {
+        const string json = """
+        { "subsonic-response": { "status":"ok", "playlists": { "playlist": [
+            { "id":"a1", "name":"Estudio", "songCount":42, "owner":"luis", "coverArt":"pl-a1" },
+            { "id":"b2", "name":"Foco", "songCount":7, "owner":"luis" }
+        ] } } }
+        """;
+        var pls = Subsonic.ParsePlaylists(json);
+        Assert.Equal(2, pls.Count);
+        Assert.Equal("Estudio", pls[0].Name);
+        Assert.Equal(42, pls[0].SongCount);
+        Assert.Equal("pl-a1", pls[0].CoverArt);
+        Assert.Null(pls[1].CoverArt);
+    }
+
+    [Fact]
+    public void ParsePlaylists_objeto_unico()
+    {
+        const string json = """
+        { "subsonic-response": { "playlists": { "playlist":
+            { "id":"x", "name":"Sola", "songCount":3, "owner":"luis" }
+        } } }
+        """;
+        var pls = Subsonic.ParsePlaylists(json);
+        Assert.Single(pls);
+        Assert.Equal("Sola", pls[0].Name);
+    }
+
+    [Fact]
+    public void ParsePlaylists_vacio_o_invalido()
+    {
+        Assert.Empty(Subsonic.ParsePlaylists(null));
+        Assert.Empty(Subsonic.ParsePlaylists("no es json"));
+        Assert.Empty(Subsonic.ParsePlaylists("""{ "subsonic-response": { "status":"failed" } }"""));
+    }
 }

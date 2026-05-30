@@ -29,6 +29,12 @@ internal sealed class MusicDto
     public string Target { get; set; } = "";
     public string? Arguments { get; set; }
     public bool AutoPlay { get; set; }
+    // Proveedor configurable (Navidrome, #107). La contraseña NO se persiste.
+    public string? Provider { get; set; }
+    public string? ServerUrl { get; set; }
+    public string? User { get; set; }
+    public string? PlaylistId { get; set; }
+    public string? PlaylistName { get; set; }
 }
 
 internal sealed class FocusEnvironmentDto
@@ -159,7 +165,9 @@ internal static class SettingsMapper
         Music = e.Music is null ? null : new MusicDto
         {
             Name = e.Music.Name, Target = e.Music.Target,
-            Arguments = e.Music.Arguments, AutoPlay = e.Music.AutoPlay
+            Arguments = e.Music.Arguments, AutoPlay = e.Music.AutoPlay,
+            Provider = e.Music.Provider, ServerUrl = e.Music.ServerUrl, User = e.Music.User,
+            PlaylistId = e.Music.PlaylistId, PlaylistName = e.Music.PlaylistName
         },
         Links = e.Links.Select(l => new ShortcutDto { Title = l.Title, Url = l.Url }).ToList(),
         Tasks = e.Tasks.Select(t => new EnvTaskDto { Id = t.Id, Text = t.Text, Done = t.Done, Order = t.Order }).ToList()
@@ -235,7 +243,9 @@ internal static class SettingsMapper
         Music = e.Music is null ? null : new MusicLauncher
         {
             Name = e.Music.Name, Target = e.Music.Target,
-            Arguments = e.Music.Arguments, AutoPlay = e.Music.AutoPlay
+            Arguments = e.Music.Arguments, AutoPlay = e.Music.AutoPlay,
+            Provider = e.Music.Provider, ServerUrl = e.Music.ServerUrl, User = e.Music.User,
+            PlaylistId = e.Music.PlaylistId, PlaylistName = e.Music.PlaylistName
         },
         Links = e.Links.Select(l => new ShortcutLink { Title = l.Title, Url = l.Url }).ToList(),
         Tasks = e.Tasks.Select(t => new EnvironmentTask { Id = t.Id, Text = t.Text, Done = t.Done, Order = t.Order }).ToList()

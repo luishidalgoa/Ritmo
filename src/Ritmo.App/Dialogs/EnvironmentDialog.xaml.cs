@@ -21,8 +21,7 @@ public sealed partial class EnvironmentDialog : ContentDialog
     private HashSet<string> _installed = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _blockedWebsites = [];   // #99
     private readonly List<string> _otherClose = [];        // apps fuera del catálogo (#100)
-    private string? _spotifyPlaylistUri;                   // #106
-    private string? _spotifyPlaylistName;
+    private string? _navServer, _navUser, _navPlaylistId, _navPlaylistName;   // Navidrome (#107)
 
     public EnvironmentDialog()
     {
@@ -41,71 +40,63 @@ public sealed partial class EnvironmentDialog : ContentDialog
         BuildOtherApps();       // #100
     }
 
-    // ---------- Música: elegir entre apps instaladas + playlist de Spotify (#98) ----------
+    // ---------- Música: Navidrome (servidor propio). Spotify desactivado (#106/#107) ----------
 
     private void BuildMusicSelector()
     {
         MusicAppBox.Items.Clear();
         MusicAppBox.Items.Add(new ComboBoxItem { Content = "Ninguna", Tag = "" });
-        foreach (var app in KnownApps.Catalog.Where(a => a.Category == AppCategory.Musica))
-        {
-            bool installed = _installed.Contains(app.ProcessName);
-            MusicAppBox.Items.Add(new ComboBoxItem
-            {
-                Content = app.Name + (installed ? "" : "  (no instalada)"),
-                Tag = app.ProcessName
-            });
-        }
+        MusicAppBox.Items.Add(new ComboBoxItem { Content = "Navidrome", Tag = "navidrome" });
         MusicAppBox.SelectedIndex = 0;
     }
 
     private void MusicAppBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         var tag = (MusicAppBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
-        var isSpotify = string.Equals(tag, "Spotify", StringComparison.OrdinalIgnoreCase);
-        if (SpotifyPanel is not null)
-            SpotifyPanel.Visibility = isSpotify ? Visibility.Visible : Visibility.Collapsed;
+        if (NavidromePanel is not null)
+            NavidromePanel.Visibility = tag == "navidrome" ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void SelectMusic(MusicLauncher? music)
     {
-        if (music is null) { MusicAppBox.SelectedIndex = 0; return; }
-
-        var app = KnownApps.Catalog.FirstOrDefault(a => a.Category == AppCategory.Musica &&
-            (string.Equals(a.Name, music.Name, StringComparison.OrdinalIgnoreCase)
-             || string.Equals(a.ProcessName, music.Name, StringComparison.OrdinalIgnoreCase)));
-        if (app is null && (music.Target?.Contains("spotify", StringComparison.OrdinalIgnoreCase) ?? false))
-            app = KnownApps.ByProcess("Spotify");
-
-        var tag = app?.ProcessName ?? "";
-        for (int i = 0; i < MusicAppBox.Items.Count; i++)
-            if (MusicAppBox.Items[i] is ComboBoxItem it && (string)it.Tag == tag) { MusicAppBox.SelectedIndex = i; break; }
-
-        if (app is not null && string.Equals(app.ProcessName, "Spotify", StringComparison.OrdinalIgnoreCase))
+        if (music is { Provider: "navidrome" })
         {
-            var t = music.Target ?? "";
-            _spotifyPlaylistUri = t is "spotify:" or "" ? null : t;
-            _spotifyPlaylistName = string.IsNullOrWhiteSpace(music.Arguments) ? null : music.Arguments;
-            UpdateSpotifyLabel();
+            SelectByTag("navidrome");
+            _navServer = music.ServerUrl;
+            _navUser = music.User;
+            _navPlaylistId = music.PlaylistId;
+            _navPlaylistName = music.PlaylistName;
+            UpdateNavidromeLabel();
         }
+        else MusicAppBox.SelectedIndex = 0;   // Spotify desactivado / música antigua → Ninguna
     }
 
-    private void UpdateSpotifyLabel()
+    private void SelectByTag(string tag)
     {
-        SpotifyPlaylistLabel.Text = _spotifyPlaylistName is { Length: > 0 }
-            ? $"Playlist: {_spotifyPlaylistName}"
-            : (_spotifyPlaylistUri is { Length: > 0 } ? "Playlist guardada" : "Sin playlist elegida");
+        for (int i = 0; i < MusicAppBox.Items.Count; i++)
+            if (MusicAppBox.Items[i] is ComboBoxItem it && (string)it.Tag == tag) { MusicAppBox.SelectedIndex = i; return; }
+        MusicAppBox.SelectedIndex = 0;
     }
 
-    private async void ChoosePlaylistBtn_Click(object sender, RoutedEventArgs e)
+    private void UpdateNavidromeLabel()
     {
-        var win = new SpotifyPlaylistWindow();
+        NavidromeLabel.Text = _navPlaylistName is { Length: > 0 }
+            ? $"Servidor configurado · Playlist: {_navPlaylistName}"
+            : (_navServer is { Length: > 0 } ? "Servidor configurado · sin playlist" : "Sin configurar");
+    }
+
+    private async void ConfigureNavidromeBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var win = new NavidromeWindow();
+        win.Prefill(_navServer, _navUser);
         var pick = await win.PickAsync();
         if (pick is not null)
         {
-            _spotifyPlaylistUri = pick.Uri;
-            _spotifyPlaylistName = pick.Name;
-            UpdateSpotifyLabel();
+            _navServer = pick.ServerUrl;
+            _navUser = pick.User;
+            _navPlaylistId = pick.PlaylistId;
+            _navPlaylistName = pick.PlaylistName;
+            UpdateNavidromeLabel();
         }
     }
 
@@ -396,25 +387,23 @@ public sealed partial class EnvironmentDialog : ContentDialog
         };
     }
 
-    /// <summary>Construye el MusicLauncher desde el picker (Spotify resuelve la playlist). #98</summary>
+    /// <summary>Construye el MusicLauncher desde el picker. Solo Navidrome (#107).</summary>
     private MusicLauncher? BuildMusic()
     {
         var tag = (MusicAppBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
-        if (string.IsNullOrEmpty(tag)) return null;
-        var app = KnownApps.ByProcess(tag);
-        if (app is null) return null;
-        bool autoPlay = AutoPlayCheck.IsChecked == true;
+        if (tag != "navidrome" || string.IsNullOrEmpty(_navServer) || string.IsNullOrEmpty(_navPlaylistId))
+            return null;
 
-        if (string.Equals(app.ProcessName, "Spotify", StringComparison.OrdinalIgnoreCase))
-            return new MusicLauncher
-            {
-                Name = "Spotify",
-                Target = string.IsNullOrEmpty(_spotifyPlaylistUri) ? "spotify:" : _spotifyPlaylistUri,
-                Arguments = _spotifyPlaylistName,
-                AutoPlay = autoPlay
-            };
-
-        var target = string.IsNullOrEmpty(app.LaunchTarget) ? app.ProcessName : app.LaunchTarget;
-        return new MusicLauncher { Name = app.Name, Target = target, AutoPlay = autoPlay };
+        return new MusicLauncher
+        {
+            Name = "Navidrome",
+            Provider = "navidrome",
+            ServerUrl = _navServer,
+            User = _navUser,
+            PlaylistId = _navPlaylistId,
+            PlaylistName = _navPlaylistName,
+            Target = Services.NavidromeService.PlaylistWebUrl(_navServer, _navPlaylistId),
+            AutoPlay = AutoPlayCheck.IsChecked == true
+        };
     }
 }

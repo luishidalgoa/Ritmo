@@ -2,8 +2,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace Ritmo.Core.Focus;
+
+/// <summary>Una playlist devuelta por un servidor Subsonic/Navidrome. #107</summary>
+public sealed record SubsonicPlaylist(string Id, string Name, int SongCount, string Owner, string? CoverArt);
 
 /// <summary>
 /// Helpers puros para hablar con un servidor compatible con la API Subsonic
@@ -62,4 +66,40 @@ public static class Subsonic
     }
 
     private static string Esc(string? v) => System.Uri.EscapeDataString(v ?? "");
+
+    /// <summary>
+    /// Parsea la respuesta JSON de <c>getPlaylists</c>. Tolera que <c>playlist</c>
+    /// sea un array o un único objeto (rareza del JSON de Subsonic). Devuelve vacío
+    /// si la respuesta no es "ok" o no hay playlists.
+    /// </summary>
+    public static IReadOnlyList<SubsonicPlaylist> ParsePlaylists(string? json)
+    {
+        var list = new List<SubsonicPlaylist>();
+        if (string.IsNullOrWhiteSpace(json)) return list;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("subsonic-response", out var resp)) return list;
+            if (!resp.TryGetProperty("playlists", out var playlists)) return list;
+            if (!playlists.TryGetProperty("playlist", out var pl)) return list;
+
+            if (pl.ValueKind == JsonValueKind.Array)
+                foreach (var p in pl.EnumerateArray()) list.Add(ParseOne(p));
+            else if (pl.ValueKind == JsonValueKind.Object)
+                list.Add(ParseOne(pl));
+        }
+        catch (JsonException) { /* respuesta no válida: lista vacía */ }
+        return list;
+    }
+
+    private static SubsonicPlaylist ParseOne(JsonElement p)
+    {
+        string id = p.TryGetProperty("id", out var i) ? i.GetString() ?? "" : "";
+        string name = p.TryGetProperty("name", out var n) ? n.GetString() ?? "(sin nombre)" : "(sin nombre)";
+        int songs = p.TryGetProperty("songCount", out var sc) && sc.TryGetInt32(out var v) ? v : 0;
+        string owner = p.TryGetProperty("owner", out var o) ? o.GetString() ?? "" : "";
+        string? cover = p.TryGetProperty("coverArt", out var c) ? c.GetString() : null;
+        return new SubsonicPlaylist(id, name, songs, owner, cover);
+    }
 }

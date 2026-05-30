@@ -64,6 +64,35 @@ public class FocusEnvironmentPersistenceTests : IDisposable
     }
 
     [Fact]
+    public void RoundTrip_musica_navidrome()
+    {
+        var store = new JsonSettingsStore(_file);
+        store.Save(new AppSettings
+        {
+            FocusEnvironments =
+            [
+                new FocusEnvironment
+                {
+                    Id = "n", Name = "Con Navidrome",
+                    Music = new MusicLauncher
+                    {
+                        Name = "Navidrome", Provider = "navidrome",
+                        ServerUrl = "https://music.example.com", User = "luis",
+                        PlaylistId = "pl-7", PlaylistName = "Foco",
+                        Target = "https://music.example.com/app/#/playlist/pl-7/show"
+                    }
+                }
+            ]
+        });
+        var m = store.Load().FocusEnvironments.Single().Music!;
+        Assert.Equal("navidrome", m.Provider);
+        Assert.Equal("https://music.example.com", m.ServerUrl);
+        Assert.Equal("luis", m.User);
+        Assert.Equal("pl-7", m.PlaylistId);
+        Assert.Equal("Foco", m.PlaylistName);
+    }
+
+    [Fact]
     public void ResolveEnvironment_usa_mapeo_por_tipo_y_luego_default()
     {
         var store = new JsonSettingsStore(_file);
