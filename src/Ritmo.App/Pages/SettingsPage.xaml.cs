@@ -38,9 +38,7 @@ public sealed partial class SettingsPage : Page
         DayEndPicker.Time = s.ViewConfig.DayEnd.ToTimeSpan();
         GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
 
-        NtfyEnabledToggle.IsOn = s.NtfyEnabled;
-        NtfyServerBox.Text = s.NtfyServerUrl ?? "";
-        NtfyTopicBox.Text = s.NtfyTopic ?? "";
+        BuildConnectionsSummary(s);
 
         ThemeBox.SelectedIndex = (this.ActualTheme) switch
         {
@@ -698,8 +696,6 @@ public sealed partial class SettingsPage : Page
         int gran = (GranularityBox.SelectedItem is ComboBoxItem gi && gi.Tag is string gt && int.TryParse(gt, out var gm)) ? gm : 60;
         var r3 = AppState.Config.SetGranularity(gran);
 
-        var r4 = AppState.Config.SetNtfy(NtfyEnabledToggle.IsOn, NtfyServerBox.Text, NtfyTopicBox.Text);
-
         if (ThemeBox.SelectedItem is ComboBoxItem it && it.Tag is string tag)
         {
             var theme = tag switch { "Light" => ElementTheme.Light, "Dark" => ElementTheme.Dark, _ => ElementTheme.Default };
@@ -707,32 +703,55 @@ public sealed partial class SettingsPage : Page
                 root.RequestedTheme = theme;
         }
 
-        SaveStatus.Text = (r1.Success && r2.Success && r3.Success && r4.Success)
+        SaveStatus.Text = (r1.Success && r2.Success && r3.Success)
             ? "✓ Guardado"
-            : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : !r3.Success ? r3.Message : r4.Message)}";
+            : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : r3.Message)}";
     }
 
-    // ---------- Notificaciones al móvil (ntfy, #122) ----------
+    // ---------- Conexiones con apps externas (#122) ----------
 
-    private void NtfyGenBtn_Click(object sender, RoutedEventArgs e)
-        => NtfyTopicBox.Text = "ritmo-" + Guid.NewGuid().ToString("N").Substring(0, 10);
-
-    private async void NtfyTestBtn_Click(object sender, RoutedEventArgs e)
+    /// <summary>Abre el modal de Conexiones y, al cerrarlo, refresca el resumen.</summary>
+    private async void ConnectionsBtn_Click(object sender, RoutedEventArgs e)
     {
-        var topic = (NtfyTopicBox.Text ?? "").Trim();
-        if (string.IsNullOrWhiteSpace(topic)) { NtfyStatus.Text = "Pon (o genera) un topic primero."; return; }
+        var dlg = new ConnectionsDialog { XamlRoot = this.XamlRoot };
+        await dlg.ShowAsync();
+        BuildConnectionsSummary(AppState.Load());
+    }
 
-        NtfyStatus.Text = "Enviando…";
-        NtfyTestBtn.IsEnabled = false;
-        try
+    /// <summary>
+    /// Pinta en Ajustes solo las conexiones que el usuario YA ha activado. Si no hay
+    /// ninguna, un texto tenue invita a abrir el modal. El setup vive en el modal.
+    /// </summary>
+    private void BuildConnectionsSummary(Ritmo.Core.Persistence.AppSettings s)
+    {
+        ConnectionsSummary.Children.Clear();
+        bool any = false;
+
+        if (s.NtfyEnabled && !string.IsNullOrWhiteSpace(s.NtfyTopic))
         {
-            var pub = Ritmo.Core.Notifications.NtfyPublish.ForTest(NtfyServerBox.Text, topic);
-            bool ok = await Services.NtfyPublisher.PublishAsync(pub);
-            NtfyStatus.Text = ok
-                ? "✓ Enviado. Revisa el móvil suscrito a ese topic."
-                : "⚠ No se pudo enviar (revisa servidor, topic y conexión).";
+            any = true;
+            var server = Ritmo.Core.Notifications.NtfyPublish.NormalizeServer(s.NtfyServerUrl);
+            ConnectionsSummary.Children.Add(ConnectionRow(
+                "📱", "Notificaciones al móvil", $"Activado · {server} · topic {s.NtfyTopic}"));
         }
-        catch { NtfyStatus.Text = "⚠ Error al enviar la prueba."; }
-        finally { NtfyTestBtn.IsEnabled = true; }
+
+        if (!any)
+            ConnectionsSummary.Children.Add(new TextBlock
+            {
+                Text = "Sin conexiones activas. Pulsa «Gestionar conexiones» para añadir una.",
+                Opacity = 0.6, FontSize = 13, TextWrapping = TextWrapping.Wrap
+            });
+    }
+
+    /// <summary>Fila compacta de una conexión activa: icono + nombre + detalle.</summary>
+    private static StackPanel ConnectionRow(string icon, string name, string detail)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        row.Children.Add(new TextBlock { Text = icon, FontSize = 16, VerticalAlignment = VerticalAlignment.Center });
+        var texts = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
+        texts.Children.Add(new TextBlock { Text = name, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 13 });
+        texts.Children.Add(new TextBlock { Text = detail, Opacity = 0.7, FontSize = 12, TextWrapping = TextWrapping.Wrap });
+        row.Children.Add(texts);
+        return row;
     }
 }

@@ -163,6 +163,11 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#123 — Modal "Conexiones" para apps externas** (declutter de Ajustes). Nuevo `ConnectionsDialog`
+  que centraliza las conexiones: notificaciones al móvil (ntfy, con enlaces de descarga de la app por
+  plataforma) y calendarios OAuth ("Próximamente", futuro #112). Ajustes deja de tener la tarjeta
+  grande de ntfy: ahora muestra una tarjeta compacta con botón "Gestionar conexiones" + un resumen de
+  las conexiones que el usuario ya ha activado. Verificado en la app.
 - **#122 — Notificaciones push al móvil vía ntfy** (opt-in, parte A del ticket). Cuando un aviso
   se dispara, además del toast de Windows se publica en ntfy (`{servidor}/{topic}`, modo JSON) y
   el móvil suscrito al topic lo recibe. Núcleo puro `NtfyPublish` (con tests) decide el QUÉ; el host

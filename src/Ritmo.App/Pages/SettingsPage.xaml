@@ -83,29 +83,26 @@
                 </StackPanel>
             </Border>
 
-            <!-- Notificaciones al móvil vía ntfy (#122) -->
+            <!-- Conexiones con apps externas (#122 / OAuth futuro). Setup en el modal;
+                 aquí solo el acceso + un resumen de lo que está activo. -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Notificaciones al móvil" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock TextWrapping="Wrap" Opacity="0.75" FontSize="13"
-                               Text="Recibe los avisos del horario también en el teléfono. Instala la app gratuita ntfy (Android/iOS), suscríbete a un topic y ponlo aquí. El topic es como una contraseña: solo quien lo conoce recibe tus avisos. Opcional; por defecto está desactivado." />
-                    <ToggleSwitch x:Name="NtfyEnabledToggle" Header="Enviar avisos al móvil" OnContent="Activado" OffContent="Desactivado" />
-                    <TextBox x:Name="NtfyServerBox" Header="Servidor" PlaceholderText="https://ntfy.sh" />
-                    <Grid ColumnSpacing="8">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox x:Name="NtfyTopicBox" Grid.Column="0" Header="Topic" PlaceholderText="ritmo-mi-secreto" />
-                        <Button x:Name="NtfyGenBtn" Grid.Column="1" Content="Generar" Click="NtfyGenBtn_Click"
-                                VerticalAlignment="Bottom" ToolTipService.ToolTip="Generar un topic aleatorio" />
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="Conexiones" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="Conecta Ritmo con apps externas: notificaciones al móvil, calendarios…"
+                                       Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Gestionar conexiones" Click="ConnectionsBtn_Click"
+                                VerticalAlignment="Center" />
                     </Grid>
-                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                        <Button x:Name="NtfyTestBtn" Content="Enviar prueba" Click="NtfyTestBtn_Click" />
-                        <TextBlock x:Name="NtfyStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="13" />
-                    </StackPanel>
+                    <StackPanel x:Name="ConnectionsSummary" Spacing="6" />
                 </StackPanel>
             </Border>
 

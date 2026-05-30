@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Ritmo_App.Dialogs.ConnectionsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Conexiones"
+    PrimaryButtonText="Guardar"
+    CloseButtonText="Cerrar"
+    DefaultButton="Primary">
+
+    <ScrollViewer MaxHeight="560" HorizontalScrollMode="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Width="440">
+            <TextBlock TextWrapping="Wrap" Opacity="0.75" FontSize="13"
+                       Text="Conecta Ritmo con apps externas. Lo que actives aquí aparecerá resumido en Ajustes." />
+
+            <!-- Notificaciones al móvil (ntfy) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="16">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="📱  Notificaciones al móvil (ntfy)" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.75" FontSize="12"
+                               Text="Recibe los avisos del horario en el teléfono. El topic es como una contraseña: solo quien lo conoce recibe tus avisos." />
+                    <TextBlock Text="Descarga la app ntfy en tu móvil según tu plataforma:" FontSize="12" Opacity="0.75" />
+                    <StackPanel Orientation="Horizontal" Spacing="2" Margin="-8,0,0,0">
+                        <HyperlinkButton Content="Android (Play)" NavigateUri="https://play.google.com/store/apps/details?id=io.heckel.ntfy" />
+                        <HyperlinkButton Content="iPhone (App Store)" NavigateUri="https://apps.apple.com/app/ntfy/id1625396347" />
+                        <HyperlinkButton Content="Otras / cómo" NavigateUri="https://docs.ntfy.sh/subscribe/phone/" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="NtfyEnabledToggle" Header="Enviar avisos al móvil"
+                                  OnContent="Activado" OffContent="Desactivado" />
+                    <TextBox x:Name="NtfyServerBox" Header="Servidor" PlaceholderText="https://ntfy.sh" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="NtfyTopicBox" Grid.Column="0" Header="Topic" PlaceholderText="ritmo-mi-secreto" />
+                        <Button x:Name="NtfyGenBtn" Grid.Column="1" Content="Generar" Click="NtfyGenBtn_Click"
+                                VerticalAlignment="Bottom" ToolTipService.ToolTip="Generar un topic aleatorio" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <Button x:Name="NtfyTestBtn" Content="Enviar prueba" Click="NtfyTestBtn_Click" />
+                        <TextBlock x:Name="NtfyStatus" VerticalAlignment="Center" Opacity="0.85"
+                                   FontSize="12" TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Calendarios (OAuth) — futuro #112 -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="16" Opacity="0.65">
+                <StackPanel Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="📅  Calendarios (Google · Outlook · Apple)" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                        <Border Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}" CornerRadius="4"
+                                Padding="6,1" VerticalAlignment="Center">
+                            <TextBlock Text="Próximamente" FontSize="11" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock TextWrapping="Wrap" Opacity="0.75" FontSize="12"
+                               Text="Conexión OAuth para sincronizar calendarios. De momento puedes suscribir calendarios por enlace ICS (solo lectura) en Ajustes." />
+                </StackPanel>
+            </Border>
+
+            <TextBlock x:Name="ErrorText" Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                       FontSize="12" TextWrapping="Wrap" Visibility="Collapsed" />
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>
