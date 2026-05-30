@@ -86,7 +86,9 @@ public sealed partial class TimerPage : Page
         var today = DateOnly.FromDateTime(now);
         var phase = settings.Plan.GetActivePhase(today) ?? settings.Plan.OrderedPhases.FirstOrDefault();
         var schedule = phase?.Schedule ?? settings.Schedule;
-        var active = new SchedulePlanner(schedule).GetActiveSession(now);
+        // Una sesión provisional que cubre AHORA tiene prioridad sobre el horario (#103).
+        var oneOff = OneOffPlanner.ActiveAt(settings.OneOffSessions, now);
+        var active = oneOff?.AsSession() ?? new SchedulePlanner(schedule).GetActiveSession(now);
         _activeSessionTitle = active?.Title;   // tipo de sesión para resolver qué abrir (#116)
 
         PomodoroConfig config;

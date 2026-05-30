@@ -37,8 +37,9 @@ public sealed partial class HomePage : Page
         var schedule = phase?.Schedule ?? settings.Schedule;
         var planner = new SchedulePlanner(schedule);
 
-        // AHORA
-        var active = planner.GetActiveSession(now);
+        // AHORA — una sesión provisional que cubre ahora tiene prioridad (#103).
+        var active = OneOffPlanner.ActiveAt(settings.OneOffSessions, now)?.AsSession()
+                     ?? planner.GetActiveSession(now);
         if (active is not null)
         {
             NowTitle.Text = active.Title;
@@ -52,8 +53,12 @@ public sealed partial class HomePage : Page
             StartBtnText.Text = "Concentración libre";
         }
 
-        // DESPUÉS (siguiente del día)
-        var next = planner.GetNextSessionToday(now);
+        // DESPUÉS (siguiente del día): el más cercano entre recurrente y provisional (#103).
+        var nextRec = planner.GetNextSessionToday(now);
+        var nextOne = OneOffPlanner.NextToday(settings.OneOffSessions, now)?.AsSession();
+        var next = nextRec is null ? nextOne
+                 : nextOne is null ? nextRec
+                 : (nextRec.Start <= nextOne.Start ? nextRec : nextOne);
         if (next is not null)
         {
             NextTitle.Text = next.Title;
