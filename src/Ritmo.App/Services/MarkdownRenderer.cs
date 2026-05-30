@@ -33,6 +33,18 @@ public static class MarkdownRenderer
                     p.Inlines.Add(new Run { Text = "•  " });
                     AddInlines(p, block.Inlines, 0);
                     break;
+                case MdBlockKind.Task:
+                    p.Margin = new Thickness(12, 1, 0, 1);
+                    var box = new Run { Text = block.Checked ? "☑  " : "☐  ", FontFamily = new FontFamily("Segoe UI Symbol") };
+                    if (block.Checked) box.Foreground = (Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+                    p.Inlines.Add(box);
+                    AddInlines(p, block.Inlines, 0);
+                    break;
+                case MdBlockKind.Numbered:
+                    p.Margin = new Thickness(12, 1, 0, 1);
+                    p.Inlines.Add(new Run { Text = $"{block.Level}.  " });
+                    AddInlines(p, block.Inlines, 0);
+                    break;
                 default:
                     p.Margin = new Thickness(0, 1, 0, 1);
                     AddInlines(p, block.Inlines, 0);

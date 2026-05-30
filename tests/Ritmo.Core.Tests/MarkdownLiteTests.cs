@@ -88,4 +88,39 @@ public class MarkdownLiteTests
         Assert.Equal("haz ", b.Inlines[0].Text);
         Assert.True(b.Inlines[1].Bold);
     }
+
+    [Theory]
+    [InlineData("[ ] pendiente", false, "pendiente")]
+    [InlineData("[] pendiente", false, "pendiente")]
+    [InlineData("- [ ] con guion", false, "con guion")]
+    [InlineData("[x] hecho", true, "hecho")]
+    [InlineData("- [X] hecho mayus", true, "hecho mayus")]
+    public void Casillas_de_tarea(string md, bool done, string text)
+    {
+        var b = MarkdownLite.Parse(md).Single();
+        Assert.Equal(MdBlockKind.Task, b.Kind);
+        Assert.Equal(done, b.Checked);
+        Assert.Equal(text, b.Inlines[0].Text);
+    }
+
+    [Fact]
+    public void Lista_numerada()
+    {
+        var blocks = MarkdownLite.Parse("1. uno\n2) dos");
+        Assert.Equal(2, blocks.Count);
+        Assert.All(blocks, b => Assert.Equal(MdBlockKind.Numbered, b.Kind));
+        Assert.Equal(1, blocks[0].Level);
+        Assert.Equal(2, blocks[1].Level);
+        Assert.Equal("dos", blocks[1].Inlines[0].Text);
+    }
+
+    [Fact]
+    public void Un_enlace_al_inicio_no_es_tarea()
+    {
+        // "[campus](url)" no debe confundirse con una casilla de tarea.
+        var b = MarkdownLite.Parse("[campus](https://x.es) abre").Single();
+        Assert.Equal(MdBlockKind.Paragraph, b.Kind);
+        Assert.Equal("campus", b.Inlines[0].Text);
+        Assert.Equal("https://x.es", b.Inlines[0].Href);
+    }
 }
