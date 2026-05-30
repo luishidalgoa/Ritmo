@@ -520,7 +520,23 @@ public sealed partial class SchedulePage : Page
             }
 
             var fill = color; fill.A = 210;             // translúcido (deja ver el bloque debajo)
-            var meta = ev.AllDay ? "Todo el día" : $"{ev.Start:HH\\:mm}–{ev.End:HH\\:mm}";
+            var white = new SolidColorBrush(Microsoft.UI.Colors.White);
+            var content = new StackPanel { Spacing = 0 };
+            if (spanSlots <= 1)
+            {
+                // Muy corto / todo el día: una sola línea que quepa en ~26px.
+                var oneLine = ev.AllDay ? ev.Title : $"{ev.Start:HH\\:mm}  {ev.Title}";
+                content.Children.Add(new TextBlock { Text = oneLine, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    Foreground = white, TextTrimming = TextTrimming.CharacterEllipsis });
+            }
+            else
+            {
+                var meta = ev.AllDay ? "Todo el día" : $"{ev.Start:HH\\:mm}–{ev.End:HH\\:mm}";
+                content.Children.Add(new TextBlock { Text = ev.Title, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    Foreground = white, TextTrimming = TextTrimming.CharacterEllipsis });
+                content.Children.Add(new TextBlock { Text = $"{meta} · {cal}", FontSize = 9, Opacity = 0.9,
+                    Foreground = white, TextTrimming = TextTrimming.CharacterEllipsis });
+            }
             var card = new Border
             {
                 Background = new SolidColorBrush(fill),
@@ -528,18 +544,10 @@ public sealed partial class SchedulePage : Page
                 BorderThickness = new Thickness(4, 0, 0, 0),     // barra de acento a la izquierda
                 CornerRadius = new CornerRadius(4),
                 Margin = new Thickness(3, 1, 3, 1),
-                Padding = new Thickness(5, 2, 4, 2),
+                Padding = new Thickness(5, 1, 4, 1),
+                VerticalAlignment = VerticalAlignment.Stretch,
                 IsHitTestVisible = false,                         // read-only: no estorba el arrastre
-                Child = new StackPanel
-                {
-                    Children =
-                    {
-                        new TextBlock { Text = ev.Title, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), TextTrimming = TextTrimming.CharacterEllipsis },
-                        new TextBlock { Text = $"{meta} · {cal}", FontSize = 9, Opacity = 0.9,
-                            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), TextTrimming = TextTrimming.CharacterEllipsis }
-                    }
-                }
+                Child = content
             };
             Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
             Grid.SetColumn(card, dayCol + 1);
