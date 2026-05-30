@@ -22,6 +22,17 @@
             <StackPanel Grid.Column="0" Spacing="2">
                 <TextBlock Text="Horario semanal" FontSize="24" FontWeight="SemiBold" />
                 <TextBlock x:Name="PhaseInfo" Opacity="0.7" FontSize="13" />
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,6,0,0" VerticalAlignment="Center">
+                    <Button x:Name="PrevWeekBtn" Click="PrevWeekBtn_Click" AutomationProperties.Name="Semana anterior" Padding="8,4">
+                        <FontIcon Glyph="&#xE76B;" FontSize="12" />
+                    </Button>
+                    <TextBlock x:Name="WeekLabel" VerticalAlignment="Center" MinWidth="180" TextAlignment="Center"
+                               FontSize="13" FontWeight="SemiBold" />
+                    <Button x:Name="NextWeekBtn" Click="NextWeekBtn_Click" AutomationProperties.Name="Semana siguiente" Padding="8,4">
+                        <FontIcon Glyph="&#xE76C;" FontSize="12" />
+                    </Button>
+                    <Button x:Name="ThisWeekBtn" Click="ThisWeekBtn_Click" Content="Esta semana" Padding="10,4" Margin="6,0,0,0" />
+                </StackPanel>
             </StackPanel>
             <Button Grid.Column="1" x:Name="AddBtn" Click="AddBtn_Click"
                     AutomationProperties.Name="Añadir sesión"

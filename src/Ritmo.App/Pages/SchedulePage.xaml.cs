@@ -27,7 +27,10 @@ public sealed partial class SchedulePage : Page
         { "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO" };
 
     private string? _activePhaseName;
-    private IReadOnlyList<CalendarEvent> _calEvents = [];   // eventos del calendario de esta semana (#112)
+    private IReadOnlyList<CalendarEvent> _calEvents = [];   // eventos del calendario de la semana mostrada (#112)
+    private DateOnly _weekStart = MondayOf(DateOnly.FromDateTime(DateTime.Now));   // lunes de la semana mostrada (#113)
+
+    private static DateOnly MondayOf(DateOnly d) => d.AddDays(-(((int)d.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7));
 
     // Geometría de la rejilla (debe coincidir con BuildGrid).
     private const double HourColWidth = 64;
@@ -52,7 +55,7 @@ public sealed partial class SchedulePage : Page
     public SchedulePage()
     {
         InitializeComponent();
-        Loaded += (_, _) => { Build(); _ = LoadCalendarAsync(); };
+        Loaded += (_, _) => RefreshWeek();
         // El movimiento/soltar se atienden a nivel de rejilla (con el puntero capturado).
         GridRoot.PointerMoved += GridRoot_PointerMoved;
         GridRoot.PointerReleased += GridRoot_PointerReleased;
@@ -252,10 +255,11 @@ public sealed partial class SchedulePage : Page
         var line = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"];
         var headerBg = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"];
 
-        // "En vivo" (#69): hoy + ahora + bloque activo.
+        // "En vivo" (#69): hoy + ahora + bloque activo — SOLO si miramos la semana actual (#113).
         var now = DateTime.Now;
-        int todayCol = Array.IndexOf(Days, now.DayOfWeek);
-        var activeSession = new Ritmo.Core.Scheduling.SchedulePlanner(schedule).GetActiveSession(now);
+        bool isCurrentWeek = _weekStart == MondayOf(DateOnly.FromDateTime(now));
+        int todayCol = isCurrentWeek ? Array.IndexOf(Days, now.DayOfWeek) : -1;
+        var activeSession = isCurrentWeek ? new Ritmo.Core.Scheduling.SchedulePlanner(schedule).GetActiveSession(now) : null;
         var accentColor = ((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color;
         var todayHeaderBrush = new SolidColorBrush(accentColor) { Opacity = 0.22 };
         var todayTint = new SolidColorBrush(accentColor) { Opacity = 0.06 };
@@ -264,7 +268,7 @@ public sealed partial class SchedulePage : Page
         {
             bool isToday = c == todayCol;
             g.Children.Add(Cell(new TextBlock {
-                Text = DayNames[c], FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                Text = $"{DayNames[c]} {_weekStart.AddDays(c).Day}", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
                 FontSize = 12, HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = isToday
@@ -454,24 +458,47 @@ public sealed partial class SchedulePage : Page
         Windows.UI.Color.FromArgb(255, 41, 121, 255),   // azul
     };
 
+    // ---------- Navegación entre semanas (#113) ----------
+
+    private void PrevWeekBtn_Click(object sender, RoutedEventArgs e) { _weekStart = _weekStart.AddDays(-7); RefreshWeek(); }
+    private void NextWeekBtn_Click(object sender, RoutedEventArgs e) { _weekStart = _weekStart.AddDays(7); RefreshWeek(); }
+    private void ThisWeekBtn_Click(object sender, RoutedEventArgs e) { _weekStart = MondayOf(DateOnly.FromDateTime(DateTime.Now)); RefreshWeek(); }
+
+    /// <summary>Cambia a la semana mostrada: actualiza la etiqueta, repinta y re-descarga sus eventos.</summary>
+    private void RefreshWeek()
+    {
+        var es = new System.Globalization.CultureInfo("es-ES");
+        WeekLabel.Text = $"{_weekStart.ToString("d MMM", es)} – {_weekStart.AddDays(6).ToString("d MMM yyyy", es)}";
+        _calEvents = [];        // limpia el overlay de la semana anterior mientras descarga
+        Build();
+        _ = LoadCalendarAsync();
+    }
+
     private async Task LoadCalendarAsync()
     {
         var settings = AppState.Load();
         if (settings.CalendarFeeds.Count == 0) return;
-        var today = DateOnly.FromDateTime(DateTime.Now);
-        int offset = ((int)today.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        var weekStart = today.AddDays(-offset);
-        try { _calEvents = await CalendarService.FetchAsync(settings.CalendarFeeds, weekStart, weekStart.AddDays(6)); }
+        var target = _weekStart;
+        IReadOnlyList<CalendarEvent> events;
+        try { events = await CalendarService.FetchAsync(settings.CalendarFeeds, target, target.AddDays(6)); }
         catch { return; }
-        if (_calEvents.Count > 0) Build();   // re-pinta con el overlay (sin volver a descargar)
+        if (target != _weekStart) return;   // el usuario ya cambió de semana: descarta
+        _calEvents = events;
+        Build();   // re-pinta con el overlay (sin volver a descargar)
+    }
+
+    /// <summary>Índice de color estable y determinista para un nombre de calendario.</summary>
+    private static int CalColorIndex(string cal)
+    {
+        int h = 0;
+        foreach (var ch in cal) h = (h * 31 + ch) & 0x7fffffff;
+        return h % CalPalette.Length;
     }
 
     private void OverlayCalendar(Grid g, int startH, int hours)
     {
         if (_calEvents.Count == 0) return;
         int maxRow = 1 + hours * SlotsPerHour;
-        var colorByCal = new Dictionary<string, Windows.UI.Color>(StringComparer.OrdinalIgnoreCase);
-        int nextColor = 0;
 
         foreach (var ev in _calEvents)
         {
@@ -479,7 +506,7 @@ public sealed partial class SchedulePage : Page
             if (dayCol < 0) continue;
 
             var cal = string.IsNullOrEmpty(ev.Calendar) ? "Calendario" : ev.Calendar!;
-            if (!colorByCal.TryGetValue(cal, out var color)) { color = CalPalette[nextColor++ % CalPalette.Length]; colorByCal[cal] = color; }
+            var color = CalPalette[CalColorIndex(cal)];   // color estable por nombre de calendario
 
             int startSlot, spanSlots;
             if (ev.AllDay) { startSlot = 1; spanSlots = 1; }
