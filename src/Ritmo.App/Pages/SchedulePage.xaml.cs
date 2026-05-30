@@ -57,6 +57,7 @@ public sealed partial class SchedulePage : Page
     // Panel de detalle y resolución de solapamientos (#114).
     private IReadOnlyList<StudySession> _sessions = [];        // sesiones de la fase visible (para detectar conflictos)
     private IReadOnlyList<OverlapPriority> _priorities = [];   // decisiones de prioridad guardadas
+    private IReadOnlyList<OneOffSession> _oneOffs = [];        // sesiones provisionales (con fecha) (#103)
     private string? _selectedSessionKey;                       // sesión resaltada en la rejilla
     private string? _selectedEventKey;                         // evento resaltado en la rejilla
     private SessionGroup? _selectedGroup;                      // grupo mostrado en el panel
@@ -247,6 +248,17 @@ public sealed partial class SchedulePage : Page
         _startHour = startH;
         _sessions = schedule.Sessions;
         _priorities = settings.OverlapPriorities;
+        _oneOffs = settings.OneOffSessions;
+
+        // Extiende el rango si una sesión provisional de esta semana cae fuera (#103).
+        foreach (var o in _oneOffs)
+        {
+            if (o.Date < _weekStart || o.Date > _weekStart.AddDays(6)) continue;
+            startH = Math.Min(startH, o.Start.Hour);
+            endH = Math.Max(endH, (int)Math.Ceiling((o.Start.ToTimeSpan() + o.Duration).TotalHours));
+        }
+
+        _startHour = startH;
         BuildGrid(schedule, startH, endH);
     }
 
@@ -451,6 +463,7 @@ public sealed partial class SchedulePage : Page
         _nowStartH = startH; _nowHours = hours; _nowTodayCol = todayCol;
         PlaceNowIndicator();
 
+        OverlayOneOffs(g, startH, hours);    // sesiones provisionales de la semana (#103)
         OverlayCalendar(g, startH, hours);   // eventos del calendario sobre la rejilla (#112)
 
         ApplyColumnWidths();   // estira las columnas de día para llenar el ancho visible (#117)
@@ -672,6 +685,82 @@ public sealed partial class SchedulePage : Page
         }
     }
 
+    // ---------- Sesiones provisionales sobre la rejilla (#103) ----------
+
+    private void OverlayOneOffs(Grid g, int startH, int hours)
+    {
+        if (_oneOffs.Count == 0) return;
+        int maxRow = 1 + hours * SlotsPerHour;
+        var weekEnd = _weekStart.AddDays(6);
+        var accentBrush = new SolidColorBrush(((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color);
+
+        foreach (var one in _oneOffs)
+        {
+            if (one.Date < _weekStart || one.Date > weekEnd) continue;
+            int dayCol = Array.IndexOf(Days, one.Date.DayOfWeek);
+            if (dayCol < 0) continue;
+
+            double startHours = one.Start.Hour + one.Start.Minute / 60.0 - startH;
+            if (startHours >= hours) continue;
+            int startSlot = 1 + (int)Math.Round(Math.Max(0, startHours) * SlotsPerHour);
+            int spanSlots = Math.Max(1, (int)Math.Round(one.Duration.TotalHours * SlotsPerHour));
+            if (startSlot + spanSlots > maxRow) spanSlots = Math.Max(1, maxRow - startSlot);
+
+            var end = one.Start.Add(one.Duration);
+            var content = new StackPanel { Spacing = 0 };
+            content.Children.Add(new TextBlock { Text = one.Title, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                Foreground = ScheduleColors.TextFor(one.Kind), TextTrimming = TextTrimming.CharacterEllipsis });
+            content.Children.Add(new TextBlock { Text = $"{one.Start:HH\\:mm}–{end:HH\\:mm}", FontSize = 10, Opacity = 0.75,
+                Foreground = ScheduleColors.TextFor(one.Kind) });
+            content.Children.Add(new TextBlock { Text = "✦ solo esta semana", FontSize = 9,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = accentBrush });
+
+            var card = new Border
+            {
+                Background = ScheduleColors.For(one.Kind),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(6, 3, 6, 3),
+                Margin = new Thickness(2),
+                BorderBrush = accentBrush,
+                BorderThickness = new Thickness(2),   // borde de acento = distinta de las recurrentes
+                Opacity = one.IsTentative ? 0.6 : 1.0,
+                Child = content
+            };
+            var captured = one;
+            card.Tapped += (_, _) => ShowOneOffDetail(captured);
+            Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
+            Grid.SetColumn(card, dayCol + 1);
+            g.Children.Add(card);
+        }
+    }
+
+    /// <summary>Detalle de una sesión provisional en el panel, con opción de eliminarla.</summary>
+    private void ShowOneOffDetail(OneOffSession one)
+    {
+        _selectedGroup = null; _selectedEvent = null;
+        _selectedSessionKey = null; _selectedEventKey = null;
+        Build();
+
+        var es = new System.Globalization.CultureInfo("es-ES");
+        var content = DetailContent;
+        content.Children.Clear();
+        content.Children.Add(DetailHeader("Sesión provisional"));
+        content.Children.Add(TitleRow(ScheduleColors.For(one.Kind), one.Title));
+
+        var meta = new StackPanel { Spacing = 4 };
+        meta.Children.Add(MetaLine(one.Kind.Label() + (one.IsTentative ? "  ·  provisional" : "")));
+        meta.Children.Add(MetaLine(Capitalize(one.Date.ToString("dddd d 'de' MMMM", es))));
+        meta.Children.Add(MetaLine($"{one.Start:HH\\:mm} – {one.Start.Add(one.Duration):HH\\:mm}  ·  {FormatDuration(one.Duration)}"));
+        meta.Children.Add(MetaLine("Solo esta semana · no se repite"));
+        content.Children.Add(meta);
+
+        var del = new Button { Content = "Eliminar" };
+        del.Click += (_, _) => { AppState.Config.RemoveOneOffSession(one.Id); CloseDetail(); };
+        content.Children.Add(del);
+
+        DetailPanel.Visibility = Visibility.Visible;
+    }
+
     /// <summary>Lleva al temporizador y arranca la concentración del bloque activo.</summary>
     private void FocusNow() => Navigator.GoToTimer(this, autoStart: true);
 
@@ -842,7 +931,16 @@ public sealed partial class SchedulePage : Page
         {
             // Crea el bloque en CADA día marcado (#81). Si no se marcó ninguno, no hace nada.
             foreach (var d in dlg.SelectedDays)
-                AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));
+            {
+                if (dlg.IsOneOff)   // sesión provisional: solo esta semana, con fecha concreta (#103)
+                {
+                    int di = Array.IndexOf(Days, d);
+                    if (di < 0) continue;
+                    var ss = dlg.ToSession(d);
+                    AppState.Config.AddOneOffSession(_weekStart.AddDays(di), ss.Title, ss.Start, ss.Duration, ss.Kind, ss.PreAlerts, ss.IsTentative);
+                }
+                else AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));
+            }
             Build();
         }
     }

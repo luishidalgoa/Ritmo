@@ -16,6 +16,7 @@ internal sealed class SettingsDto
     public List<PomodoroRhythmDto> Rhythms { get; set; } = [];
     // Nuevo: horario por fases, notas y configuración de vista.
     public List<PhaseDto> Phases { get; set; } = [];
+    public List<OneOffSessionDto> OneOffSessions { get; set; } = [];
     public List<NoteDto> Notes { get; set; } = [];
     public ViewConfigDto? ViewConfig { get; set; }
     public List<FocusEnvironmentDto> FocusEnvironments { get; set; } = [];
@@ -116,6 +117,18 @@ internal sealed class PomodoroRhythmDto
     public int FocusesPerLongBreak { get; set; } = 4;
 }
 
+internal sealed class OneOffSessionDto
+{
+    public string Id { get; set; } = "";
+    public string Date { get; set; } = "2026-01-01";
+    public string Title { get; set; } = "";
+    public string Start { get; set; } = "09:00";
+    public int DurationMinutes { get; set; } = 60;
+    public string Kind { get; set; } = "Otro";
+    public List<int> PreAlertsMinutes { get; set; } = [];
+    public bool IsTentative { get; set; }
+}
+
 internal sealed class PhaseDto
 {
     public string Name { get; set; } = "";
@@ -172,6 +185,17 @@ internal static class SettingsMapper
             LongBreakMinutes = r.LongBreakMinutes, FocusesPerLongBreak = r.FocusesPerLongBreak
         }).ToList(),
         Phases = s.Plan.Phases.Select(ToDto).ToList(),
+        OneOffSessions = s.OneOffSessions.Select(o => new OneOffSessionDto
+        {
+            Id = o.Id,
+            Date = o.Date.ToString(DateFormat, CultureInfo.InvariantCulture),
+            Title = o.Title,
+            Start = o.Start.ToString(TimeFormat, CultureInfo.InvariantCulture),
+            DurationMinutes = (int)o.Duration.TotalMinutes,
+            Kind = o.Kind.ToString(),
+            PreAlertsMinutes = o.PreAlerts.Select(a => a.MinutesBefore).ToList(),
+            IsTentative = o.IsTentative
+        }).ToList(),
         Notes = s.Notes.Select(ToDto).ToList(),
         ViewConfig = ToDto(s.ViewConfig),
         FocusEnvironments = s.FocusEnvironments.Select(ToDto).ToList(),
@@ -261,6 +285,17 @@ internal static class SettingsMapper
             LongBreakMinutes = r.LongBreakMinutes, FocusesPerLongBreak = r.FocusesPerLongBreak
         }).ToList(),
         Plan = new SchedulePlan { Phases = d.Phases.Select(FromDto).ToList() },
+        OneOffSessions = d.OneOffSessions.Select(o => new OneOffSession
+        {
+            Id = string.IsNullOrWhiteSpace(o.Id) ? $"oneoff-{Guid.NewGuid():N}"[..14] : o.Id,
+            Date = DateOnly.ParseExact(o.Date, DateFormat, CultureInfo.InvariantCulture),
+            Title = o.Title,
+            Start = TimeOnly.ParseExact(o.Start, TimeFormat, CultureInfo.InvariantCulture),
+            Duration = TimeSpan.FromMinutes(o.DurationMinutes),
+            Kind = Enum.TryParse<StudyKind>(o.Kind, ignoreCase: true, out var k) ? k : StudyKind.Otro,
+            PreAlerts = o.PreAlertsMinutes.Select(m => new PreAlert(m)).ToList(),
+            IsTentative = o.IsTentative
+        }).ToList(),
         Notes = d.Notes.Select(FromDto).ToList(),
         ViewConfig = d.ViewConfig is null ? new ScheduleViewConfig() : FromDto(d.ViewConfig),
         FocusEnvironments = d.FocusEnvironments.Select(FromDto).ToList(),

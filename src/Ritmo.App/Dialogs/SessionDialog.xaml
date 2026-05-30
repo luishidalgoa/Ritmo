@@ -89,5 +89,11 @@
         </StackPanel>
 
         <ToggleSwitch x:Name="TentativeSwitch" Header="Provisional (no dispara concentración)" OffContent="No" OnContent="Sí" />
+
+        <!-- Sesión extraordinaria solo para la semana mostrada (#103) -->
+        <ToggleSwitch x:Name="OneOffSwitch" Header="Solo esta semana (sesión extraordinaria)"
+                      OffContent="No, recurrente" OnContent="Sí, solo esta semana" Toggled="OneOffSwitch_Toggled" />
+        <TextBlock x:Name="OneOffHint" Opacity="0.6" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
+                   Text="Se añadirá solo en el/los día(s) marcado(s) de la semana que estás viendo, sin repetirse." />
     </StackPanel>
 </ContentDialog>

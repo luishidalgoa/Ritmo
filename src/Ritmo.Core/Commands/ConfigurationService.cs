@@ -162,6 +162,34 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Sesiones actualizadas.");
     }
 
+    // ---------- Sesiones provisionales (con fecha, #103) ----------
+
+    /// <summary>Añade una sesión provisional (extraordinaria) en una fecha concreta. Devuelve su Id.</summary>
+    public CommandResult AddOneOffSession(DateOnly date, string title, TimeOnly start, TimeSpan duration,
+        StudyKind kind, IReadOnlyList<PreAlert> preAlerts, bool isTentative)
+    {
+        if (duration <= TimeSpan.Zero) return CommandResult.Fail("La duración debe ser mayor que cero.");
+        if (string.IsNullOrWhiteSpace(title)) return CommandResult.Fail("La sesión necesita un título.");
+        var s = _store.Load();
+        var one = new OneOffSession
+        {
+            Id = $"oneoff-{Guid.NewGuid():N}"[..14],
+            Date = date, Title = title.Trim(), Start = start, Duration = duration,
+            Kind = kind, PreAlerts = preAlerts.ToList(), IsTentative = isTentative
+        };
+        _store.Save(s with { OneOffSessions = [.. s.OneOffSessions, one] });
+        return CommandResult.Ok(one.Id);
+    }
+
+    /// <summary>Elimina una sesión provisional por Id.</summary>
+    public CommandResult RemoveOneOffSession(string id)
+    {
+        var s = _store.Load();
+        if (s.OneOffSessions.All(o => o.Id != id)) return CommandResult.Fail("No existe la sesión provisional.");
+        _store.Save(s with { OneOffSessions = s.OneOffSessions.Where(o => o.Id != id).ToList() });
+        return CommandResult.Ok("Sesión provisional eliminada.");
+    }
+
     /// <summary>Actualiza la configuración Pomodoro (duraciones en minutos).</summary>
     public CommandResult SetPomodoro(int focusMin, int shortBreakMin, int longBreakMin, int focusesPerLong)
     {

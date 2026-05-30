@@ -40,6 +40,12 @@ public sealed partial class SessionDialog : ContentDialog
     public IReadOnlyList<DayOfWeek> SelectedDays =>
         _dayToggles.Where(t => t.btn.IsChecked == true).Select(t => t.day).ToList();
 
+    /// <summary>¿Es una sesión extraordinaria solo para la semana mostrada? (#103)</summary>
+    public bool IsOneOff => OneOffSwitch.IsOn;
+
+    private void OneOffSwitch_Toggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        => OneOffHint.Visibility = OneOffSwitch.IsOn ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
     // ---------- Avisos previos: dos desplegables con presets + personalizado (#87) ----------
 
     private void Alert1Box_SelectionChanged(object sender, SelectionChangedEventArgs e) => SyncCustom(Alert1Box, Alert1Custom);

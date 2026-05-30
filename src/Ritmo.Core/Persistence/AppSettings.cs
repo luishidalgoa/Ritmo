@@ -20,6 +20,9 @@ public sealed record AppSettings
     /// <summary>Horario por fases temporales (de X a Y fecha). Fuente principal.</summary>
     public SchedulePlan Plan { get; init; } = new();
 
+    /// <summary>Sesiones provisionales (con fecha) que se superponen a la semana. #103</summary>
+    public IReadOnlyList<OneOffSession> OneOffSessions { get; init; } = [];
+
     public PomodoroConfig Pomodoro { get; init; } = PomodoroConfig.DeepWork;
 
     /// <summary>Ritmos Pomodoro propios del usuario (los de por defecto van en código). #96</summary>
