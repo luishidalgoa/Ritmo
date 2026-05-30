@@ -10,7 +10,15 @@ namespace Ritmo.Mcp;
 /// <summary>
 /// Herramientas MCP que una IA (Claude, etc.) puede invocar para configurar
 /// Ritmo. Cada método envuelve la capa de comandos del núcleo (ConfigurationService),
-/// que valida y persiste. Las descripciones guían a la IA sobre cuándo usarlas.
+/// que valida y persiste. Cubren TODA la superficie de configuración de la app, de
+/// modo que la IA tiene control total: fases y sesiones del horario, sesiones
+/// provisionales, Pomodoro y ritmos, rango horario, notas, atajos, entornos de
+/// concentración (con apps, enlaces, tareas y perfiles por tipo de sesión),
+/// calendarios, prioridades de solapamiento, música (Navidrome) e importar/exportar.
+///
+/// Flujo recomendado para la IA: llamar primero a <c>get_config</c> para VER el
+/// estado completo (con los ids e índices que usan las herramientas de editar/borrar)
+/// y a <c>list_known_apps</c> para conocer los nombres de proceso válidos.
 /// </summary>
 [McpServerToolType]
 public sealed class RitmoTools
@@ -19,8 +27,13 @@ public sealed class RitmoTools
 
     public RitmoTools(ConfigurationService config) => _config = config;
 
+    // Lista de tipos de bloque, reutilizada en las descripciones.
+    private const string KindList = "Tecnico, Legislacion, Ingles, Tests, Simulacro, Descanso, PorDefinir, Personal, Otro";
+
+    // ==================== LECTURA ====================
+
     [McpServerTool(Name = "get_status")]
-    [Description("Devuelve un resumen del estado de Ritmo: número de fases y sus nombres, entornos de concentración, entorno por defecto y número de notas. Úsalo primero para saber qué hay configurado.")]
+    [Description("Resumen corto del estado: nº de fases y nombres, entornos, entorno por defecto y nº de notas. Para ver TODO el detalle (ids, índices, apps, enlaces...) usa get_config.")]
     public string GetStatus()
     {
         var s = _config.GetStatus();
@@ -30,106 +43,443 @@ public sealed class RitmoTools
                $"Entorno por defecto: {s.DefaultEnvironmentId ?? "(ninguno)"}. Notas: {s.NoteCount}.";
     }
 
+    [McpServerTool(Name = "get_config")]
+    [Description("Devuelve TODA la configuración de Ritmo como JSON: fases con sus sesiones (el índice de cada sesión es su posición en el array, empezando en 0), sesiones provisionales (con id), Pomodoro y ritmos (con id), rango horario, notas (con id), entornos de concentración (id, apps a abrir/cerrar/silenciar, enlaces, tareas con id, perfiles por sesión), calendarios (con id), prioridades de solapamiento (con eventKey), Navidrome y mapeo tipo→entorno. Úsalo SIEMPRE antes de editar o borrar para conocer ids e índices. No incluye contraseñas.")]
+    public string GetConfig() => _config.ExportJson();
+
+    [McpServerTool(Name = "list_known_apps")]
+    [Description("Catálogo de apps conocidas para configurar entornos. Para 'apps a cerrar/silenciar' usa el nombre de proceso; para 'apps a abrir' usa el destino de lanzamiento (o el nombre de proceso si no hay destino).")]
+    public string ListKnownApps()
+    {
+        var lines = new List<string>();
+        foreach (var (cat, apps) in KnownApps.ByCategory())
+        {
+            lines.Add($"## {KnownApps.Label(cat)}");
+            foreach (var a in apps)
+            {
+                var open = string.IsNullOrWhiteSpace(a.LaunchTarget) ? a.ProcessName : a.LaunchTarget;
+                lines.Add($"- {a.Name} (proceso: {a.ProcessName}; abrir: {open})");
+            }
+        }
+        return string.Join("\n", lines);
+    }
+
+    // ==================== FASES ====================
+
     [McpServerTool(Name = "add_phase")]
-    [Description("Crea una fase temporal del horario (un periodo con su propio horario semanal). Fechas en formato yyyy-MM-dd. validTo puede ir vacío para una fase indefinida.")]
+    [Description("Crea una fase temporal del horario (un periodo con su propio horario semanal). Fechas en yyyy-MM-dd. validTo puede ir vacío para una fase indefinida.")]
     public string AddPhase(
         [Description("Nombre de la fase, p. ej. 'Fase 1'")] string name,
         [Description("Fecha de inicio (yyyy-MM-dd)")] string validFrom,
         [Description("Fecha de fin (yyyy-MM-dd) o vacío si es indefinida")] string? validTo = null)
     {
-        if (!TryDate(validFrom, out var from))
-            return Err($"Fecha de inicio inválida: '{validFrom}' (usa yyyy-MM-dd).");
-        DateOnly? to = null;
-        if (!string.IsNullOrWhiteSpace(validTo))
-        {
-            if (!TryDate(validTo, out var parsed)) return Err($"Fecha de fin inválida: '{validTo}'.");
-            to = parsed;
-        }
+        if (!TryDate(validFrom, out var from)) return Err($"Fecha de inicio inválida: '{validFrom}' (usa yyyy-MM-dd).");
+        if (!TryOptionalDate(validTo, out var to)) return Err($"Fecha de fin inválida: '{validTo}'.");
         return Report(_config.AddPhase(name, from, to));
     }
 
+    [McpServerTool(Name = "update_phase")]
+    [Description("Renombra y/o cambia la vigencia de una fase existente (localizada por su nombre actual). Fechas en yyyy-MM-dd; validTo vacío = indefinida.")]
+    public string UpdatePhase(
+        [Description("Nombre actual de la fase")] string name,
+        [Description("Nuevo nombre (puede ser igual al actual)")] string newName,
+        [Description("Nueva fecha de inicio (yyyy-MM-dd)")] string validFrom,
+        [Description("Nueva fecha de fin (yyyy-MM-dd) o vacío")] string? validTo = null)
+    {
+        if (!TryDate(validFrom, out var from)) return Err($"Fecha de inicio inválida: '{validFrom}'.");
+        if (!TryOptionalDate(validTo, out var to)) return Err($"Fecha de fin inválida: '{validTo}'.");
+        return Report(_config.UpdatePhase(name, newName, from, to));
+    }
+
+    [McpServerTool(Name = "remove_phase")]
+    [Description("Elimina una fase del plan (por nombre). Debe quedar al menos una fase.")]
+    public string RemovePhase([Description("Nombre de la fase a eliminar")] string name)
+        => Report(_config.RemovePhase(name));
+
+    // ==================== SESIONES (en una fase) ====================
+
     [McpServerTool(Name = "add_session")]
-    [Description("Añade una sesión de estudio a una fase existente (por nombre). day en inglés (Monday..Sunday). start en HH:mm. durationMinutes en minutos. kind: Tecnico, Legislacion, Ingles, Tests, Simulacro, Descanso, PorDefinir, Otro. preAlertsMinutes: lista de minutos de aviso previo separados por coma (ej. '60,10'). tentative=true para bloque provisional.")]
+    [Description("Añade una sesión recurrente a una fase existente (por nombre). day en inglés (Monday..Sunday). start en HH:mm. preAlertsMinutes: minutos de aviso separados por coma (ej. '60,10'). tentative=true para bloque provisional/sin materia decidida.")]
     public string AddSession(
         [Description("Nombre de la fase destino")] string phaseName,
         [Description("Título de la sesión")] string title,
         [Description("Día de la semana en inglés: Monday..Sunday")] string day,
         [Description("Hora de inicio HH:mm")] string start,
         [Description("Duración en minutos")] int durationMinutes,
-        [Description("Tipo: Tecnico, Legislacion, Ingles, Tests, Simulacro, Descanso, PorDefinir, Otro")] string kind = "Otro",
+        [Description("Tipo: " + KindList)] string kind = "Otro",
         [Description("Minutos de avisos previos separados por coma, ej. '60,10'")] string? preAlertsMinutes = null,
         [Description("true si el bloque es provisional/tentativo")] bool tentative = false)
     {
         if (!Enum.TryParse<DayOfWeek>(day, ignoreCase: true, out var dow))
             return Err($"Día inválido: '{day}' (usa Monday..Sunday).");
-        if (!TimeOnly.TryParseExact(start, "HH\\:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startTime))
-            return Err($"Hora inválida: '{start}' (usa HH:mm).");
-        if (durationMinutes <= 0)
-            return Err("La duración debe ser mayor que 0.");
-        var theKind = Enum.TryParse<StudyKind>(kind, ignoreCase: true, out var k) ? k : StudyKind.Otro;
-
-        var alerts = new List<PreAlert>();
-        if (!string.IsNullOrWhiteSpace(preAlertsMinutes))
-        {
-            foreach (var part in preAlertsMinutes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                if (int.TryParse(part, out var m)) alerts.Add(new PreAlert(m));
-        }
+        if (!TryTime(start, out var startTime)) return Err($"Hora inválida: '{start}' (usa HH:mm).");
+        if (durationMinutes <= 0) return Err("La duración debe ser mayor que 0.");
 
         var session = new StudySession
         {
             Title = title, Day = dow, Start = startTime,
-            Duration = TimeSpan.FromMinutes(durationMinutes), Kind = theKind,
-            PreAlerts = alerts, IsTentative = tentative
+            Duration = TimeSpan.FromMinutes(durationMinutes), Kind = ParseKind(kind),
+            PreAlerts = ParseAlerts(preAlertsMinutes), IsTentative = tentative
         };
         return Report(_config.AddSession(phaseName, session));
     }
 
+    [McpServerTool(Name = "update_session")]
+    [Description("Reemplaza la sesión en el índice dado de una fase (el índice es su posición en el array 'sessions' de la fase en get_config, empezando en 0). Debes pasar TODOS los campos: los no enviados se reemplazan por el valor por defecto.")]
+    public string UpdateSession(
+        [Description("Nombre de la fase")] string phaseName,
+        [Description("Índice de la sesión (0 = primera)")] int index,
+        [Description("Título de la sesión")] string title,
+        [Description("Día de la semana en inglés: Monday..Sunday")] string day,
+        [Description("Hora de inicio HH:mm")] string start,
+        [Description("Duración en minutos")] int durationMinutes,
+        [Description("Tipo: " + KindList)] string kind = "Otro",
+        [Description("Minutos de avisos previos separados por coma, ej. '60,10'")] string? preAlertsMinutes = null,
+        [Description("true si el bloque es provisional/tentativo")] bool tentative = false)
+    {
+        if (!Enum.TryParse<DayOfWeek>(day, ignoreCase: true, out var dow))
+            return Err($"Día inválido: '{day}' (usa Monday..Sunday).");
+        if (!TryTime(start, out var startTime)) return Err($"Hora inválida: '{start}' (usa HH:mm).");
+        if (durationMinutes <= 0) return Err("La duración debe ser mayor que 0.");
+
+        var session = new StudySession
+        {
+            Title = title, Day = dow, Start = startTime,
+            Duration = TimeSpan.FromMinutes(durationMinutes), Kind = ParseKind(kind),
+            PreAlerts = ParseAlerts(preAlertsMinutes), IsTentative = tentative
+        };
+        return Report(_config.UpdateSession(phaseName, index, session));
+    }
+
+    [McpServerTool(Name = "remove_session")]
+    [Description("Elimina la sesión en el índice dado de una fase (índice = posición en el array 'sessions' de la fase, empezando en 0).")]
+    public string RemoveSession(
+        [Description("Nombre de la fase")] string phaseName,
+        [Description("Índice de la sesión (0 = primera)")] int index)
+        => Report(_config.RemoveSession(phaseName, index));
+
+    // ==================== SESIONES PROVISIONALES (con fecha) ====================
+
+    [McpServerTool(Name = "add_one_off_session")]
+    [Description("Añade una sesión provisional/extraordinaria en una FECHA concreta (no recurrente; se superpone a la semana de esa fecha). Devuelve su id. date en yyyy-MM-dd, start en HH:mm.")]
+    public string AddOneOffSession(
+        [Description("Fecha (yyyy-MM-dd)")] string date,
+        [Description("Título")] string title,
+        [Description("Hora de inicio HH:mm")] string start,
+        [Description("Duración en minutos")] int durationMinutes,
+        [Description("Tipo: " + KindList)] string kind = "Otro",
+        [Description("Minutos de avisos previos separados por coma, ej. '60,10'")] string? preAlertsMinutes = null,
+        [Description("true si es provisional/tentativo")] bool tentative = false)
+    {
+        if (!TryDate(date, out var d)) return Err($"Fecha inválida: '{date}' (usa yyyy-MM-dd).");
+        if (!TryTime(start, out var startTime)) return Err($"Hora inválida: '{start}' (usa HH:mm).");
+        if (durationMinutes <= 0) return Err("La duración debe ser mayor que 0.");
+        return Report(_config.AddOneOffSession(d, title, startTime, TimeSpan.FromMinutes(durationMinutes),
+            ParseKind(kind), ParseAlerts(preAlertsMinutes), tentative));
+    }
+
+    [McpServerTool(Name = "remove_one_off_session")]
+    [Description("Elimina una sesión provisional por su id (campo 'id' de oneOffSessions en get_config).")]
+    public string RemoveOneOffSession([Description("Id de la sesión provisional")] string id)
+        => Report(_config.RemoveOneOffSession(id));
+
+    // ==================== POMODORO Y RITMOS ====================
+
+    [McpServerTool(Name = "set_pomodoro")]
+    [Description("Configura el Pomodoro por defecto de la app (duraciones en minutos y cada cuántos focos toca el descanso largo).")]
+    public string SetPomodoro(
+        [Description("Minutos de concentración (>0)")] int focusMinutes,
+        [Description("Minutos de descanso corto")] int shortBreakMinutes,
+        [Description("Minutos de descanso largo")] int longBreakMinutes,
+        [Description("Focos por descanso largo (>=1)")] int focusesPerLongBreak)
+        => Report(_config.SetPomodoro(focusMinutes, shortBreakMinutes, longBreakMinutes, focusesPerLongBreak));
+
+    [McpServerTool(Name = "add_rhythm")]
+    [Description("Crea un ritmo Pomodoro propio (con nombre) que luego se puede asignar a un entorno. Devuelve su id.")]
+    public string AddRhythm(
+        [Description("Nombre del ritmo")] string name,
+        [Description("Minutos de concentración (>0)")] int focusMinutes,
+        [Description("Minutos de descanso corto")] int shortBreakMinutes,
+        [Description("Minutos de descanso largo")] int longBreakMinutes,
+        [Description("Focos por descanso largo (>=1)")] int focusesPerLongBreak)
+        => Report(_config.AddRhythm(name, focusMinutes, shortBreakMinutes, longBreakMinutes, focusesPerLongBreak));
+
+    [McpServerTool(Name = "update_rhythm")]
+    [Description("Edita un ritmo Pomodoro propio (por id). No se pueden editar los de por defecto ('classic', 'deepwork').")]
+    public string UpdateRhythm(
+        [Description("Id del ritmo")] string id,
+        [Description("Nombre del ritmo")] string name,
+        [Description("Minutos de concentración (>0)")] int focusMinutes,
+        [Description("Minutos de descanso corto")] int shortBreakMinutes,
+        [Description("Minutos de descanso largo")] int longBreakMinutes,
+        [Description("Focos por descanso largo (>=1)")] int focusesPerLongBreak)
+        => Report(_config.UpdateRhythm(id, name, focusMinutes, shortBreakMinutes, longBreakMinutes, focusesPerLongBreak));
+
+    [McpServerTool(Name = "remove_rhythm")]
+    [Description("Elimina un ritmo Pomodoro propio (por id).")]
+    public string RemoveRhythm([Description("Id del ritmo")] string id)
+        => Report(_config.RemoveRhythm(id));
+
+    // ==================== VISTA DEL HORARIO ====================
+
+    [McpServerTool(Name = "set_view_hours")]
+    [Description("Fija el rango horario visible de la rejilla del horario (primera y última hora mostrada). Horas en HH:mm; fin debe ser posterior al inicio.")]
+    public string SetViewHours(
+        [Description("Hora de inicio del día visible, HH:mm")] string dayStart,
+        [Description("Hora de fin del día visible, HH:mm")] string dayEnd)
+    {
+        if (!TryTime(dayStart, out var from)) return Err($"Hora inválida: '{dayStart}' (usa HH:mm).");
+        if (!TryTime(dayEnd, out var to)) return Err($"Hora inválida: '{dayEnd}' (usa HH:mm).");
+        return Report(_config.SetViewHours(from, to));
+    }
+
+    // ==================== NOTAS ====================
+
+    [McpServerTool(Name = "add_note")]
+    [Description("Añade una nota fijada (el contenido admite markdown). Si pasas sessionTitle, la nota es un 'post-it' de ese tipo de sesión. Devuelve su id.")]
+    public string AddNote(
+        [Description("Título de la nota")] string title,
+        [Description("Contenido en markdown")] string content,
+        [Description("Color de acento hex '#RRGGBB' (opcional)")] string? accentColor = null,
+        [Description("Título de la sesión a la que se asocia (opcional; vacío = nota suelta)")] string? sessionTitle = null)
+        => Report(_config.AddNote(title, content, accentColor, sessionTitle));
+
+    [McpServerTool(Name = "update_note")]
+    [Description("Edita el título/contenido/color de una nota existente (por id).")]
+    public string UpdateNote(
+        [Description("Id de la nota")] string id,
+        [Description("Título")] string title,
+        [Description("Contenido en markdown")] string content,
+        [Description("Color de acento hex '#RRGGBB' (opcional)")] string? accentColor = null)
+        => Report(_config.UpdateNote(id, title, content, accentColor));
+
+    [McpServerTool(Name = "remove_note")]
+    [Description("Elimina una nota por su id.")]
+    public string RemoveNote([Description("Id de la nota")] string id)
+        => Report(_config.RemoveNote(id));
+
+    // ==================== ATAJOS GLOBALES ====================
+
+    [McpServerTool(Name = "add_shortcut")]
+    [Description("Añade un enlace-atajo global (título + URL) accesible desde el horario.")]
+    public string AddShortcut(
+        [Description("Título del enlace")] string title,
+        [Description("URL")] string url)
+        => Report(_config.AddShortcut(title, url));
+
+    [McpServerTool(Name = "remove_shortcut")]
+    [Description("Elimina el enlace-atajo global en el índice dado (posición en viewConfig.shortcuts, empezando en 0).")]
+    public string RemoveShortcut([Description("Índice del enlace (0 = primero)")] int index)
+        => Report(_config.RemoveShortcut(index));
+
+    // ==================== ENTORNOS DE CONCENTRACIÓN ====================
+
     [McpServerTool(Name = "upsert_focus_environment")]
-    [Description("Crea o actualiza un entorno de concentración (qué pasa al entrar en modo focus). Listas separadas por coma. id estable; si ya existe, se reemplaza.")]
+    [Description("Crea o actualiza un entorno de concentración (por id). Para actualizar uno existente, los parámetros que dejes vacíos/null se MANTIENEN como están (no se borran), y los enlaces, tareas y perfiles por sesión SIEMPRE se conservan (se gestionan con sus propias herramientas). Las listas (csv) se reemplazan por completo si las envías; envía cadena vacía '' para vaciarlas. Para 'apps a abrir' usa el destino de list_known_apps; para 'cerrar/silenciar' el nombre de proceso.")]
     public string UpsertFocusEnvironment(
         [Description("Id estable del entorno, p. ej. 'deep'")] string id,
         [Description("Nombre visible, p. ej. 'Estudio profundo'")] string name,
-        [Description("Activar No molestar (true/false)")] bool doNotDisturb = true,
-        [Description("Webs a bloquear, separadas por coma (ej. 'youtube.com,reddit.com')")] string? blockedWebsites = null,
-        [Description("Apps a cerrar, separadas por coma (ej. 'Discord,Steam')")] string? appsToClose = null,
-        [Description("Apps a silenciar, separadas por coma")] string? appsToMute = null,
-        [Description("Abrir los enlaces del entorno en una ventana nueva del navegador por defecto (true/false)")] bool openLinksInBrowser = false,
-        [Description("Nombre de la app de música a lanzar, p. ej. 'Spotify' (vacío para ninguna)")] string? musicName = null,
+        [Description("Activar No molestar (null = mantener)")] bool? doNotDisturb = null,
+        [Description("Ocultar distintivos de la barra de tareas (null = mantener)")] bool? hideTaskbarBadges = null,
+        [Description("Mostrar vista previa del día al iniciar (null = mantener)")] bool? showDayPreview = null,
+        [Description("Abrir los enlaces en una ventana nueva del navegador (null = mantener)")] bool? openLinksInBrowser = null,
+        [Description("Crear un escritorio virtual nuevo al concentrarte (null = mantener)")] bool? newVirtualDesktop = null,
+        [Description("Id del ritmo Pomodoro del entorno ('classic', 'deepwork' o uno propio). null = mantener")] string? pomodoroPreset = null,
+        [Description("Webs a bloquear, csv (null = mantener, '' = vaciar)")] string? blockedWebsites = null,
+        [Description("Apps a cerrar, csv de nombres de proceso (null = mantener, '' = vaciar)")] string? appsToClose = null,
+        [Description("Apps a silenciar, csv (null = mantener, '' = vaciar)")] string? appsToMute = null,
+        [Description("Apps a ABRIR al concentrarte, csv (null = mantener, '' = vaciar)")] string? appsToOpen = null,
+        [Description("Nombre de la música a lanzar (deja music y target vacíos para mantener la actual)")] string? musicName = null,
         [Description("Ejecutable o URI de la música, p. ej. 'spotify:'")] string? musicTarget = null)
     {
-        var env = new FocusEnvironment
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name))
+            return Err("El entorno necesita id y nombre.");
+
+        // Partimos del entorno existente (si lo hay) para no perder lo que no se toca.
+        var existing = _config.GetSettings().FocusEnvironments.FirstOrDefault(e => e.Id == id);
+        var baseEnv = existing ?? new FocusEnvironment { Id = id, Name = name };
+
+        var env = baseEnv with
         {
-            Id = id, Name = name, EnableDoNotDisturb = doNotDisturb,
-            OpenLinksInBrowser = openLinksInBrowser,
-            BlockedWebsites = Split(blockedWebsites),
-            AppsToClose = Split(appsToClose),
-            AppsToMute = Split(appsToMute),
-            Music = string.IsNullOrWhiteSpace(musicName) || string.IsNullOrWhiteSpace(musicTarget)
-                ? null
+            Name = name,
+            EnableDoNotDisturb = doNotDisturb ?? baseEnv.EnableDoNotDisturb,
+            HideTaskbarBadges = hideTaskbarBadges ?? baseEnv.HideTaskbarBadges,
+            ShowDayPreview = showDayPreview ?? baseEnv.ShowDayPreview,
+            OpenLinksInBrowser = openLinksInBrowser ?? baseEnv.OpenLinksInBrowser,
+            NewVirtualDesktop = newVirtualDesktop ?? baseEnv.NewVirtualDesktop,
+            PomodoroPreset = pomodoroPreset ?? baseEnv.PomodoroPreset,
+            BlockedWebsites = blockedWebsites is null ? baseEnv.BlockedWebsites : Split(blockedWebsites),
+            AppsToClose = appsToClose is null ? baseEnv.AppsToClose : Split(appsToClose),
+            AppsToMute = appsToMute is null ? baseEnv.AppsToMute : Split(appsToMute),
+            AppsToOpen = appsToOpen is null ? baseEnv.AppsToOpen : Split(appsToOpen),
+            // Enlaces, tareas y perfiles se conservan SIEMPRE (herramientas dedicadas).
+            Music = (string.IsNullOrWhiteSpace(musicName) || string.IsNullOrWhiteSpace(musicTarget))
+                ? baseEnv.Music
                 : new MusicLauncher { Name = musicName!, Target = musicTarget!, AutoPlay = true }
         };
         return Report(_config.UpsertEnvironment(env));
     }
 
+    [McpServerTool(Name = "remove_environment")]
+    [Description("Elimina un entorno por su id. Si era el por defecto o estaba mapeado a algún tipo, esas referencias se limpian solas.")]
+    public string RemoveEnvironment([Description("Id del entorno")] string environmentId)
+        => Report(_config.RemoveEnvironment(environmentId));
+
     [McpServerTool(Name = "set_default_environment")]
-    [Description("Fija el entorno de concentración por defecto, por su id. El entorno debe existir.")]
-    public string SetDefaultEnvironment([Description("Id del entorno")] string environmentId)
+    [Description("Fija el entorno de concentración por defecto, por su id (debe existir). Pasa vacío para quitar el por defecto (modo automático).")]
+    public string SetDefaultEnvironment([Description("Id del entorno (vacío = ninguno)")] string? environmentId = null)
         => Report(_config.SetDefaultEnvironment(environmentId));
 
+    [McpServerTool(Name = "add_environment_link")]
+    [Description("Añade un enlace (título + URL) a los accesos rápidos de un entorno (por id).")]
+    public string AddEnvironmentLink(
+        [Description("Id del entorno")] string environmentId,
+        [Description("Título del enlace")] string title,
+        [Description("URL")] string url)
+        => Report(_config.AddEnvironmentLink(environmentId, title, url));
+
+    [McpServerTool(Name = "remove_environment_link")]
+    [Description("Elimina el enlace en el índice dado de un entorno (posición en su array 'links', empezando en 0).")]
+    public string RemoveEnvironmentLink(
+        [Description("Id del entorno")] string environmentId,
+        [Description("Índice del enlace (0 = primero)")] int index)
+        => Report(_config.RemoveEnvironmentLink(environmentId, index));
+
+    [McpServerTool(Name = "add_environment_task")]
+    [Description("Añade una tarea (to-do) a un entorno. Devuelve su id.")]
+    public string AddEnvironmentTask(
+        [Description("Id del entorno")] string environmentId,
+        [Description("Texto de la tarea")] string text)
+        => Report(_config.AddEnvironmentTask(environmentId, text));
+
+    [McpServerTool(Name = "toggle_environment_task")]
+    [Description("Marca/desmarca como hecha una tarea de un entorno (por id de entorno + id de tarea).")]
+    public string ToggleEnvironmentTask(
+        [Description("Id del entorno")] string environmentId,
+        [Description("Id de la tarea")] string taskId)
+        => Report(_config.ToggleEnvironmentTask(environmentId, taskId));
+
+    [McpServerTool(Name = "remove_environment_task")]
+    [Description("Elimina una tarea de un entorno (por id de entorno + id de tarea).")]
+    public string RemoveEnvironmentTask(
+        [Description("Id del entorno")] string environmentId,
+        [Description("Id de la tarea")] string taskId)
+        => Report(_config.RemoveEnvironmentTask(environmentId, taskId));
+
+    // ==================== PERFILES POR TIPO DE SESIÓN (en un entorno) ====================
+
+    [McpServerTool(Name = "set_session_profile")]
+    [Description("Define qué enlaces (URLs) y apps (procesos) se abren para un TIPO de sesión (por título) dentro de un entorno. Las URLs/apps deben existir entre los enlaces/apps-a-abrir del entorno. Reemplaza el perfil previo de ese título. Sin perfil, una sesión abre TODO lo del entorno.")]
+    public string SetSessionProfile(
+        [Description("Id del entorno")] string environmentId,
+        [Description("Título de la sesión (grupo)")] string sessionTitle,
+        [Description("URLs de enlaces a abrir, csv")] string? enabledLinks = null,
+        [Description("Apps a abrir, csv")] string? enabledApps = null)
+        => Report(_config.SetSessionProfile(environmentId, sessionTitle, Split(enabledLinks), Split(enabledApps)));
+
+    [McpServerTool(Name = "clear_session_profile")]
+    [Description("Olvida el perfil de un tipo de sesión en un entorno (vuelve a abrir TODO para ese título).")]
+    public string ClearSessionProfile(
+        [Description("Id del entorno")] string environmentId,
+        [Description("Título de la sesión")] string sessionTitle)
+        => Report(_config.ClearSessionProfile(environmentId, sessionTitle));
+
+    // ==================== MAPEO TIPO → ENTORNO ====================
+
     [McpServerTool(Name = "map_environment_to_kind")]
-    [Description("Asocia un tipo de bloque (Tecnico, Simulacro...) a un entorno, para que ese tipo use ese entorno automáticamente al iniciar focus.")]
+    [Description("Asocia un tipo de bloque a un entorno, para que ese tipo lo use automáticamente al iniciar focus. El entorno debe existir.")]
     public string MapEnvironmentToKind(
-        [Description("Tipo: Tecnico, Legislacion, Ingles, Tests, Simulacro, Descanso, PorDefinir, Otro")] string kind,
+        [Description("Tipo: " + KindList)] string kind,
         [Description("Id del entorno")] string environmentId)
     {
-        if (!Enum.TryParse<StudyKind>(kind, ignoreCase: true, out var k))
-            return Err($"Tipo inválido: '{kind}'.");
+        if (!Enum.TryParse<StudyKind>(kind, ignoreCase: true, out var k)) return Err($"Tipo inválido: '{kind}'.");
         return Report(_config.MapEnvironmentToKind(k, environmentId));
     }
+
+    [McpServerTool(Name = "clear_environment_kind")]
+    [Description("Quita la asociación tipo→entorno: ese tipo vuelve a usar el entorno por defecto.")]
+    public string ClearEnvironmentKind([Description("Tipo: " + KindList)] string kind)
+    {
+        if (!Enum.TryParse<StudyKind>(kind, ignoreCase: true, out var k)) return Err($"Tipo inválido: '{kind}'.");
+        return Report(_config.ClearEnvironmentKind(k));
+    }
+
+    // ==================== MÚSICA (Navidrome global) ====================
+
+    [McpServerTool(Name = "set_navidrome_connection")]
+    [Description("Guarda la conexión GLOBAL a Navidrome (URL del servidor + usuario). La CONTRASEÑA NO se configura por aquí: el usuario debe introducirla en la app (se guarda en el almacén seguro del sistema).")]
+    public string SetNavidromeConnection(
+        [Description("URL del servidor Navidrome")] string serverUrl,
+        [Description("Usuario")] string user)
+        => Report(_config.SetNavidromeConnection(serverUrl, user));
+
+    [McpServerTool(Name = "clear_navidrome_connection")]
+    [Description("Elimina la conexión global a Navidrome (servidor + usuario).")]
+    public string ClearNavidromeConnection()
+        => Report(_config.ClearNavidromeConnection());
+
+    // ==================== CALENDARIOS (ICS) ====================
+
+    [McpServerTool(Name = "add_calendar_feed")]
+    [Description("Suscribe un calendario externo por enlace ICS (http/https/webcal), solo lectura. Devuelve su id.")]
+    public string AddCalendarFeed(
+        [Description("Nombre visible del calendario")] string name,
+        [Description("Enlace ICS (http/https/webcal)")] string url)
+        => Report(_config.AddCalendarFeed(name, url));
+
+    [McpServerTool(Name = "remove_calendar_feed")]
+    [Description("Elimina una suscripción de calendario por su id.")]
+    public string RemoveCalendarFeed([Description("Id del calendario")] string id)
+        => Report(_config.RemoveCalendarFeed(id));
+
+    // ==================== PRIORIDAD DE SOLAPAMIENTO ====================
+
+    [McpServerTool(Name = "set_overlap_priority")]
+    [Description("Recuerda qué lado prioriza el usuario cuando un evento del calendario se solapa con una sesión. eventKey es la clave del evento (campo 'eventKey' en overlapPriorities de get_config). preferCalendar=true prioriza el evento; false prioriza la sesión.")]
+    public string SetOverlapPriority(
+        [Description("Clave estable del evento en conflicto")] string eventKey,
+        [Description("true = priorizar el evento del calendario; false = priorizar la sesión")] bool preferCalendar)
+        => Report(_config.SetOverlapPriority(eventKey, preferCalendar));
+
+    [McpServerTool(Name = "clear_overlap_priority")]
+    [Description("Olvida la decisión de prioridad de un evento solapado (por su eventKey).")]
+    public string ClearOverlapPriority([Description("Clave del evento")] string eventKey)
+        => Report(_config.ClearOverlapPriority(eventKey));
+
+    // ==================== IMPORTAR / EXPORTAR ====================
+
+    [McpServerTool(Name = "import_config")]
+    [Description("ATENCIÓN: reemplaza TODA la configuración por la del JSON dado (como restaurar un respaldo). Úsalo solo con un JSON con el mismo formato que devuelve get_config y tras confirmarlo con el usuario. Si el JSON no es válido, no toca nada.")]
+    public string ImportConfig([Description("JSON de configuración completo (formato de get_config)")] string json)
+        => Report(_config.ImportJson(json));
 
     // ---------- helpers ----------
     private static bool TryDate(string s, out DateOnly d) =>
         DateOnly.TryParseExact(s, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out d);
+
+    private static bool TryOptionalDate(string? s, out DateOnly? d)
+    {
+        d = null;
+        if (string.IsNullOrWhiteSpace(s)) return true;
+        if (!TryDate(s, out var parsed)) return false;
+        d = parsed;
+        return true;
+    }
+
+    private static bool TryTime(string s, out TimeOnly t) =>
+        TimeOnly.TryParseExact(s, "HH\\:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out t);
+
+    private static StudyKind ParseKind(string kind) =>
+        Enum.TryParse<StudyKind>(kind, ignoreCase: true, out var k) ? k : StudyKind.Otro;
+
+    private static List<PreAlert> ParseAlerts(string? csv)
+    {
+        var alerts = new List<PreAlert>();
+        if (string.IsNullOrWhiteSpace(csv)) return alerts;
+        foreach (var part in csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            if (int.TryParse(part, out var m)) alerts.Add(new PreAlert(m));
+        return alerts;
+    }
 
     private static List<string> Split(string? csv) =>
         string.IsNullOrWhiteSpace(csv) ? []
