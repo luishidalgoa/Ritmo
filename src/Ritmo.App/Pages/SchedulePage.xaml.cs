@@ -139,7 +139,9 @@ public sealed partial class SchedulePage : Page
         if (!moved)
         {
             // Un clic sin arrastre abre el detalle en el panel lateral (#114).
-            ShowSessionDetail(group);
+            // Se difiere al siguiente tick: abrir el panel llama a Build() (reconstruye
+            // la rejilla) y hacerlo DENTRO del propio PointerReleased aborta el evento.
+            DispatcherQueue.TryEnqueue(() => ShowSessionDetail(group));
             return;
         }
 
@@ -570,13 +572,17 @@ public sealed partial class SchedulePage : Page
             var borderColor = isSelected ? accent : (conflict && prefer is null ? WarnColor : color);
             var borderThk = isSelected || (conflict && prefer is null) ? new Thickness(2) : new Thickness(4, 0, 0, 0);
 
+            // Si hay conflicto, el evento se desplaza a la derecha de la columna para
+            // dejar la mitad izquierda de la sesión libre (clicable y arrastrable). #114
+            double leftMargin = conflict ? Math.Round(DayColWidth * 0.42) : 3;
+
             var card = new Border
             {
                 Background = new SolidColorBrush(fill),
                 BorderBrush = new SolidColorBrush(borderColor),
                 BorderThickness = borderThk,
                 CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(3, 1, 3, 1),
+                Margin = new Thickness(leftMargin, 1, 3, 1),
                 Padding = new Thickness(5, 1, 4, 1),
                 VerticalAlignment = VerticalAlignment.Stretch,
                 Child = content                                   // clicable: abre el detalle del evento (#114)
