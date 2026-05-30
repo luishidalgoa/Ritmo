@@ -24,6 +24,7 @@ internal sealed class SettingsDto
     public string? NavidromeServerUrl { get; set; }
     public string? NavidromeUser { get; set; }
     public List<CalendarFeedDto> CalendarFeeds { get; set; } = [];
+    public List<OverlapPriorityDto> OverlapPriorities { get; set; } = [];
 }
 
 internal sealed class CalendarFeedDto
@@ -31,6 +32,12 @@ internal sealed class CalendarFeedDto
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string Url { get; set; } = "";
+}
+
+internal sealed class OverlapPriorityDto
+{
+    public string EventKey { get; set; } = "";
+    public bool PreferCalendar { get; set; }
 }
 
 internal sealed class MusicDto
@@ -164,7 +171,9 @@ internal static class SettingsMapper
         EnvironmentByKind = s.EnvironmentByKind.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
         NavidromeServerUrl = s.NavidromeServerUrl,
         NavidromeUser = s.NavidromeUser,
-        CalendarFeeds = s.CalendarFeeds.Select(f => new CalendarFeedDto { Id = f.Id, Name = f.Name, Url = f.Url }).ToList()
+        CalendarFeeds = s.CalendarFeeds.Select(f => new CalendarFeedDto { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
+        OverlapPriorities = s.OverlapPriorities
+            .Select(p => new OverlapPriorityDto { EventKey = p.EventKey, PreferCalendar = p.PreferCalendar }).ToList()
     };
 
     private static FocusEnvironmentDto ToDto(FocusEnvironment e) => new()
@@ -247,7 +256,10 @@ internal static class SettingsMapper
             .ToDictionary(kv => Enum.Parse<StudyKind>(kv.Key, ignoreCase: true), kv => kv.Value),
         NavidromeServerUrl = d.NavidromeServerUrl,
         NavidromeUser = d.NavidromeUser,
-        CalendarFeeds = d.CalendarFeeds.Select(f => new CalendarFeed { Id = f.Id, Name = f.Name, Url = f.Url }).ToList()
+        CalendarFeeds = d.CalendarFeeds.Select(f => new CalendarFeed { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
+        OverlapPriorities = d.OverlapPriorities
+            .Where(p => !string.IsNullOrWhiteSpace(p.EventKey))
+            .Select(p => new OverlapPriority { EventKey = p.EventKey, PreferCalendar = p.PreferCalendar }).ToList()
     };
 
     private static FocusEnvironment FromDto(FocusEnvironmentDto e) => new()

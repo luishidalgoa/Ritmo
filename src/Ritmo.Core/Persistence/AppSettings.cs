@@ -46,6 +46,12 @@ public sealed record AppSettings
     public IReadOnlyList<CalendarFeed> CalendarFeeds { get; init; } = [];
 
     /// <summary>
+    /// Prioridades elegidas ante solapamientos horario↔calendario (#114): por cada
+    /// evento en conflicto, qué lado se prioriza. Solo afecta a cómo se pinta.
+    /// </summary>
+    public IReadOnlyList<OverlapPriority> OverlapPriorities { get; init; } = [];
+
+    /// <summary>
     /// Mapeo opcional tipo de bloque → id de entorno, para asociar automáticamente
     /// (p. ej. un bloque "Simulacro" usa el entorno "Simulacro").
     /// </summary>

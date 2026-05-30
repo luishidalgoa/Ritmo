@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Ritmo.Core.Interop;
 using Ritmo.Core.Model;
+using Ritmo.Core.Scheduling;
 using Ritmo_App.Dialogs;
 using Ritmo_App.Services;
 
@@ -51,6 +52,14 @@ public sealed partial class SchedulePage : Page
     private int _curCol, _curRow, _curDaySpan, _curRowSpan;   // preview actual (válido)
     private int _startHour = 8;
     private IReadOnlyList<StudySession> _keptForDrag = [];
+
+    // Panel de detalle y resolución de solapamientos (#114).
+    private IReadOnlyList<StudySession> _sessions = [];        // sesiones de la fase visible (para detectar conflictos)
+    private IReadOnlyList<OverlapPriority> _priorities = [];   // decisiones de prioridad guardadas
+    private string? _selectedSessionKey;                       // sesión resaltada en la rejilla
+    private string? _selectedEventKey;                         // evento resaltado en la rejilla
+    private SessionGroup? _selectedGroup;                      // grupo mostrado en el panel
+    private CalendarEvent? _selectedEvent;                     // evento mostrado en el panel
 
     public SchedulePage()
     {
@@ -129,8 +138,8 @@ public sealed partial class SchedulePage : Page
 
         if (!moved)
         {
-            // Un clic sin arrastre (en cualquier zona de la tarjeta) abre el editor (#91).
-            _ = ShowEditGroup(group);
+            // Un clic sin arrastre abre el detalle en el panel lateral (#114).
+            ShowSessionDetail(group);
             return;
         }
 
@@ -229,6 +238,8 @@ public sealed partial class SchedulePage : Page
         if (endH <= startH) endH = startH + 12;
 
         _startHour = startH;
+        _sessions = schedule.Sessions;
+        _priorities = settings.OverlapPriorities;
         BuildGrid(schedule, startH, endH);
     }
 
@@ -345,6 +356,8 @@ public sealed partial class SchedulePage : Page
 
             var baseColor = ScheduleColors.For(s.Kind);
             bool isActive = activeSession is not null && group.Members.Any(m => ReferenceEquals(m, activeSession));
+            bool isSelected = _selectedSessionKey is not null && SessionKey(s) == _selectedSessionKey;
+            bool ring = isActive || isSelected;   // borde de acento: bloque activo o seleccionado en el panel
 
             // Border visual de la tarjeta (dentro de un SessionCard para poder cambiar el cursor).
             var visual = new Border
@@ -352,8 +365,8 @@ public sealed partial class SchedulePage : Page
                 Background = baseColor,
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(6, 3, 6, 3),
-                BorderBrush = isActive ? new SolidColorBrush(accentColor) : null,
-                BorderThickness = isActive ? new Thickness(2) : new Thickness(0),
+                BorderBrush = ring ? new SolidColorBrush(accentColor) : null,
+                BorderThickness = ring ? new Thickness(2) : new Thickness(0),
                 Child = new StackPanel
                 {
                     Children =
@@ -376,7 +389,7 @@ public sealed partial class SchedulePage : Page
             };
 
             // Hover: borde de acento + cursor según la zona (cuerpo=mover, bordes/esquina=redimensionar).
-            double restThickness = isActive ? 2 : 0;
+            double restThickness = ring ? 2 : 0;
             int cardStartSlot = startSlot, cardSpanSlots = spanSlots, cardDayCol = dayCol;
             var thisGroup = group;
             card.PointerEntered += (_, _) => {
@@ -385,7 +398,7 @@ public sealed partial class SchedulePage : Page
             };
             card.PointerExited += (_, _) => {
                 visual.BorderThickness = new Thickness(restThickness);
-                visual.BorderBrush = isActive ? new SolidColorBrush(accentColor) : null;
+                visual.BorderBrush = ring ? new SolidColorBrush(accentColor) : null;
             };
             card.PointerMoved += (o, e) =>
             {
@@ -470,6 +483,7 @@ public sealed partial class SchedulePage : Page
         var es = new System.Globalization.CultureInfo("es-ES");
         WeekLabel.Text = $"{_weekStart.ToString("d MMM", es)} – {_weekStart.AddDays(6).ToString("d MMM yyyy", es)}";
         _calEvents = [];        // limpia el overlay de la semana anterior mientras descarga
+        CloseDetail(internalRefresh: true);   // la selección de otra semana ya no aplica
         Build();
         _ = LoadCalendarAsync();
     }
@@ -495,10 +509,13 @@ public sealed partial class SchedulePage : Page
         return h % CalPalette.Length;
     }
 
+    private static readonly Windows.UI.Color WarnColor = Windows.UI.Color.FromArgb(255, 245, 166, 35);   // ámbar "sin decidir"
+
     private void OverlayCalendar(Grid g, int startH, int hours)
     {
         if (_calEvents.Count == 0) return;
         int maxRow = 1 + hours * SlotsPerHour;
+        var accent = ((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color;
 
         foreach (var ev in _calEvents)
         {
@@ -519,36 +536,53 @@ public sealed partial class SchedulePage : Page
                 if (startSlot + spanSlots > maxRow) spanSlots = Math.Max(1, maxRow - startSlot);
             }
 
-            var fill = color; fill.A = 210;             // translúcido (deja ver el bloque debajo)
+            // ¿Pisa alguna sesión? ¿Qué prioridad eligió el usuario? (#114)
+            bool conflict = OverlapResolver.SessionsOverlapping(ev, _sessions).Count > 0;
+            bool? prefer = _priorities.FirstOrDefault(p => p.EventKey == OverlapResolver.EventKey(ev))?.PreferCalendar;
+            bool isSelected = _selectedEventKey is not null && OverlapResolver.EventKey(ev) == _selectedEventKey;
+
+            // La opacidad codifica quién gana: evento opaco = gana el evento; muy
+            // translúcido = gana la sesión (se ve por debajo); medio = sin decidir.
+            byte alpha = (byte)(conflict ? prefer switch { true => 245, false => 60, _ => 140 } : 210);
+            var fill = color; fill.A = alpha;
+            bool faded = conflict && prefer == false;
+            double textOpacity = faded ? 0.55 : 1.0;
+            string warn = conflict && prefer is null ? "⚠ " : "";   // ⚠ sin decidir
+
             var white = new SolidColorBrush(Microsoft.UI.Colors.White);
             var content = new StackPanel { Spacing = 0 };
             if (spanSlots <= 1)
             {
                 // Muy corto / todo el día: una sola línea que quepa en ~26px.
                 var oneLine = ev.AllDay ? ev.Title : $"{ev.Start:HH\\:mm}  {ev.Title}";
-                content.Children.Add(new TextBlock { Text = oneLine, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    Foreground = white, TextTrimming = TextTrimming.CharacterEllipsis });
+                content.Children.Add(new TextBlock { Text = warn + oneLine, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    Foreground = white, Opacity = textOpacity, TextTrimming = TextTrimming.CharacterEllipsis });
             }
             else
             {
                 var meta = ev.AllDay ? "Todo el día" : $"{ev.Start:HH\\:mm}–{ev.End:HH\\:mm}";
-                content.Children.Add(new TextBlock { Text = ev.Title, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    Foreground = white, TextTrimming = TextTrimming.CharacterEllipsis });
-                content.Children.Add(new TextBlock { Text = $"{meta} · {cal}", FontSize = 9, Opacity = 0.9,
+                content.Children.Add(new TextBlock { Text = warn + ev.Title, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    Foreground = white, Opacity = textOpacity, TextTrimming = TextTrimming.CharacterEllipsis });
+                content.Children.Add(new TextBlock { Text = $"{meta} · {cal}", FontSize = 9, Opacity = 0.9 * textOpacity,
                     Foreground = white, TextTrimming = TextTrimming.CharacterEllipsis });
             }
+
+            var borderColor = isSelected ? accent : (conflict && prefer is null ? WarnColor : color);
+            var borderThk = isSelected || (conflict && prefer is null) ? new Thickness(2) : new Thickness(4, 0, 0, 0);
+
             var card = new Border
             {
                 Background = new SolidColorBrush(fill),
-                BorderBrush = new SolidColorBrush(color),
-                BorderThickness = new Thickness(4, 0, 0, 0),     // barra de acento a la izquierda
+                BorderBrush = new SolidColorBrush(borderColor),
+                BorderThickness = borderThk,
                 CornerRadius = new CornerRadius(4),
                 Margin = new Thickness(3, 1, 3, 1),
                 Padding = new Thickness(5, 1, 4, 1),
                 VerticalAlignment = VerticalAlignment.Stretch,
-                IsHitTestVisible = false,                         // read-only: no estorba el arrastre
-                Child = content
+                Child = content                                   // clicable: abre el detalle del evento (#114)
             };
+            var captured = ev;
+            card.Tapped += (_, _) => ShowEventDetail(captured);
             Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
             Grid.SetColumn(card, dayCol + 1);
             g.Children.Add(card);
@@ -775,6 +809,251 @@ public sealed partial class SchedulePage : Page
             return; // Cancelar
         Build();
     }
+
+    // ---------- Panel lateral de detalle + resolución de solapamientos (#114) ----------
+
+    /// <summary>Identidad estable de una sesión, para resaltarla tras repintar la rejilla.</summary>
+    private static string SessionKey(StudySession s)
+        => $"{s.Title.Trim()}|{s.Kind}|{s.Start}|{s.Duration}|{s.IsTentative}";
+
+    /// <summary>Muestra el detalle completo de una sesión (y sus solapamientos) en el panel.</summary>
+    private void ShowSessionDetail(SessionGroup group)
+    {
+        var rep = group.Representative;
+        _selectedGroup = group; _selectedEvent = null;
+        _selectedSessionKey = SessionKey(rep); _selectedEventKey = null;
+        Build();   // repinta la rejilla con el resaltado
+
+        var content = DetailContent;
+        content.Children.Clear();
+        content.Children.Add(DetailHeader("Detalle de la sesión"));
+        content.Children.Add(TitleRow(ScheduleColors.For(rep.Kind), rep.Title));
+
+        var meta = new StackPanel { Spacing = 4 };
+        meta.Children.Add(MetaLine(rep.Kind.Label() + (rep.IsTentative ? "  ·  provisional" : "")));
+        meta.Children.Add(MetaLine($"{rep.Start:HH\\:mm} – {rep.End:HH\\:mm}  ·  {FormatDuration(rep.Duration)}"));
+        var days = group.Members.Select(m => m.Day).Distinct()
+                        .OrderBy(d => Array.IndexOf(Days, d)).Select(ShortDay);
+        meta.Children.Add(MetaLine("Se repite: " + string.Join(" · ", days)));
+        if (_activePhaseName is not null) meta.Children.Add(MetaLine("Fase: " + _activePhaseName));
+        content.Children.Add(meta);
+
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var editBtn = new Button { Content = "Editar" };
+        editBtn.Click += async (_, _) => { await ShowEditGroup(group); CloseDetail(); };
+        var focusBtn = new Button { Content = "Concentrarme", Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+        focusBtn.Click += (_, _) => FocusNow();
+        actions.Children.Add(editBtn); actions.Children.Add(focusBtn);
+        content.Children.Add(actions);
+
+        // Solapamientos con el calendario en los días en que se repite la sesión.
+        var resolvers = new List<FrameworkElement>();
+        foreach (var day in group.Members.Select(m => m.Day).Distinct().OrderBy(d => Array.IndexOf(Days, d)))
+        {
+            int di = Array.IndexOf(Days, day);
+            if (di < 0) continue;
+            var date = _weekStart.AddDays(di);
+            var occurrence = rep with { Day = day };
+            foreach (var ev in OverlapResolver.EventsOverlapping(occurrence, date, _calEvents))
+                resolvers.Add(BuildOverlapResolver(ev, [occurrence], date));
+        }
+        if (resolvers.Count > 0)
+        {
+            content.Children.Add(SectionLabel("SOLAPAMIENTOS"));
+            foreach (var r in resolvers) content.Children.Add(r);
+        }
+
+        DetailPanel.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>Muestra el detalle de un evento del calendario (y su resolución si pisa una sesión).</summary>
+    private void ShowEventDetail(CalendarEvent ev)
+    {
+        _selectedEvent = ev; _selectedGroup = null;
+        _selectedEventKey = OverlapResolver.EventKey(ev); _selectedSessionKey = null;
+        Build();
+
+        var es = new System.Globalization.CultureInfo("es-ES");
+        var cal = string.IsNullOrEmpty(ev.Calendar) ? "Calendario" : ev.Calendar!;
+        var color = new SolidColorBrush(CalPalette[CalColorIndex(cal)]);
+
+        var content = DetailContent;
+        content.Children.Clear();
+        content.Children.Add(DetailHeader("Detalle del evento"));
+        content.Children.Add(TitleRow(color, ev.Title));
+
+        var meta = new StackPanel { Spacing = 4 };
+        meta.Children.Add(MetaLine(Capitalize(ev.Start.ToString("dddd d 'de' MMMM", es))));
+        meta.Children.Add(MetaLine(ev.AllDay ? "Todo el día" : $"{ev.Start:HH\\:mm} – {ev.End:HH\\:mm}"));
+        meta.Children.Add(MetaLine("Calendario: " + cal));
+        content.Children.Add(meta);
+
+        var overlapping = OverlapResolver.SessionsOverlapping(ev, _sessions);
+        if (overlapping.Count > 0)
+        {
+            content.Children.Add(SectionLabel("SOLAPAMIENTOS"));
+            content.Children.Add(BuildOverlapResolver(ev, overlapping, DateOnly.FromDateTime(ev.Start)));
+        }
+        else
+        {
+            content.Children.Add(new TextBlock
+            {
+                Text = "Evento de solo lectura del calendario suscrito.",
+                Opacity = 0.6, FontSize = 12, TextWrapping = TextWrapping.Wrap
+            });
+        }
+
+        DetailPanel.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>Bloque "ver ambas y priorizar" para un evento que pisa una o más sesiones.</summary>
+    private FrameworkElement BuildOverlapResolver(CalendarEvent ev, IReadOnlyList<StudySession> sessions, DateOnly date)
+    {
+        var key = OverlapResolver.EventKey(ev);
+        bool? prefer = _priorities.FirstOrDefault(p => p.EventKey == key)?.PreferCalendar;
+
+        var box = new StackPanel { Spacing = 8 };
+
+        var sess = sessions.FirstOrDefault();
+        if (sess is not null)
+            box.Children.Add(ConflictRow(ScheduleColors.For(sess.Kind), $"Sesión · {sess.Title}",
+                $"{sess.Start:HH\\:mm}–{sess.End:HH\\:mm}", winner: prefer == false));
+
+        var cal = string.IsNullOrEmpty(ev.Calendar) ? "Calendario" : ev.Calendar!;
+        box.Children.Add(ConflictRow(new SolidColorBrush(CalPalette[CalColorIndex(cal)]), $"Calendario · {ev.Title}",
+            ev.AllDay ? "Todo el día" : $"{ev.Start:HH\\:mm}–{ev.End:HH\\:mm}", winner: prefer == true));
+
+        box.Children.Add(new TextBlock { Text = "¿Cuál priorizas?", FontSize = 12, Opacity = 0.7, Margin = new Thickness(0, 2, 0, 0) });
+
+        var choice = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var sBtn = ChoiceButton("La sesión", prefer == false);
+        sBtn.Click += (_, _) => { AppState.Config.SetOverlapPriority(key, preferCalendar: false); ReopenAfterPriority(); };
+        var cBtn = ChoiceButton("El evento", prefer == true);
+        cBtn.Click += (_, _) => { AppState.Config.SetOverlapPriority(key, preferCalendar: true); ReopenAfterPriority(); };
+        choice.Children.Add(sBtn); choice.Children.Add(cBtn);
+        box.Children.Add(choice);
+
+        if (prefer is not null)
+        {
+            var clear = new HyperlinkButton { Content = "Quitar prioridad", FontSize = 12, Padding = new Thickness(0) };
+            clear.Click += (_, _) => { AppState.Config.ClearOverlapPriority(key); ReopenAfterPriority(); };
+            box.Children.Add(clear);
+        }
+
+        return new Border
+        {
+            Padding = new Thickness(12), CornerRadius = new CornerRadius(8),
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorSecondaryBrush"],
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(1),
+            Child = box
+        };
+    }
+
+    /// <summary>Tras elegir prioridad: repinta la rejilla y refresca el panel en su contexto.</summary>
+    private void ReopenAfterPriority()
+    {
+        if (_selectedEvent is not null) ShowEventDetail(_selectedEvent);
+        else if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup);
+    }
+
+    /// <summary>Cierra el panel y quita el resaltado.</summary>
+    private void CloseDetail(bool internalRefresh = false)
+    {
+        DetailPanel.Visibility = Visibility.Collapsed;
+        DetailContent.Children.Clear();
+        _selectedSessionKey = null; _selectedEventKey = null;
+        _selectedGroup = null; _selectedEvent = null;
+        if (!internalRefresh) Build();   // repinta sin resaltado (RefreshWeek ya repinta por su cuenta)
+    }
+
+    // ---------- Bloques de UI del panel ----------
+
+    private FrameworkElement DetailHeader(string title)
+    {
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var t = new TextBlock { Text = title, FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(t, 0);
+        var close = new Button
+        {
+            Content = new SymbolIcon(Symbol.Cancel), MinWidth = 0, Padding = new Thickness(6),
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0)
+        };
+        ToolTipService.SetToolTip(close, "Cerrar");
+        close.Click += (_, _) => CloseDetail();
+        Grid.SetColumn(close, 1);
+        grid.Children.Add(t); grid.Children.Add(close);
+        return grid;
+    }
+
+    private static FrameworkElement TitleRow(Brush color, string title)
+    {
+        var g = new Grid { Margin = new Thickness(0, 2, 0, 0) };
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var dot = new Border { Width = 14, Height = 14, CornerRadius = new CornerRadius(7), Background = color, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 5, 10, 0) };
+        Grid.SetColumn(dot, 0);
+        var t = new TextBlock { Text = title, FontSize = 18, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+        Grid.SetColumn(t, 1);
+        g.Children.Add(dot); g.Children.Add(t);
+        return g;
+    }
+
+    private static TextBlock MetaLine(string text)
+        => new() { Text = text, FontSize = 13, Opacity = 0.85, TextWrapping = TextWrapping.Wrap };
+
+    private static TextBlock SectionLabel(string text)
+        => new() { Text = text, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Opacity = 0.55, Margin = new Thickness(0, 6, 0, 0) };
+
+    private FrameworkElement ConflictRow(Brush color, string title, string time, bool winner)
+    {
+        var g = new Grid();
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var dot = new Border { Width = 10, Height = 10, CornerRadius = new CornerRadius(5), Background = color, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 4, 8, 0) };
+        Grid.SetColumn(dot, 0);
+        var stack = new StackPanel { Spacing = 1 };
+        stack.Children.Add(new TextBlock { Text = title, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        stack.Children.Add(new TextBlock { Text = time, FontSize = 11, Opacity = 0.7 });
+        Grid.SetColumn(stack, 1);
+        g.Children.Add(dot); g.Children.Add(stack);
+
+        var accent = ((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color;
+        return new Border
+        {
+            Padding = new Thickness(10, 8, 10, 8), CornerRadius = new CornerRadius(8),
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+            BorderBrush = winner ? new SolidColorBrush(accent) : (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(winner ? 2 : 1),
+            Opacity = winner ? 1.0 : 0.8,
+            Child = g
+        };
+    }
+
+    private static Button ChoiceButton(string text, bool selected)
+    {
+        var b = new Button { Content = text, MinWidth = 0, Padding = new Thickness(12, 6, 12, 6) };
+        if (selected) b.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
+        return b;
+    }
+
+    private static string FormatDuration(TimeSpan d)
+    {
+        int h = (int)d.TotalHours, m = d.Minutes;
+        if (h > 0 && m > 0) return $"{h} h {m} min";
+        if (h > 0) return $"{h} h";
+        return $"{m} min";
+    }
+
+    private static string ShortDay(DayOfWeek d) => d switch
+    {
+        DayOfWeek.Monday => "Lun", DayOfWeek.Tuesday => "Mar", DayOfWeek.Wednesday => "Mié",
+        DayOfWeek.Thursday => "Jue", DayOfWeek.Friday => "Vie", DayOfWeek.Saturday => "Sáb", _ => "Dom"
+    };
+
+    private static string Capitalize(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpper(s[0]) + s[1..];
 
     private static FrameworkElement Cell(FrameworkElement content, int row, int col, int rowSpan, Brush? bg, Brush line)
     {

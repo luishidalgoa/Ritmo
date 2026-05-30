@@ -494,6 +494,31 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Calendario eliminado.");
     }
 
+    // ---------- Prioridad en solapamientos horario↔calendario (#114) ----------
+
+    /// <summary>
+    /// Recuerda qué lado prioriza el usuario para un evento en conflicto con una
+    /// sesión. Reemplaza cualquier decisión previa del mismo evento.
+    /// </summary>
+    public CommandResult SetOverlapPriority(string eventKey, bool preferCalendar)
+    {
+        if (string.IsNullOrWhiteSpace(eventKey)) return CommandResult.Fail("Falta el evento del solapamiento.");
+        var s = _store.Load();
+        var others = s.OverlapPriorities.Where(p => p.EventKey != eventKey).ToList();
+        others.Add(new OverlapPriority { EventKey = eventKey, PreferCalendar = preferCalendar });
+        _store.Save(s with { OverlapPriorities = others });
+        return CommandResult.Ok(preferCalendar ? "Priorizado el evento del calendario." : "Priorizada la sesión.");
+    }
+
+    /// <summary>Olvida la decisión de prioridad de un evento (vuelve a "sin decidir").</summary>
+    public CommandResult ClearOverlapPriority(string eventKey)
+    {
+        var s = _store.Load();
+        if (s.OverlapPriorities.All(p => p.EventKey != eventKey)) return CommandResult.Ok("Sin cambios.");
+        _store.Save(s with { OverlapPriorities = s.OverlapPriorities.Where(p => p.EventKey != eventKey).ToList() });
+        return CommandResult.Ok("Prioridad eliminada.");
+    }
+
     /// <summary>Asocia un tipo de bloque a un entorno (debe existir).</summary>
     public CommandResult MapEnvironmentToKind(StudyKind kind, string environmentId)
     {

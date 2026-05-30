@@ -44,11 +44,28 @@
             </Button>
         </Grid>
 
-        <ScrollViewer Grid.Row="1" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto"
-                      AutomationProperties.AutomationId="ScheduleScroller">
-            <!-- La rejilla se genera en el code-behind dentro de este Grid -->
-            <Grid x:Name="GridRoot" AutomationProperties.AutomationId="GridRoot" />
-        </ScrollViewer>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer Grid.Column="0" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto"
+                          AutomationProperties.AutomationId="ScheduleScroller">
+                <!-- La rejilla se genera en el code-behind dentro de este Grid -->
+                <Grid x:Name="GridRoot" AutomationProperties.AutomationId="GridRoot" />
+            </ScrollViewer>
+
+            <!-- Panel lateral de detalle: sesión o evento del calendario (#114) -->
+            <Border x:Name="DetailPanel" Grid.Column="1" Width="320" Visibility="Collapsed"
+                    Margin="16,0,0,0" CornerRadius="10"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="DetailContent" Padding="16" Spacing="12" />
+                </ScrollViewer>
+            </Border>
+        </Grid>
     </Grid>
 </Page>
