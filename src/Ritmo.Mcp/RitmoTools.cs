@@ -233,6 +233,12 @@ public sealed class RitmoTools
         return Report(_config.SetViewHours(from, to));
     }
 
+    [McpServerTool(Name = "set_view_granularity")]
+    [Description("Fija la granularidad de la rejilla de fondo del horario: 60 (por defecto), 30 o 15 minutos por línea. Solo afecta a las líneas-guía; los bloques se posicionan por su minuto real.")]
+    public string SetViewGranularity(
+        [Description("Minutos por línea de la rejilla: 60, 30 o 15")] int minutes)
+        => Report(_config.SetGranularity(minutes));
+
     // ==================== NOTAS ====================
 
     [McpServerTool(Name = "add_note")]

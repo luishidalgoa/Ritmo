@@ -160,6 +160,7 @@ internal sealed class ViewConfigDto
     public Dictionary<string, string> ColorsByKind { get; set; } = [];
     public List<ShortcutDto> Shortcuts { get; set; } = [];
     public bool ShowDayPreviewOnFocusStart { get; set; } = true;
+    public int GranularityMinutes { get; set; } = 60;
 }
 
 /// <summary>Conversión entre el modelo de dominio y los DTO de almacenamiento.</summary>
@@ -267,7 +268,8 @@ internal static class SettingsMapper
         DayEnd = v.DayEnd.ToString(TimeFormat, CultureInfo.InvariantCulture),
         ColorsByKind = v.ColorsByKind.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
         Shortcuts = v.Shortcuts.Select(s => new ShortcutDto { Title = s.Title, Url = s.Url }).ToList(),
-        ShowDayPreviewOnFocusStart = v.ShowDayPreviewOnFocusStart
+        ShowDayPreviewOnFocusStart = v.ShowDayPreviewOnFocusStart,
+        GranularityMinutes = v.GranularityMinutes
     };
 
     // ---------- DTO -> Dominio ----------
@@ -377,6 +379,7 @@ internal static class SettingsMapper
             .Where(kv => Enum.TryParse<StudyKind>(kv.Key, ignoreCase: true, out _))
             .ToDictionary(kv => Enum.Parse<StudyKind>(kv.Key, ignoreCase: true), kv => kv.Value),
         Shortcuts = v.Shortcuts.Select(s => new ShortcutLink { Title = s.Title, Url = s.Url }).ToList(),
-        ShowDayPreviewOnFocusStart = v.ShowDayPreviewOnFocusStart
+        ShowDayPreviewOnFocusStart = v.ShowDayPreviewOnFocusStart,
+        GranularityMinutes = ScheduleGeometry.NormalizeGranularity(v.GranularityMinutes)
     };
 }

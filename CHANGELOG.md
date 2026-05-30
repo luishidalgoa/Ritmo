@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 40 herramientas
+### 🤖 La IA (servidor MCP) — 41 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -40,7 +40,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Fases: `add_phase`, `update_phase`, `remove_phase`.
 - Sesiones recurrentes: `add_session`, `update_session`, `remove_session`.
 - Sesiones provisionales (con fecha): `add_one_off_session`, `remove_one_off_session`.
-- Rango horario visible: `set_view_hours`.
+- Rango horario visible y granularidad de la rejilla: `set_view_hours`, `set_view_granularity`.
 
 **Pomodoro**
 - Pomodoro por defecto: `set_pomodoro`.
@@ -89,6 +89,9 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - **Navegación entre semanas** + navegador de calendario mes/año (#113, #119).
 - **Hoy resaltado** + **línea reactiva de la hora actual** en la columna de hoy (#69, #115).
 - **Rejilla responsive**: las columnas de día llenan el ancho disponible (#117).
+- **Granularidad de la rejilla configurable** (60/30/15 min, 60 por defecto): solo cambia las
+  líneas-guía de fondo; los bloques se posicionan por su minuto real, así una hora irregular
+  (p. ej. 16:40) se ve donde toca sin desalinear los demás días (#61).
 - **Panel lateral de detalle** de sesión y **resolución de solapamientos** con eventos del
   calendario (elegir qué lado prioriza) (#114).
 - Avisos previos configurables por sesión (1 h / 10 min / 5 min, hasta 2; desplegables con
@@ -156,6 +159,12 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#61 — Granularidad de la rejilla del horario configurable.** Selector 60/30/15 min en
+  Ajustes (60 por defecto). La granularidad solo dibuja las líneas-guía de fondo; los bloques
+  pasan a posicionarse por su **minuto real** (geometría pura `ScheduleGeometry`, con tests),
+  así un bloque a las 16:40 se ve donde toca sin desalinear los demás días. El arrastre se
+  ajusta a la rejilla activa. Nueva herramienta MCP `set_view_granularity`. Verificado en la
+  app (captura: 16:40 entre las líneas de 16:00 y 17:00).
 - **#120 — Control total de la configuración desde la IA (MCP).** `RitmoTools` pasa de
   6 a **40 herramientas**, cubriendo toda la superficie de `ConfigurationService`: la IA
   puede ver (`get_config`/`list_known_apps`) y configurar fases, sesiones, provisionales,

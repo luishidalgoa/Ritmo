@@ -19,6 +19,14 @@ public sealed record ScheduleViewConfig
     public TimeOnly DayEnd { get; init; } = new(20, 0);
 
     /// <summary>
+    /// Granularidad de la rejilla de fondo en minutos: 60 (por defecto), 30 o 15.
+    /// SOLO afecta a las líneas-guía uniformes; los bloques se posicionan por su
+    /// minuto real (independiente de este valor), así una sesión a las 16:40 se ve
+    /// donde toca sin desalinear el resto de días. #61
+    /// </summary>
+    public int GranularityMinutes { get; init; } = 60;
+
+    /// <summary>
     /// Color (hex "#RRGGBB") por tipo de bloque. Si un tipo no está aquí, la UI
     /// usa su color por defecto. Permite que el usuario personalice las franjas.
     /// </summary>

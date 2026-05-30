@@ -39,8 +39,13 @@ public sealed partial class SchedulePage : Page
     private const double HourColWidth = 64;
     private const double DayColMinWidth = 150;   // ancho mínimo de columna de día (#117)
     private double _dayColWidth = DayColMinWidth; // ancho actual: se estira para llenar el ancho visible
-    private const double RowHeight = 26;      // alto de media hora
-    private const int SlotsPerHour = 2;
+    private const double HourHeight = 52;     // alto de UNA hora (constante; antes 2 slots de 26) #61
+    // Granularidad de la rejilla de fondo (líneas-guía). Se recalcula en cada Build
+    // desde ViewConfig.GranularityMinutes. Los bloques NO dependen de esto: se
+    // posicionan por su minuto real (proporcional a HourHeight). #61
+    private int _granularity = 60;
+    private int _slotsPerHour = 1;            // = 60 / _granularity
+    private double _slotHeight = HourHeight;   // = HourHeight / _slotsPerHour
 
     private enum DragMode { None, Move, ResizeH, ResizeV, ResizeBoth }
 
@@ -49,10 +54,12 @@ public sealed partial class SchedulePage : Page
     private SessionCard? _card;
     private Ritmo.Core.Scheduling.SessionGroup? _group;
     private double _startX, _startY;          // inicio del puntero en coords de GridRoot
+    private double _startTopPx, _startHeightPx;  // top/alto en píxel del bloque al empezar (#61)
     private int _c0, _startSlot, _startDaySpan, _startRowSpan;
     private bool _movedEnough;
     private int _maxDaySpan, _maxRows;         // topes para no solapar (calculados al empezar)
     private int _curCol, _curRow, _curDaySpan, _curRowSpan;   // preview actual (válido)
+    private int _curSlotDelta;                 // desplazamiento vertical actual en slots (#61)
     private int _startHour = 8;
     private IReadOnlyList<StudySession> _keptForDrag = [];
 
@@ -110,30 +117,32 @@ public sealed partial class SchedulePage : Page
         }
         if (_mode is DragMode.ResizeV or DragMode.ResizeBoth)
         {
-            int bottomRow = (int)Math.Round((pt.Y - 32) / RowHeight);   // 32 = cabecera
-            int span = Math.Clamp(bottomRow - _startSlot + 1, 1, _maxRows);
+            // Alto en píxel desde el top del bloque hasta el puntero; ajustado a slots. #61
+            double heightPx = (pt.Y - 32) - _startTopPx;   // 32 = cabecera
+            int span = Math.Clamp(ScheduleGeometry.PixelsToSlots(heightPx, HourHeight, _granularity), 1, _maxRows);
             _curRowSpan = span;
-            Grid.SetRowSpan(_card, _curRowSpan);
+            _card.Height = Math.Max(14, span * _slotHeight - 3);
         }
         if (_mode == DragMode.Move)
         {
             int dayDelta = (int)Math.Round((pt.X - _startX) / _dayColWidth);
-            int slotDelta = (int)Math.Round((pt.Y - _startY) / RowHeight);
+            int slotDelta = ScheduleGeometry.PixelsToSlots(pt.Y - _startY, HourHeight, _granularity);
             int dayIndex = Math.Clamp(_c0 + dayDelta, 0, 7 - _startDaySpan);
-            int row = Math.Max(1, _startSlot + slotDelta);
             // Solo aceptar la nueva posición si NO solapa (si solapa, se queda en la última válida).
-            if (!MoveCollides(dayIndex, row))
+            if (!MoveCollides(dayIndex, slotDelta))
             {
-                _curCol = dayIndex + 1; _curRow = row;
-                Grid.SetColumn(_card, _curCol); Grid.SetRow(_card, _curRow);
+                _curCol = dayIndex + 1; _curSlotDelta = slotDelta;
+                Grid.SetColumn(_card, _curCol);
+                // Mantiene el offset irregular del bloque y lo desplaza por slots completos.
+                _card.Margin = new Thickness(2, _startTopPx + slotDelta * _slotHeight + 1.5, 2, 0);
             }
         }
     }
 
-    private bool MoveCollides(int dayIndex, int row)
+    private bool MoveCollides(int dayIndex, int slotDelta)
     {
         var rep = _group!.Representative;
-        var start = ScheduleMath.ShiftStart(rep.Start, row - _startSlot);
+        var start = ScheduleMath.ShiftStart(rep.Start, slotDelta, _granularity);
         var cand = _group.Members.Select(m =>
             rep with { Day = Days[Math.Clamp(Array.IndexOf(Days, m.Day) + (dayIndex - _c0), 0, 6)], Start = start });
         return Collides(cand, _keptForDrag);
@@ -155,7 +164,7 @@ public sealed partial class SchedulePage : Page
         switch (mode)
         {
             case DragMode.Move:
-                _ = ApplyMove(group, (_curCol - 1) - _c0, RowsToSlotDelta(_curRow)); break;
+                _ = ApplyMove(group, (_curCol - 1) - _c0, _curSlotDelta); break;
             case DragMode.ResizeH:
                 _ = ApplyResize(group, _c0, _curDaySpan); break;
             case DragMode.ResizeV:
@@ -165,8 +174,6 @@ public sealed partial class SchedulePage : Page
         }
     }
 
-    private int RowsToSlotDelta(int newRow) => newRow - _startSlot;
-
     /// <summary>Empieza un arrastre desde la tarjeta, según la zona pulsada (borde/cuerpo).</summary>
     private void BeginDrag(SessionCard card, Ritmo.Core.Scheduling.SessionGroup group, DragMode mode,
                            int c0, int startSlot, int daySpan, int rowSpan,
@@ -174,8 +181,11 @@ public sealed partial class SchedulePage : Page
     {
         _mode = mode; _card = card; _group = group; _movedEnough = false;
         _c0 = c0; _startSlot = startSlot; _startDaySpan = daySpan; _startRowSpan = rowSpan;
-        _curCol = c0 + 1; _curRow = startSlot; _curDaySpan = daySpan; _curRowSpan = rowSpan;
+        _curCol = c0 + 1; _curRow = startSlot; _curDaySpan = daySpan; _curRowSpan = rowSpan; _curSlotDelta = 0;
         var pt = e.GetCurrentPoint(GridRoot).Position; _startX = pt.X; _startY = pt.Y;
+        // Top/alto en píxel del bloque (preview por píxel manteniendo su minuto real). #61
+        _startTopPx = ScheduleGeometry.TopPixels(group.Representative.Start, _startHour, HourHeight);
+        _startHeightPx = ScheduleGeometry.HeightPixels(group.Representative.Duration, HourHeight);
 
         // Conservadas (no del grupo) + topes de no-solape, calculados una vez.
         var settings = AppState.Load();
@@ -218,7 +228,7 @@ public sealed partial class SchedulePage : Page
                 if (kStart >= startMin && kStart < maxEnd) maxEnd = kStart;   // sesión que empieza por debajo
             }
         }
-        int slotMin = 60 / SlotsPerHour;
+        int slotMin = _granularity;
         return Math.Max(1, (maxEnd - startMin) / slotMin);
     }
 
@@ -226,6 +236,11 @@ public sealed partial class SchedulePage : Page
     {
         AppState.EnsureSeeded();
         var settings = AppState.Load();
+
+        // Granularidad de la rejilla de fondo (#61): solo cambia las líneas-guía.
+        _granularity = ScheduleGeometry.NormalizeGranularity(settings.ViewConfig.GranularityMinutes);
+        _slotsPerHour = ScheduleGeometry.SlotsPerHour(_granularity);
+        _slotHeight = ScheduleGeometry.SlotHeight(HourHeight, _granularity);
 
         var today = DateOnly.FromDateTime(DateTime.Now);
         _builtDate = today;
@@ -279,8 +294,8 @@ public sealed partial class SchedulePage : Page
 
     private void BuildGrid(WeeklySchedule schedule, int startH, int endH)
     {
-        const int slotsPerHour = 2;
-        const double rowHeight = 26;
+        int slotsPerHour = _slotsPerHour;     // según la granularidad elegida (#61)
+        double rowHeight = _slotHeight;
         int hours = endH - startH;
         int totalRows = hours * slotsPerHour;
 
@@ -333,6 +348,21 @@ public sealed partial class SchedulePage : Page
             for (int hh = Math.Max(0, h0); hh < Math.Min(hours, h1); hh++) occupied[dc, hh] = true;
         }
 
+        // Líneas-guía de fondo: una celda por SLOT de la granularidad (#61). Uniformes
+        // para todos los días; los bloques se pintan luego encima por su minuto real.
+        for (int r = 0; r < totalRows; r++)
+            for (int c = 0; c < 7; c++)
+            {
+                var bgCell = new Border
+                {
+                    BorderBrush = line, BorderThickness = new Thickness(0, 0, 1, 1),
+                    Background = c == todayCol ? todayTint : null
+                };
+                Grid.SetRow(bgCell, 1 + r); Grid.SetColumn(bgCell, c + 1);
+                g.Children.Add(bgCell);
+            }
+
+        // Etiquetas de hora (solo horas redondas → eje limpio) + botón "+" por hora vacía.
         for (int h = 0; h < hours; h++)
         {
             int rowTop = 1 + h * slotsPerHour;
@@ -344,15 +374,6 @@ public sealed partial class SchedulePage : Page
 
             for (int c = 0; c < 7; c++)
             {
-                var bg = new Border
-                {
-                    BorderBrush = line, BorderThickness = new Thickness(0, 0, 1, 1),
-                    Background = c == todayCol ? todayTint : null
-                };
-                Grid.SetRow(bg, rowTop); Grid.SetRowSpan(bg, slotsPerHour);
-                Grid.SetColumn(bg, c + 1);
-                g.Children.Add(bg);
-
                 // Celda vacía -> botón "+" sutil para añadir una sesión en ese día/hora.
                 if (!occupied[c, h])
                 {
@@ -384,9 +405,12 @@ public sealed partial class SchedulePage : Page
             var s = group.Representative;
             int dayCol = group.FirstDayIndex;
             if (dayCol < 0) continue;
-            int startSlot = 1 + (int)Math.Round((s.Start.Hour - startH + s.Start.Minute / 60.0) * slotsPerHour);
-            int spanSlots = Math.Max(1, (int)Math.Round(s.Duration.TotalHours * slotsPerHour));
-            if (startSlot < 1) startSlot = 1;
+            // Posición por píxeles según el minuto REAL (independiente de la granularidad): #61
+            double topPx = ScheduleGeometry.TopPixels(s.Start, startH, HourHeight);
+            double heightPx = ScheduleGeometry.HeightPixels(s.Duration, HourHeight);
+            // Índices de slot (el arrastre se ajusta a la rejilla de la granularidad activa).
+            int startSlotIdx = (int)Math.Round(ScheduleGeometry.MinutesFromStart(s.Start, startH) / (double)_granularity);
+            int spanSlots = Math.Max(1, (int)Math.Round(s.Duration.TotalMinutes / (double)_granularity));
 
             var baseColor = ScheduleColors.For(s.Kind);
             bool isActive = activeSession is not null && group.Members.Any(m => ReferenceEquals(m, activeSession));
@@ -417,14 +441,16 @@ public sealed partial class SchedulePage : Page
             var card = new SessionCard
             {
                 Content = visual,
-                Margin = new Thickness(2),
+                VerticalAlignment = VerticalAlignment.Top,           // flota por su minuto real (#61)
+                Height = Math.Max(14, heightPx - 3),
+                Margin = new Thickness(2, topPx + 1.5, 2, 0),
                 Opacity = s.IsTentative ? 0.6 : 1.0,
                 Tag = group
             };
 
             // Hover: borde de acento + cursor según la zona (cuerpo=mover, bordes/esquina=redimensionar).
             double restThickness = ring ? 2 : 0;
-            int cardStartSlot = startSlot, cardSpanSlots = spanSlots, cardDayCol = dayCol;
+            int cardStartSlot = startSlotIdx, cardSpanSlots = spanSlots, cardDayCol = dayCol;
             var thisGroup = group;
             card.PointerEntered += (_, _) => {
                 visual.BorderThickness = new Thickness(1.5);
@@ -449,7 +475,7 @@ public sealed partial class SchedulePage : Page
             // depende de la captura del puntero, que el SV roba); el mismo mecanismo
             // que usan los eventos del calendario. El arrastre sigue por Pointer*. #114
             card.Tapped += (_, _) => ShowSessionDetail(thisGroup);
-            Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
+            Grid.SetRow(card, 1); Grid.SetRowSpan(card, totalRows);   // flota; alto/margen lo posicionan (#61)
             Grid.SetColumn(card, dayCol + 1); Grid.SetColumnSpan(card, group.DaySpan);
             g.Children.Add(card);
 
@@ -462,12 +488,12 @@ public sealed partial class SchedulePage : Page
                     Padding = new Thickness(4), MinWidth = 0,
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(0, 4, 6, 0),
+                    Margin = new Thickness(0, topPx + 4, 6, 0),
                     CornerRadius = new CornerRadius(4)
                 };
                 ToolTipService.SetToolTip(focusBtn, "Concentrarme en este bloque");
                 focusBtn.Click += (_, _) => FocusNow();
-                Grid.SetRow(focusBtn, startSlot); Grid.SetRowSpan(focusBtn, spanSlots);
+                Grid.SetRow(focusBtn, 1); Grid.SetRowSpan(focusBtn, totalRows);
                 Grid.SetColumn(focusBtn, dayCol + 1); Grid.SetColumnSpan(focusBtn, group.DaySpan);
                 g.Children.Add(focusBtn);
             }
@@ -482,11 +508,11 @@ public sealed partial class SchedulePage : Page
                     BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
                     BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
                     Padding = new Thickness(5, 0, 5, 1),
-                    HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom,
-                    Margin = new Thickness(0, 0, 5, 4), IsHitTestVisible = false,
+                    HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(0, topPx + Math.Max(14, heightPx - 3) - 20, 5, 0), IsHitTestVisible = false,
                     Child = new TextBlock { Text = $"📝 {noteCount}", FontSize = 10 }
                 };
-                Grid.SetRow(badge, startSlot); Grid.SetRowSpan(badge, spanSlots);
+                Grid.SetRow(badge, 1); Grid.SetRowSpan(badge, totalRows);
                 Grid.SetColumn(badge, dayCol + 1); Grid.SetColumnSpan(badge, group.DaySpan);
                 g.Children.Add(badge);
             }
@@ -494,7 +520,7 @@ public sealed partial class SchedulePage : Page
 
         // Indicador de "ahora" sobre la columna de hoy (línea + punto), reposicionable
         // por el temporizador sin reconstruir la rejilla. #115
-        _nowStartH = startH; _nowHours = hours; _nowTodayCol = todayCol;
+        _nowStartH = startH; _nowHours = hours; _nowTodayCol = todayCol; _nowTotalRows = totalRows;
         PlaceNowIndicator();
 
         OverlayOneOffs(g, startH, hours);    // sesiones provisionales de la semana (#103)
@@ -528,7 +554,7 @@ public sealed partial class SchedulePage : Page
 
     // ---------- Indicador de la hora actual ("ahora"), reactivo (#115) ----------
 
-    private int _nowStartH, _nowHours, _nowTodayCol = -1;     // contexto de la rejilla pintada
+    private int _nowStartH, _nowHours, _nowTodayCol = -1, _nowTotalRows;     // contexto de la rejilla pintada
     private readonly List<UIElement> _nowParts = new();       // línea + punto actuales en GridRoot
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _nowTimer;
     private DateOnly _builtDate;                               // día con el que se construyó (para detectar cambio de día)
@@ -548,9 +574,8 @@ public sealed partial class SchedulePage : Page
         double nowHours = now.Hour + now.Minute / 60.0 + now.Second / 3600.0 - _nowStartH;
         if (nowHours < 0 || nowHours > _nowHours) return;
 
-        double slot = nowHours * SlotsPerHour;
-        int rowAt = 1 + (int)Math.Floor(slot);
-        double offset = (slot - Math.Floor(slot)) * RowHeight;
+        // Posición por píxel (proporcional al minuto real, igual que los bloques). #61
+        double offset = nowHours * HourHeight;
         var accent = ((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color;
         var brush = new SolidColorBrush(accent);
 
@@ -561,7 +586,7 @@ public sealed partial class SchedulePage : Page
             Margin = new Thickness(0, offset, 0, 0),
             IsHitTestVisible = false
         };
-        Grid.SetRow(line, rowAt); Grid.SetColumn(line, _nowTodayCol + 1); Grid.SetRowSpan(line, 1);
+        Grid.SetRow(line, 1); Grid.SetColumn(line, _nowTodayCol + 1); Grid.SetRowSpan(line, _nowTotalRows);
 
         var dot = new Microsoft.UI.Xaml.Shapes.Ellipse
         {
@@ -571,7 +596,7 @@ public sealed partial class SchedulePage : Page
             Margin = new Thickness(-3, offset - 3.5, 0, 0),
             IsHitTestVisible = false
         };
-        Grid.SetRow(dot, rowAt); Grid.SetColumn(dot, _nowTodayCol + 1); Grid.SetRowSpan(dot, 1);
+        Grid.SetRow(dot, 1); Grid.SetColumn(dot, _nowTodayCol + 1); Grid.SetRowSpan(dot, _nowTotalRows);
 
         GridRoot.Children.Add(line); GridRoot.Children.Add(dot);
         _nowParts.Add(line); _nowParts.Add(dot);
@@ -680,7 +705,8 @@ public sealed partial class SchedulePage : Page
     private void OverlayCalendar(Grid g, int startH, int hours)
     {
         if (_calEvents.Count == 0) return;
-        int maxRow = 1 + hours * SlotsPerHour;
+        int totalRows = hours * _slotsPerHour;
+        double maxPx = hours * HourHeight;
         var accent = ((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color;
 
         foreach (var ev in _calEvents)
@@ -691,15 +717,18 @@ public sealed partial class SchedulePage : Page
             var cal = string.IsNullOrEmpty(ev.Calendar) ? "Calendario" : ev.Calendar!;
             var color = CalPalette[CalColorIndex(cal)];   // color estable por nombre de calendario
 
-            int startSlot, spanSlots;
-            if (ev.AllDay) { startSlot = 1; spanSlots = 1; }
+            // Posición por píxel (igual que los bloques): el evento cae en su minuto real. #61
+            double topPx, heightPx;
+            bool shortEv;
+            if (ev.AllDay) { topPx = 0; heightPx = HourHeight * 0.6; shortEv = true; }
             else
             {
                 double startHours = ev.Start.Hour + ev.Start.Minute / 60.0 - startH;
                 if (startHours >= hours) continue;
-                startSlot = 1 + (int)Math.Round(Math.Max(0, startHours) * SlotsPerHour);
-                spanSlots = Math.Max(1, (int)Math.Round((ev.End - ev.Start).TotalHours * SlotsPerHour));
-                if (startSlot + spanSlots > maxRow) spanSlots = Math.Max(1, maxRow - startSlot);
+                topPx = Math.Max(0, startHours) * HourHeight;
+                heightPx = Math.Max(8, (ev.End - ev.Start).TotalHours * HourHeight);
+                if (topPx + heightPx > maxPx) heightPx = Math.Max(8, maxPx - topPx);
+                shortEv = heightPx < HourHeight * 0.75;
             }
 
             // ¿Pisa alguna sesión? ¿Qué prioridad eligió el usuario? (#114)
@@ -722,7 +751,7 @@ public sealed partial class SchedulePage : Page
 
             var white = new SolidColorBrush(Microsoft.UI.Colors.White);
             var content = new StackPanel { Spacing = 0 };
-            if (spanSlots <= 1)
+            if (shortEv)
             {
                 // Muy corto / todo el día: una sola línea que quepa en ~26px.
                 var oneLine = ev.AllDay ? ev.Title : $"{ev.Start:HH\\:mm}  {ev.Title}";
@@ -747,15 +776,16 @@ public sealed partial class SchedulePage : Page
                 BorderBrush = new SolidColorBrush(borderColor),
                 BorderThickness = borderThk,
                 CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(3, 1, 3, 1),                // ancho completo del día
+                Margin = new Thickness(3, topPx + 1, 3, 0),       // posición por píxel (#61)
                 Padding = new Thickness(5, 1, 4, 1),
-                VerticalAlignment = VerticalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Top,
+                Height = Math.Max(14, heightPx - 2),
                 Opacity = cardOpacity,                            // gana la sesión -> toda la tarjeta recede (#114)
                 Child = content                                   // clicable: abre el detalle del evento (#114)
             };
             var captured = ev;
             card.Tapped += (_, _) => ShowEventDetail(captured);
-            Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
+            Grid.SetRow(card, 1); Grid.SetRowSpan(card, totalRows);
             Grid.SetColumn(card, dayCol + 1);
             g.Children.Add(card);
         }
@@ -766,7 +796,8 @@ public sealed partial class SchedulePage : Page
     private void OverlayOneOffs(Grid g, int startH, int hours)
     {
         if (_oneOffs.Count == 0) return;
-        int maxRow = 1 + hours * SlotsPerHour;
+        int totalRows = hours * _slotsPerHour;
+        double maxPx = hours * HourHeight;
         var weekEnd = _weekStart.AddDays(6);
         var accentBrush = new SolidColorBrush(((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color);
 
@@ -778,9 +809,9 @@ public sealed partial class SchedulePage : Page
 
             double startHours = one.Start.Hour + one.Start.Minute / 60.0 - startH;
             if (startHours >= hours) continue;
-            int startSlot = 1 + (int)Math.Round(Math.Max(0, startHours) * SlotsPerHour);
-            int spanSlots = Math.Max(1, (int)Math.Round(one.Duration.TotalHours * SlotsPerHour));
-            if (startSlot + spanSlots > maxRow) spanSlots = Math.Max(1, maxRow - startSlot);
+            double topPx = Math.Max(0, startHours) * HourHeight;                 // posición por píxel (#61)
+            double heightPx = Math.Max(8, one.Duration.TotalHours * HourHeight);
+            if (topPx + heightPx > maxPx) heightPx = Math.Max(8, maxPx - topPx);
 
             var end = one.Start.Add(one.Duration);
             var content = new StackPanel { Spacing = 0 };
@@ -796,7 +827,9 @@ public sealed partial class SchedulePage : Page
                 Background = ScheduleColors.For(one.Kind),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(6, 3, 6, 3),
-                Margin = new Thickness(2),
+                VerticalAlignment = VerticalAlignment.Top,
+                Height = Math.Max(14, heightPx - 3),
+                Margin = new Thickness(2, topPx + 1.5, 2, 0),
                 BorderBrush = accentBrush,
                 BorderThickness = new Thickness(2),   // borde de acento = distinta de las recurrentes
                 Opacity = one.IsTentative ? 0.6 : 1.0,
@@ -804,7 +837,7 @@ public sealed partial class SchedulePage : Page
             };
             var captured = one;
             card.Tapped += (_, _) => ShowOneOffDetail(captured);
-            Grid.SetRow(card, startSlot); Grid.SetRowSpan(card, spanSlots);
+            Grid.SetRow(card, 1); Grid.SetRowSpan(card, totalRows);
             Grid.SetColumn(card, dayCol + 1);
             g.Children.Add(card);
         }
@@ -919,8 +952,8 @@ public sealed partial class SchedulePage : Page
         bool Belongs(StudySession x) => SameBlock(x, rep) && origDays.Contains(x.Day);
         var kept = phase.Schedule.Sessions.Where(x => !Belongs(x)).ToList();
 
-        // Nueva hora de inicio (mantiene duración), acotada al día.
-        var newStart = ScheduleMath.ShiftStart(rep.Start, slotDelta);
+        // Nueva hora de inicio (mantiene duración), acotada al día. Slot = granularidad activa (#61).
+        var newStart = ScheduleMath.ShiftStart(rep.Start, slotDelta, _granularity);
 
         // Cada miembro cambia de día por el delta (acotado a la semana); dedup por día.
         var moved = group.Members
@@ -952,7 +985,7 @@ public sealed partial class SchedulePage : Page
         bool Belongs(StudySession x) => SameBlock(x, rep) && origDays.Contains(x.Day);
         var kept = phase.Schedule.Sessions.Where(x => !Belongs(x)).ToList();
 
-        var newDuration = TimeSpan.FromMinutes(Math.Max(1, newSpanRows) * (60 / SlotsPerHour));
+        var newDuration = TimeSpan.FromMinutes(Math.Max(1, newSpanRows) * _granularity);
         var resized = group.Members.Select(m => rep with { Day = m.Day, Duration = newDuration }).ToList();
 
         if (Collides(resized, kept)) { Build(); return; }   // chocaría con algo debajo (#90)
@@ -975,7 +1008,7 @@ public sealed partial class SchedulePage : Page
         bool Belongs(StudySession x) => SameBlock(x, rep) && origDays.Contains(x.Day);
         var kept = phase.Schedule.Sessions.Where(x => !Belongs(x)).ToList();
 
-        var newDuration = TimeSpan.FromMinutes(Math.Max(1, rowSpan) * (60 / SlotsPerHour));
+        var newDuration = TimeSpan.FromMinutes(Math.Max(1, rowSpan) * _granularity);
         var rebuilt = Enumerable.Range(c0, Math.Clamp(daySpan, 1, 7 - c0))
                                 .Select(i => rep with { Day = Days[i], Duration = newDuration }).ToList();
 

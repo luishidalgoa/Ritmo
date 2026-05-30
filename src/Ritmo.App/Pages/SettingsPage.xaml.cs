@@ -36,6 +36,7 @@ public sealed partial class SettingsPage : Page
 
         DayStartPicker.Time = s.ViewConfig.DayStart.ToTimeSpan();
         DayEndPicker.Time = s.ViewConfig.DayEnd.ToTimeSpan();
+        GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
 
         ThemeBox.SelectedIndex = (this.ActualTheme) switch
         {
@@ -690,6 +691,9 @@ public sealed partial class SettingsPage : Page
         var end = TimeOnly.FromTimeSpan(DayEndPicker.Time);
         var r2 = AppState.Config.SetViewHours(start, end);
 
+        int gran = (GranularityBox.SelectedItem is ComboBoxItem gi && gi.Tag is string gt && int.TryParse(gt, out var gm)) ? gm : 60;
+        var r3 = AppState.Config.SetGranularity(gran);
+
         if (ThemeBox.SelectedItem is ComboBoxItem it && it.Tag is string tag)
         {
             var theme = tag switch { "Light" => ElementTheme.Light, "Dark" => ElementTheme.Dark, _ => ElementTheme.Default };
@@ -697,8 +701,8 @@ public sealed partial class SettingsPage : Page
                 root.RequestedTheme = theme;
         }
 
-        SaveStatus.Text = (r1.Success && r2.Success)
+        SaveStatus.Text = (r1.Success && r2.Success && r3.Success)
             ? "✓ Guardado"
-            : $"⚠ {(!r1.Success ? r1.Message : r2.Message)}";
+            : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : r3.Message)}";
     }
 }

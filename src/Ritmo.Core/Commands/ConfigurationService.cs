@@ -310,6 +310,20 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Rango horario actualizado.");
     }
 
+    /// <summary>
+    /// Fija la granularidad de la rejilla de fondo del horario (60, 30 o 15 min).
+    /// Solo afecta a las líneas-guía; los bloques se siguen posicionando por su
+    /// minuto real. #61
+    /// </summary>
+    public CommandResult SetGranularity(int minutes)
+    {
+        if (minutes is not (60 or 30 or 15))
+            return CommandResult.Fail("La granularidad debe ser 60, 30 o 15 minutos.");
+        var s = _store.Load();
+        _store.Save(s with { ViewConfig = s.ViewConfig with { GranularityMinutes = minutes } });
+        return CommandResult.Ok($"Granularidad fijada en {minutes} min.");
+    }
+
     // ---------- Notas y enlaces-atajo (#55) ----------
 
     /// <summary>

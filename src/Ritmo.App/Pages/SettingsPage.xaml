@@ -73,6 +73,13 @@
                         <TimePicker x:Name="DayStartPicker" Header="Desde" ClockIdentifier="24HourClock" MinuteIncrement="30" />
                         <TimePicker x:Name="DayEndPicker" Header="Hasta" ClockIdentifier="24HourClock" MinuteIncrement="30" />
                     </StackPanel>
+                    <ComboBox x:Name="GranularityBox" Header="Granularidad de la rejilla" Width="240">
+                        <ComboBoxItem Content="1 hora" Tag="60" />
+                        <ComboBoxItem Content="30 minutos" Tag="30" />
+                        <ComboBoxItem Content="15 minutos" Tag="15" />
+                    </ComboBox>
+                    <TextBlock Text="Solo cambia las líneas-guía de fondo. Los bloques se siguen colocando por su hora real (p. ej. 16:40)."
+                               Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
