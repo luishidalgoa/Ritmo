@@ -46,9 +46,54 @@ public sealed partial class SettingsPage : Page
         BuildEnvList();
         BuildRhythms();
         BuildNotes();
+        LoadNavidromeState(s);
         PomodoroHelp.Content = HelpHint.Icon("pomodoro");   // ayuda (#93)
         RhythmsHelp.Content = HelpHint.Icon("rhythm");      // ayuda (#96)
         _ = LoadAutostartState();
+    }
+
+    // ---------- Música: conexión global a Navidrome (#107) ----------
+
+    private void LoadNavidromeState(Ritmo.Core.Persistence.AppSettings s)
+    {
+        NavServerBox.Text = s.NavidromeServerUrl ?? "";
+        NavUserBox.Text = s.NavidromeUser ?? "";
+        NavStatus.Text = NavidromeService.IsConnected(s) ? "✓ Conectado" : "No conectado";
+    }
+
+    private async void NavConnectBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var server = NavServerBox.Text.Trim();
+        var user = NavUserBox.Text.Trim();
+        var pass = NavPassBox.Password;
+        if (server.Length == 0 || user.Length == 0 || pass.Length == 0)
+        {
+            NavStatus.Text = "Rellena servidor, usuario y contraseña.";
+            return;
+        }
+        NavConnectBtn.IsEnabled = false;
+        NavStatus.Text = "Conectando…";
+        try
+        {
+            var playlists = await NavidromeService.GetPlaylistsAsync(server, user, pass);
+            AppState.Config.SetNavidromeConnection(server, user);
+            NavidromeService.StorePassword(pass);
+            NavPassBox.Password = "";
+            NavStatus.Text = $"✓ Conectado · {playlists.Count} playlist(s)";
+        }
+        catch (Exception ex)
+        {
+            NavStatus.Text = "⚠ " + ex.Message;
+        }
+        finally { NavConnectBtn.IsEnabled = true; }
+    }
+
+    private void NavDisconnectBtn_Click(object sender, RoutedEventArgs e)
+    {
+        AppState.Config.ClearNavidromeConnection();
+        NavidromeService.ClearPassword();
+        NavServerBox.Text = ""; NavUserBox.Text = ""; NavPassBox.Password = "";
+        NavStatus.Text = "No conectado";
     }
 
     // ---------- Ritmos Pomodoro personalizados (#96) ----------

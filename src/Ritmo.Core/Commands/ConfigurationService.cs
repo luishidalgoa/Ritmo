@@ -446,6 +446,25 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Entorno por defecto actualizado.");
     }
 
+    /// <summary>Guarda la conexión GLOBAL a Navidrome (servidor + usuario). La
+    /// contraseña se guarda aparte en el almacén seguro del host. #107</summary>
+    public CommandResult SetNavidromeConnection(string serverUrl, string user)
+    {
+        if (string.IsNullOrWhiteSpace(serverUrl)) return CommandResult.Fail("Falta la URL del servidor.");
+        if (string.IsNullOrWhiteSpace(user)) return CommandResult.Fail("Falta el usuario.");
+        var s = _store.Load();
+        _store.Save(s with { NavidromeServerUrl = serverUrl.Trim(), NavidromeUser = user.Trim() });
+        return CommandResult.Ok("Conexión de Navidrome guardada.");
+    }
+
+    /// <summary>Elimina la conexión global a Navidrome.</summary>
+    public CommandResult ClearNavidromeConnection()
+    {
+        var s = _store.Load();
+        _store.Save(s with { NavidromeServerUrl = null, NavidromeUser = null });
+        return CommandResult.Ok("Conexión de Navidrome eliminada.");
+    }
+
     /// <summary>Asocia un tipo de bloque a un entorno (debe existir).</summary>
     public CommandResult MapEnvironmentToKind(StudyKind kind, string environmentId)
     {

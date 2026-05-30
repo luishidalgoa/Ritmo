@@ -37,6 +37,11 @@ public sealed record AppSettings
     /// <summary>Id del entorno usado por defecto al iniciar focus (o null).</summary>
     public string? DefaultFocusEnvironmentId { get; init; }
 
+    /// <summary>Conexión GLOBAL a Navidrome (servidor + usuario). La contraseña va en
+    /// el almacén seguro del SO, nunca aquí. Cada entorno solo elige la playlist. #107</summary>
+    public string? NavidromeServerUrl { get; init; }
+    public string? NavidromeUser { get; init; }
+
     /// <summary>
     /// Mapeo opcional tipo de bloque → id de entorno, para asociar automáticamente
     /// (p. ej. un bloque "Simulacro" usa el entorno "Simulacro").

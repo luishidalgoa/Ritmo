@@ -30,9 +30,9 @@
                 <ComboBox x:Name="MusicAppBox" Header="App de música" HorizontalAlignment="Stretch"
                           SelectionChanged="MusicAppBox_SelectionChanged" />
                 <StackPanel x:Name="NavidromePanel" Spacing="4" Visibility="Collapsed">
-                    <TextBlock x:Name="NavidromeLabel" Text="Sin configurar" Opacity="0.7" FontSize="12" />
+                    <TextBlock x:Name="NavidromeLabel" Text="Sin playlist elegida" Opacity="0.7" FontSize="12" />
                     <Button x:Name="ConfigureNavidromeBtn" Click="ConfigureNavidromeBtn_Click"
-                            Content="Configurar Navidrome…" HorizontalAlignment="Left" />
+                            Content="Elegir playlist de Navidrome…" HorizontalAlignment="Left" />
                 </StackPanel>
                 <CheckBox x:Name="AutoPlayCheck" Content="Intentar reproducir automáticamente al concentrarte" />
             </StackPanel>

@@ -21,7 +21,7 @@ public sealed partial class EnvironmentDialog : ContentDialog
     private HashSet<string> _installed = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _blockedWebsites = [];   // #99
     private readonly List<string> _otherClose = [];        // apps fuera del catálogo (#100)
-    private string? _navServer, _navUser, _navPlaylistId, _navPlaylistName;   // Navidrome (#107)
+    private string? _navPlaylistId, _navPlaylistName;   // Navidrome: solo playlist (conexión global) (#107)
 
     public EnvironmentDialog()
     {
@@ -54,7 +54,10 @@ public sealed partial class EnvironmentDialog : ContentDialog
     {
         var tag = (MusicAppBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
         if (NavidromePanel is not null)
+        {
             NavidromePanel.Visibility = tag == "navidrome" ? Visibility.Visible : Visibility.Collapsed;
+            if (tag == "navidrome") UpdateNavidromeLabel();
+        }
     }
 
     private void SelectMusic(MusicLauncher? music)
@@ -62,8 +65,6 @@ public sealed partial class EnvironmentDialog : ContentDialog
         if (music is { Provider: "navidrome" })
         {
             SelectByTag("navidrome");
-            _navServer = music.ServerUrl;
-            _navUser = music.User;
             _navPlaylistId = music.PlaylistId;
             _navPlaylistName = music.PlaylistName;
             UpdateNavidromeLabel();
@@ -80,23 +81,32 @@ public sealed partial class EnvironmentDialog : ContentDialog
 
     private void UpdateNavidromeLabel()
     {
+        if (!Services.NavidromeService.IsConnected(Services.AppState.Load()))
+        {
+            NavidromeLabel.Text = "Conecta Navidrome en Ajustes primero.";
+            return;
+        }
         NavidromeLabel.Text = _navPlaylistName is { Length: > 0 }
-            ? $"Servidor configurado · Playlist: {_navPlaylistName}"
-            : (_navServer is { Length: > 0 } ? "Servidor configurado · sin playlist" : "Sin configurar");
+            ? $"Playlist: {_navPlaylistName}"
+            : "Sin playlist elegida";
     }
 
     private async void ConfigureNavidromeBtn_Click(object sender, RoutedEventArgs e)
     {
-        var win = new NavidromeWindow();
-        win.Prefill(_navServer, _navUser);
-        var pick = await win.PickAsync();
-        if (pick is not null)
+        try
         {
-            _navServer = pick.ServerUrl;
-            _navUser = pick.User;
-            _navPlaylistId = pick.PlaylistId;
-            _navPlaylistName = pick.PlaylistName;
-            UpdateNavidromeLabel();
+            var win = new NavidromeWindow();
+            var pick = await win.PickAsync();
+            if (pick is not null)
+            {
+                _navPlaylistId = pick.PlaylistId;
+                _navPlaylistName = pick.PlaylistName;
+                UpdateNavidromeLabel();
+            }
+        }
+        catch (Exception ex)
+        {
+            NavidromeLabel.Text = "Error: " + ex.Message;
         }
     }
 
@@ -387,22 +397,21 @@ public sealed partial class EnvironmentDialog : ContentDialog
         };
     }
 
-    /// <summary>Construye el MusicLauncher desde el picker. Solo Navidrome (#107).</summary>
+    /// <summary>Construye el MusicLauncher. Solo Navidrome; el servidor es global (#107).</summary>
     private MusicLauncher? BuildMusic()
     {
         var tag = (MusicAppBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
-        if (tag != "navidrome" || string.IsNullOrEmpty(_navServer) || string.IsNullOrEmpty(_navPlaylistId))
-            return null;
+        if (tag != "navidrome" || string.IsNullOrEmpty(_navPlaylistId)) return null;
+        var server = Services.AppState.Load().NavidromeServerUrl;
+        if (string.IsNullOrEmpty(server)) return null;
 
         return new MusicLauncher
         {
             Name = "Navidrome",
             Provider = "navidrome",
-            ServerUrl = _navServer,
-            User = _navUser,
             PlaylistId = _navPlaylistId,
             PlaylistName = _navPlaylistName,
-            Target = Services.NavidromeService.PlaylistWebUrl(_navServer, _navPlaylistId),
+            Target = Services.NavidromeService.PlaylistWebUrl(server, _navPlaylistId),
             AutoPlay = AutoPlayCheck.IsChecked == true
         };
     }

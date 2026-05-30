@@ -7,7 +7,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Title="Configurar Navidrome">
+    Title="Elegir playlist de Navidrome">
 
     <Grid Background="#1B1B2A" RequestedTheme="Dark" Padding="20" RowSpacing="14">
         <Grid.RowDefinitions>
@@ -21,29 +21,26 @@
                 <FontIcon Glyph="&#xE93C;" FontSize="18" Foreground="#5B8DEF" />
                 <TextBlock Text="Navidrome" FontSize="20" FontWeight="Bold" Foreground="White" />
             </StackPanel>
-            <TextBlock Text="Conecta tu servidor y elige una playlist para este entorno." Foreground="#A9A9C2" FontSize="13" />
+            <TextBlock x:Name="ServerSub" Text="Elige una playlist para este entorno." Foreground="#A9A9C2" FontSize="13" />
         </StackPanel>
 
         <Grid Grid.Row="1">
-            <!-- Configuración -->
-            <StackPanel x:Name="ConfigPanel" Spacing="12" VerticalAlignment="Top">
-                <TextBox x:Name="ServerBox" Header="URL del servidor" PlaceholderText="https://music.midominio.com" />
-                <TextBox x:Name="UserBox" Header="Usuario" />
-                <PasswordBox x:Name="PassBox" Header="Contraseña" />
-                <Button x:Name="ConnectBtn" Click="ConnectBtn_Click" HorizontalAlignment="Left"
-                        Background="#5B8DEF" Foreground="White" CornerRadius="6" Padding="18,8">
-                    <TextBlock Text="Conectar" FontWeight="SemiBold" />
-                </Button>
-                <TextBlock x:Name="ConfigError" Foreground="#FF8A8A" TextWrapping="Wrap" Visibility="Collapsed" />
+            <!-- Sin conexión -->
+            <StackPanel x:Name="NotConnectedPanel" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Visibility="Collapsed">
+                <TextBlock Text="No hay conexión a Navidrome." Foreground="White" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                <TextBlock Text="Conéctala en Ajustes → Navidrome y vuelve aquí." Foreground="#A9A9C2" HorizontalAlignment="Center" TextAlignment="Center" />
             </StackPanel>
 
-            <!-- Cargando -->
             <StackPanel x:Name="LoadingPanel" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12" Visibility="Collapsed">
                 <ProgressRing IsActive="True" Width="40" Height="40" Foreground="#5B8DEF" />
-                <TextBlock Text="Conectando…" Foreground="#A9A9C2" />
+                <TextBlock Text="Cargando playlists…" Foreground="#A9A9C2" />
             </StackPanel>
 
-            <!-- Lista -->
+            <StackPanel x:Name="ErrorPanel" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12" Visibility="Collapsed">
+                <TextBlock x:Name="ErrorText" Foreground="#FF8A8A" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="380" />
+                <Button Content="Reintentar" Click="RetryBtn_Click" HorizontalAlignment="Center" />
+            </StackPanel>
+
             <Grid x:Name="ListPanel" RowSpacing="10" Visibility="Collapsed">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />

@@ -21,6 +21,8 @@ internal sealed class SettingsDto
     public List<FocusEnvironmentDto> FocusEnvironments { get; set; } = [];
     public string? DefaultFocusEnvironmentId { get; set; }
     public Dictionary<string, string> EnvironmentByKind { get; set; } = [];
+    public string? NavidromeServerUrl { get; set; }
+    public string? NavidromeUser { get; set; }
 }
 
 internal sealed class MusicDto
@@ -29,10 +31,8 @@ internal sealed class MusicDto
     public string Target { get; set; } = "";
     public string? Arguments { get; set; }
     public bool AutoPlay { get; set; }
-    // Proveedor configurable (Navidrome, #107). La contraseña NO se persiste.
+    // Proveedor configurable (Navidrome, #107). Servidor/usuario son globales.
     public string? Provider { get; set; }
-    public string? ServerUrl { get; set; }
-    public string? User { get; set; }
     public string? PlaylistId { get; set; }
     public string? PlaylistName { get; set; }
 }
@@ -151,7 +151,9 @@ internal static class SettingsMapper
         ViewConfig = ToDto(s.ViewConfig),
         FocusEnvironments = s.FocusEnvironments.Select(ToDto).ToList(),
         DefaultFocusEnvironmentId = s.DefaultFocusEnvironmentId,
-        EnvironmentByKind = s.EnvironmentByKind.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value)
+        EnvironmentByKind = s.EnvironmentByKind.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+        NavidromeServerUrl = s.NavidromeServerUrl,
+        NavidromeUser = s.NavidromeUser
     };
 
     private static FocusEnvironmentDto ToDto(FocusEnvironment e) => new()
@@ -166,7 +168,7 @@ internal static class SettingsMapper
         {
             Name = e.Music.Name, Target = e.Music.Target,
             Arguments = e.Music.Arguments, AutoPlay = e.Music.AutoPlay,
-            Provider = e.Music.Provider, ServerUrl = e.Music.ServerUrl, User = e.Music.User,
+            Provider = e.Music.Provider,
             PlaylistId = e.Music.PlaylistId, PlaylistName = e.Music.PlaylistName
         },
         Links = e.Links.Select(l => new ShortcutDto { Title = l.Title, Url = l.Url }).ToList(),
@@ -229,7 +231,9 @@ internal static class SettingsMapper
         DefaultFocusEnvironmentId = d.DefaultFocusEnvironmentId,
         EnvironmentByKind = d.EnvironmentByKind
             .Where(kv => Enum.TryParse<StudyKind>(kv.Key, ignoreCase: true, out _))
-            .ToDictionary(kv => Enum.Parse<StudyKind>(kv.Key, ignoreCase: true), kv => kv.Value)
+            .ToDictionary(kv => Enum.Parse<StudyKind>(kv.Key, ignoreCase: true), kv => kv.Value),
+        NavidromeServerUrl = d.NavidromeServerUrl,
+        NavidromeUser = d.NavidromeUser
     };
 
     private static FocusEnvironment FromDto(FocusEnvironmentDto e) => new()
@@ -244,7 +248,7 @@ internal static class SettingsMapper
         {
             Name = e.Music.Name, Target = e.Music.Target,
             Arguments = e.Music.Arguments, AutoPlay = e.Music.AutoPlay,
-            Provider = e.Music.Provider, ServerUrl = e.Music.ServerUrl, User = e.Music.User,
+            Provider = e.Music.Provider,
             PlaylistId = e.Music.PlaylistId, PlaylistName = e.Music.PlaylistName
         },
         Links = e.Links.Select(l => new ShortcutLink { Title = l.Title, Url = l.Url }).ToList(),

@@ -10,12 +10,12 @@ using Ritmo_App.Services;
 
 namespace Ritmo_App.Dialogs;
 
-/// <summary>Resultado de configurar Navidrome (la contraseña no se devuelve/persiste). #107</summary>
-public sealed record NavidromePick(string ServerUrl, string User, string PlaylistId, string PlaylistName);
+/// <summary>Playlist elegida de Navidrome (la conexión es global). #107</summary>
+public sealed record NavidromePick(string PlaylistId, string PlaylistName);
 
 /// <summary>
-/// Ventana de configuración de Navidrome: servidor + credenciales → listar y elegir
-/// playlist. Va como Window (se abre desde el diálogo de entorno). #107
+/// Selector de playlist de Navidrome. Usa la conexión GLOBAL (Ajustes); aquí solo
+/// se elige la playlist del entorno. Va como Window. #107
 /// </summary>
 public sealed partial class NavidromeWindow : Window
 {
@@ -30,61 +30,46 @@ public sealed partial class NavidromeWindow : Window
     private readonly TaskCompletionSource<NavidromePick?> _tcs = new();
     private List<PlaylistVm> _all = [];
     private bool _closed;
-    private string _server = "";
-    private string _user = "";
 
     public NavidromeWindow()
     {
         InitializeComponent();
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(700, 660));
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(700, 620));
         Closed += (_, _) => { if (!_closed) _tcs.TrySetResult(null); };
-    }
-
-    /// <summary>Pre-rellena servidor/usuario al editar un entorno ya configurado.</summary>
-    public void Prefill(string? server, string? user)
-    {
-        if (!string.IsNullOrEmpty(server)) ServerBox.Text = server;
-        if (!string.IsNullOrEmpty(user)) UserBox.Text = user;
     }
 
     public Task<NavidromePick?> PickAsync()
     {
         Activate();
+        _ = LoadAsync();
         return _tcs.Task;
     }
 
     private void Show(FrameworkElement panel)
     {
-        ConfigPanel.Visibility = LoadingPanel.Visibility = ListPanel.Visibility = Visibility.Collapsed;
+        NotConnectedPanel.Visibility = LoadingPanel.Visibility = ErrorPanel.Visibility = ListPanel.Visibility = Visibility.Collapsed;
         panel.Visibility = Visibility.Visible;
     }
 
-    private async void ConnectBtn_Click(object sender, RoutedEventArgs e)
+    private async Task LoadAsync()
     {
-        _server = ServerBox.Text.Trim();
-        _user = UserBox.Text.Trim();
-        var pass = PassBox.Password;
-        ConfigError.Visibility = Visibility.Collapsed;
-        if (_server.Length == 0 || _user.Length == 0 || pass.Length == 0)
-        {
-            ConfigError.Text = "Rellena servidor, usuario y contraseña.";
-            ConfigError.Visibility = Visibility.Visible;
-            return;
-        }
-
+        var settings = AppState.Load();
+        if (!NavidromeService.IsConnected(settings)) { Show(NotConnectedPanel); return; }
+        ServerSub.Text = settings.NavidromeServerUrl;
         Show(LoadingPanel);
         try
         {
-            var playlists = await NavidromeService.GetPlaylistsAsync(_server, _user, pass);
+            var playlists = await NavidromeService.GetPlaylistsFromGlobalAsync(settings);
             Populate(playlists);
         }
         catch (Exception ex)
         {
-            ConfigError.Text = "No se pudo conectar: " + ex.Message;
-            Show(ConfigPanel);
-            ConfigError.Visibility = Visibility.Visible;
+            ErrorText.Text = "No se pudieron cargar las playlists.\n" + ex.Message;
+            Show(ErrorPanel);
         }
     }
+
+    private void RetryBtn_Click(object sender, RoutedEventArgs e) => _ = LoadAsync();
 
     private void Populate(IReadOnlyList<NavidromePlaylist> playlists)
     {
@@ -96,9 +81,8 @@ public sealed partial class NavidromeWindow : Window
 
         if (_all.Count == 0)
         {
-            ConfigError.Text = "Conectado, pero no hay playlists en el servidor.";
-            Show(ConfigPanel);
-            ConfigError.Visibility = Visibility.Visible;
+            ErrorText.Text = "Conectado, pero no hay playlists en el servidor.";
+            Show(ErrorPanel);
             return;
         }
         ApplyFilter(SearchBox.Text);
@@ -133,7 +117,7 @@ public sealed partial class NavidromeWindow : Window
     private void Finish(NavidromePlaylist? p)
     {
         _closed = true;
-        _tcs.TrySetResult(p is null ? null : new NavidromePick(_server, _user, p.Id, p.Name));
+        _tcs.TrySetResult(p is null ? null : new NavidromePick(p.Id, p.Name));
         Close();
     }
 }

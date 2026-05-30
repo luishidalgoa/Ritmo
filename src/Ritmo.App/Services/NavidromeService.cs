@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Ritmo.Core.Focus;
+using Ritmo.Core.Persistence;
 
 namespace Ritmo_App.Services;
 
@@ -20,10 +21,60 @@ public sealed record NavidromePlaylist(string Id, string Name, int SongCount, st
 public static class NavidromeService
 {
     private static readonly HttpClient Http = new();
+    private const string VaultResource = "Ritmo.Navidrome";
+    private const string VaultUser = "default";
 
     /// <summary>URL del servidor donde abrir la playlist en el navegador (web UI de Navidrome).</summary>
     public static string PlaylistWebUrl(string serverUrl, string playlistId)
         => $"{Subsonic.NormalizeServerUrl(serverUrl)}/app/#/playlist/{Uri.EscapeDataString(playlistId)}/show";
+
+    // ---------- Conexión GLOBAL (servidor/usuario en AppSettings, contraseña en el almacén seguro) ----------
+
+    public static void StorePassword(string password)
+    {
+        try
+        {
+            var vault = new Windows.Security.Credentials.PasswordVault();
+            try { vault.Remove(vault.Retrieve(VaultResource, VaultUser)); } catch { }
+            vault.Add(new Windows.Security.Credentials.PasswordCredential(VaultResource, VaultUser, password));
+        }
+        catch { }
+    }
+
+    public static string? GetPassword()
+    {
+        try
+        {
+            var vault = new Windows.Security.Credentials.PasswordVault();
+            var cred = vault.Retrieve(VaultResource, VaultUser);
+            cred.RetrievePassword();
+            return string.IsNullOrEmpty(cred.Password) ? null : cred.Password;
+        }
+        catch { return null; }
+    }
+
+    public static void ClearPassword()
+    {
+        try
+        {
+            var vault = new Windows.Security.Credentials.PasswordVault();
+            vault.Remove(vault.Retrieve(VaultResource, VaultUser));
+        }
+        catch { }
+    }
+
+    /// <summary>¿Hay conexión global completa (servidor + usuario + contraseña)?</summary>
+    public static bool IsConnected(AppSettings s)
+        => !string.IsNullOrEmpty(s.NavidromeServerUrl) && !string.IsNullOrEmpty(s.NavidromeUser) && GetPassword() is not null;
+
+    /// <summary>Lista las playlists usando la conexión global guardada.</summary>
+    public static Task<IReadOnlyList<NavidromePlaylist>> GetPlaylistsFromGlobalAsync(AppSettings s, CancellationToken ct = default)
+    {
+        var pass = GetPassword();
+        if (string.IsNullOrEmpty(s.NavidromeServerUrl) || string.IsNullOrEmpty(s.NavidromeUser) || pass is null)
+            throw new InvalidOperationException("No hay conexión de Navidrome. Configúrala en Ajustes.");
+        return GetPlaylistsAsync(s.NavidromeServerUrl, s.NavidromeUser, pass, ct);
+    }
 
     public static async Task<IReadOnlyList<NavidromePlaylist>> GetPlaylistsAsync(
         string serverUrl, string user, string password, CancellationToken ct = default)

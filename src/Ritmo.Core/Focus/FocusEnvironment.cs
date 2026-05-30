@@ -26,11 +26,7 @@ public sealed record MusicLauncher
 
     /// <summary>Proveedor: "navidrome" (servidor Subsonic) o null (app/URI directa). #107</summary>
     public string? Provider { get; init; }
-    /// <summary>URL del servidor (Navidrome).</summary>
-    public string? ServerUrl { get; init; }
-    /// <summary>Usuario del servidor (Navidrome). La contraseña NO se persiste.</summary>
-    public string? User { get; init; }
-    /// <summary>Id de la playlist elegida en el servidor.</summary>
+    /// <summary>Id de la playlist elegida (el servidor/usuario son globales). #107</summary>
     public string? PlaylistId { get; init; }
     /// <summary>Nombre de la playlist (para mostrar).</summary>
     public string? PlaylistName { get; init; }

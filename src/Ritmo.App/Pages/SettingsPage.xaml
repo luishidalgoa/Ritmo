@@ -100,6 +100,31 @@
                 </StackPanel>
             </Border>
 
+            <!-- Música: Navidrome (conexión global, #107) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Música (Navidrome)" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                               Text="Conecta tu servidor de Navidrome una vez. Luego, en cada entorno, solo eliges una playlist. La contraseña se guarda en el almacén seguro de Windows, nunca en la copia de seguridad." />
+                    <TextBox x:Name="NavServerBox" Header="URL del servidor" PlaceholderText="https://music.midominio.com" />
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="NavUserBox" Grid.Column="0" Header="Usuario" />
+                        <PasswordBox x:Name="NavPassBox" Grid.Column="1" Header="Contraseña" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button x:Name="NavConnectBtn" Click="NavConnectBtn_Click" Content="Conectar" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="NavDisconnectBtn" Click="NavDisconnectBtn_Click" Content="Desconectar" />
+                        <TextBlock x:Name="NavStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="13" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- Apariencia -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"

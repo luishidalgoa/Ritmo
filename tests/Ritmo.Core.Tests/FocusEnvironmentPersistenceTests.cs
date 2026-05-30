@@ -64,11 +64,13 @@ public class FocusEnvironmentPersistenceTests : IDisposable
     }
 
     [Fact]
-    public void RoundTrip_musica_navidrome()
+    public void RoundTrip_musica_navidrome_y_conexion_global()
     {
         var store = new JsonSettingsStore(_file);
         store.Save(new AppSettings
         {
+            NavidromeServerUrl = "https://music.example.com",
+            NavidromeUser = "luis",
             FocusEnvironments =
             [
                 new FocusEnvironment
@@ -77,17 +79,17 @@ public class FocusEnvironmentPersistenceTests : IDisposable
                     Music = new MusicLauncher
                     {
                         Name = "Navidrome", Provider = "navidrome",
-                        ServerUrl = "https://music.example.com", User = "luis",
                         PlaylistId = "pl-7", PlaylistName = "Foco",
                         Target = "https://music.example.com/app/#/playlist/pl-7/show"
                     }
                 }
             ]
         });
-        var m = store.Load().FocusEnvironments.Single().Music!;
+        var loaded = store.Load();
+        Assert.Equal("https://music.example.com", loaded.NavidromeServerUrl);
+        Assert.Equal("luis", loaded.NavidromeUser);
+        var m = loaded.FocusEnvironments.Single().Music!;
         Assert.Equal("navidrome", m.Provider);
-        Assert.Equal("https://music.example.com", m.ServerUrl);
-        Assert.Equal("luis", m.User);
         Assert.Equal("pl-7", m.PlaylistId);
         Assert.Equal("Foco", m.PlaylistName);
     }
