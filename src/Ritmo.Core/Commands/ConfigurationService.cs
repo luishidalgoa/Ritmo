@@ -465,6 +465,35 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Conexión de Navidrome eliminada.");
     }
 
+    // ---------- Suscripciones de calendario (ICS, #112) ----------
+
+    /// <summary>Añade una suscripción a un calendario externo por enlace ICS. Devuelve su Id.</summary>
+    public CommandResult AddCalendarFeed(string name, string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return CommandResult.Fail("Falta el enlace del calendario.");
+        var u = url.Trim();
+        if (!u.StartsWith("http", StringComparison.OrdinalIgnoreCase) && !u.StartsWith("webcal", StringComparison.OrdinalIgnoreCase))
+            return CommandResult.Fail("El enlace debe ser una URL (http/https/webcal).");
+        var s = _store.Load();
+        var feed = new CalendarFeed
+        {
+            Id = $"cal-{Guid.NewGuid():N}"[..12],
+            Name = string.IsNullOrWhiteSpace(name) ? "Calendario" : name.Trim(),
+            Url = u
+        };
+        _store.Save(s with { CalendarFeeds = [.. s.CalendarFeeds, feed] });
+        return CommandResult.Ok(feed.Id);
+    }
+
+    /// <summary>Elimina una suscripción de calendario por Id.</summary>
+    public CommandResult RemoveCalendarFeed(string id)
+    {
+        var s = _store.Load();
+        if (s.CalendarFeeds.All(f => f.Id != id)) return CommandResult.Fail($"No existe el calendario «{id}».");
+        _store.Save(s with { CalendarFeeds = s.CalendarFeeds.Where(f => f.Id != id).ToList() });
+        return CommandResult.Ok("Calendario eliminado.");
+    }
+
     /// <summary>Asocia un tipo de bloque a un entorno (debe existir).</summary>
     public CommandResult MapEnvironmentToKind(StudyKind kind, string environmentId)
     {

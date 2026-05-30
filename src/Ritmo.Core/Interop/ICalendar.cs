@@ -110,6 +110,112 @@ public static class ICalendar
         return new WeeklySchedule { Sessions = sessions };
     }
 
+    /// <summary>
+    /// Lee eventos CON FECHA de un .ics dentro de [from, to] (compromisos puntuales,
+    /// no el horario recurrente). Soporta eventos sueltos, todo-el-día y recurrencia
+    /// simple FREQ=WEEKLY/DAILY (con BYDAY y UNTIL). Las horas se tratan como locales
+    /// (best-effort; ignora zonas horarias). #112
+    /// </summary>
+    public static IReadOnlyList<CalendarEvent> ImportEvents(string ics, DateOnly from, DateOnly to, string? calendar = null)
+    {
+        var result = new List<CalendarEvent>();
+        if (string.IsNullOrWhiteSpace(ics)) return result;
+        var fromDt = from.ToDateTime(TimeOnly.MinValue);
+        var toDt = to.ToDateTime(new TimeOnly(23, 59, 59));
+
+        foreach (var block in SplitEvents(ics))
+        {
+            var props = ParseProps(block);
+            if (!props.TryGetValue("DTSTART", out var dtStartRaw)) continue;
+            if (!TryParseDateOrTime(dtStartRaw, out var start, out var allDay)) continue;
+
+            DateTime end;
+            if (props.TryGetValue("DTEND", out var dtEndRaw) && TryParseDateOrTime(dtEndRaw, out var e, out _)) end = e;
+            else end = start + (allDay ? TimeSpan.FromDays(1) : TimeSpan.FromHours(1));
+
+            var title = props.TryGetValue("SUMMARY", out var sum) ? Unescape(sum) : "(sin título)";
+            props.TryGetValue("RRULE", out var rrule);
+
+            if (string.IsNullOrEmpty(rrule))
+            {
+                if (start <= toDt && end >= fromDt)
+                    result.Add(new CalendarEvent(title, start, end, allDay, calendar));
+            }
+            else
+            {
+                ExpandRecurring(rrule!, start, end, fromDt, toDt, title, allDay, calendar, result);
+            }
+        }
+        return result;
+    }
+
+    private static void ExpandRecurring(string rrule, DateTime start, DateTime end, DateTime fromDt, DateTime toDt,
+        string title, bool allDay, string? cal, List<CalendarEvent> result)
+    {
+        var parts = ParseRRule(rrule);
+        parts.TryGetValue("FREQ", out var freq);
+        var duration = end - start;
+        var until = toDt;
+        if (parts.TryGetValue("UNTIL", out var untilRaw) && TryParseDateOrTime(untilRaw, out var u, out _) && u < until)
+            until = u;
+
+        bool weekly = string.Equals(freq, "WEEKLY", StringComparison.OrdinalIgnoreCase);
+        bool daily = string.Equals(freq, "DAILY", StringComparison.OrdinalIgnoreCase);
+        if (!weekly && !daily)
+        {
+            if (start <= toDt && end >= fromDt) result.Add(new CalendarEvent(title, start, end, allDay, cal));
+            return;
+        }
+
+        var days = new List<DayOfWeek>();
+        if (weekly && parts.TryGetValue("BYDAY", out var byday))
+            foreach (var code in byday.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var c = new string(code.Trim().Reverse().TakeWhile(char.IsLetter).Reverse().ToArray()).ToUpperInvariant();
+                if (DayByCode.TryGetValue(c, out var d)) days.Add(d);
+            }
+        if (weekly && days.Count == 0) days.Add(start.DayOfWeek);
+
+        var first = fromDt.Date > start.Date ? fromDt.Date : start.Date;
+        int guard = 0;
+        for (var date = first; date <= until.Date && guard < 500; date = date.AddDays(1), guard++)
+        {
+            if (weekly && !days.Contains(date.DayOfWeek)) continue;
+            var occStart = date + start.TimeOfDay;
+            if (occStart > toDt) break;
+            if (occStart.Add(duration) >= fromDt)
+                result.Add(new CalendarEvent(title, occStart, occStart.Add(duration), allDay, cal));
+        }
+    }
+
+    private static Dictionary<string, string> ParseRRule(string rrule)
+    {
+        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var val = rrule.Contains(':') ? rrule[(rrule.IndexOf(':') + 1)..] : rrule;
+        foreach (var p in val.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var eq = p.IndexOf('=');
+            if (eq > 0) dict[p[..eq].Trim()] = p[(eq + 1)..].Trim();
+        }
+        return dict;
+    }
+
+    /// <summary>Parsea DTSTART/DTEND: fecha-hora (yyyyMMddTHHmmss[Z]) o fecha (yyyyMMdd = todo el día).</summary>
+    private static bool TryParseDateOrTime(string raw, out DateTime dt, out bool allDay)
+    {
+        allDay = false;
+        var value = raw.Contains(':') ? raw[(raw.LastIndexOf(':') + 1)..] : raw;
+        value = value.TrimEnd('Z').Trim();
+        if (DateTime.TryParseExact(value, "yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
+            return true;
+        if (DateTime.TryParseExact(value, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
+        {
+            allDay = true;
+            return true;
+        }
+        return false;
+    }
+
     // ---------- helpers ----------
 
     private static DateOnly WeekStart(DateOnly d)

@@ -137,6 +137,24 @@
                             </StackPanel>
                         </StackPanel>
                     </Expander>
+
+                    <TextBlock Text="CALENDARIO" FontSize="11" FontWeight="SemiBold" Opacity="0.55" Margin="0,4,0,0" />
+                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                               Text="Suscríbete por enlace ICS (Google: «dirección secreta en formato iCal»; Outlook: «publicar calendario»; iCloud: «calendario público»). Solo lectura: tus eventos aparecen en «Hoy»." />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="CalNameBox" Grid.Column="0" PlaceholderText="Nombre" Width="130"
+                                 AutomationProperties.Name="Nombre del calendario" />
+                        <TextBox x:Name="CalUrlBox" Grid.Column="1" PlaceholderText="https://…/basic.ics"
+                                 AutomationProperties.Name="Enlace ICS" />
+                        <Button x:Name="CalAddBtn" Grid.Column="2" Click="CalAddBtn_Click" Content="Añadir"
+                                AutomationProperties.Name="Agregar calendario" />
+                    </Grid>
+                    <StackPanel x:Name="CalFeedsList" Spacing="4" />
                 </StackPanel>
             </Border>
 

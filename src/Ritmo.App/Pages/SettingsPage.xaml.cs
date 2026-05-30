@@ -47,6 +47,7 @@ public sealed partial class SettingsPage : Page
         BuildRhythms();
         BuildNotes();
         LoadNavidromeState(s);
+        BuildCalendarFeeds();
         PomodoroHelp.Content = HelpHint.Icon("pomodoro");   // ayuda (#93)
         RhythmsHelp.Content = HelpHint.Icon("rhythm");      // ayuda (#96)
         _ = LoadAutostartState();
@@ -98,6 +99,44 @@ public sealed partial class SettingsPage : Page
         NavServerBox.Text = ""; NavUserBox.Text = ""; NavPassBox.Password = "";
         NavStatus.Text = "No conectado";
         NavHeaderStatus.Text = "";
+    }
+
+    // ---------- Calendarios (suscripción ICS, #112) ----------
+
+    private void BuildCalendarFeeds()
+    {
+        var s = AppState.Load();
+        CalFeedsList.Children.Clear();
+        foreach (var f in s.CalendarFeeds)
+        {
+            var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            info.Children.Add(new TextBlock { Text = f.Name, FontWeight = FontWeights.SemiBold });
+            info.Children.Add(new TextBlock { Text = f.Url, Opacity = 0.6, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis });
+            Grid.SetColumn(info, 0);
+
+            var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
+            ToolTipService.SetToolTip(del, "Quitar calendario");
+            var id = f.Id;
+            del.Click += (_, _) => { AppState.Config.RemoveCalendarFeed(id); BuildCalendarFeeds(); };
+            Grid.SetColumn(del, 1);
+
+            var grid = new Grid { ColumnSpacing = 6 };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.Children.Add(info); grid.Children.Add(del);
+            CalFeedsList.Children.Add(new Border
+            {
+                BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+                BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(12, 6, 8, 6), Child = grid
+            });
+        }
+    }
+
+    private void CalAddBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var r = AppState.Config.AddCalendarFeed(CalNameBox.Text, CalUrlBox.Text);
+        if (r.Success) { CalNameBox.Text = ""; CalUrlBox.Text = ""; BuildCalendarFeeds(); }
     }
 
     // ---------- Ritmos Pomodoro personalizados (#96) ----------

@@ -42,6 +42,9 @@ public sealed record AppSettings
     public string? NavidromeServerUrl { get; init; }
     public string? NavidromeUser { get; init; }
 
+    /// <summary>Suscripciones a calendarios externos por enlace ICS (lectura). #112</summary>
+    public IReadOnlyList<CalendarFeed> CalendarFeeds { get; init; } = [];
+
     /// <summary>
     /// Mapeo opcional tipo de bloque → id de entorno, para asociar automáticamente
     /// (p. ej. un bloque "Simulacro" usa el entorno "Simulacro").

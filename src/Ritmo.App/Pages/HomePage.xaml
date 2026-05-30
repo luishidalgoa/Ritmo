@@ -73,6 +73,12 @@
                 </Border>
             </Grid>
 
+            <!-- Calendario de hoy (#112) -->
+            <StackPanel x:Name="CalendarSection" Spacing="8" Visibility="Collapsed">
+                <TextBlock Text="CALENDARIO HOY" FontWeight="SemiBold" Opacity="0.55" FontSize="11" />
+                <StackPanel x:Name="CalendarPanel" Spacing="6" />
+            </StackPanel>
+
             <!-- Accesos rápidos (#55) -->
             <StackPanel x:Name="ShortcutsSection" Spacing="8" Visibility="Collapsed">
                 <TextBlock Text="ACCESOS RÁPIDOS" FontWeight="SemiBold" Opacity="0.55" FontSize="11" />

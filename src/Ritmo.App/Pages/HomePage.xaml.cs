@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Ritmo.Core.Interop;
 using Ritmo.Core.Model;
 using Ritmo.Core.Notifications;
 using Ritmo.Core.Scheduling;
@@ -88,6 +90,35 @@ public sealed partial class HomePage : Page
 
         BuildShortcuts(settings);
         BuildNotes(settings);
+        _ = LoadCalendarAsync(settings);
+    }
+
+    /// <summary>Descarga y muestra los eventos de HOY de los calendarios suscritos (#112).</summary>
+    private async System.Threading.Tasks.Task LoadCalendarAsync(Ritmo.Core.Persistence.AppSettings settings)
+    {
+        if (settings.CalendarFeeds.Count == 0) { CalendarSection.Visibility = Visibility.Collapsed; return; }
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        IReadOnlyList<CalendarEvent> events;
+        try { events = await CalendarService.FetchAsync(settings.CalendarFeeds, today, today); }
+        catch { return; }
+
+        CalendarPanel.Children.Clear();
+        if (events.Count == 0)
+        {
+            CalendarPanel.Children.Add(new TextBlock { Text = "Sin eventos hoy.", Opacity = 0.6, FontSize = 13 });
+        }
+        else
+        {
+            foreach (var ev in events)
+            {
+                var time = ev.AllDay ? "Todo el día" : $"{ev.Start:HH\\:mm}–{ev.End:HH\\:mm}";
+                var row = new StackPanel { Orientation = Microsoft.UI.Xaml.Controls.Orientation.Horizontal, Spacing = 10 };
+                row.Children.Add(new TextBlock { Text = time, Opacity = 0.7, FontSize = 13, Width = 110 });
+                row.Children.Add(new TextBlock { Text = ev.Title, FontSize = 13, TextTrimming = TextTrimming.CharacterEllipsis });
+                CalendarPanel.Children.Add(row);
+            }
+        }
+        CalendarSection.Visibility = Visibility.Visible;
     }
 
     private void BuildShortcuts(Ritmo.Core.Persistence.AppSettings settings)

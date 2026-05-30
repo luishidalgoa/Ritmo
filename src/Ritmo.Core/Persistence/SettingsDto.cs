@@ -23,6 +23,14 @@ internal sealed class SettingsDto
     public Dictionary<string, string> EnvironmentByKind { get; set; } = [];
     public string? NavidromeServerUrl { get; set; }
     public string? NavidromeUser { get; set; }
+    public List<CalendarFeedDto> CalendarFeeds { get; set; } = [];
+}
+
+internal sealed class CalendarFeedDto
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Url { get; set; } = "";
 }
 
 internal sealed class MusicDto
@@ -155,7 +163,8 @@ internal static class SettingsMapper
         DefaultFocusEnvironmentId = s.DefaultFocusEnvironmentId,
         EnvironmentByKind = s.EnvironmentByKind.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
         NavidromeServerUrl = s.NavidromeServerUrl,
-        NavidromeUser = s.NavidromeUser
+        NavidromeUser = s.NavidromeUser,
+        CalendarFeeds = s.CalendarFeeds.Select(f => new CalendarFeedDto { Id = f.Id, Name = f.Name, Url = f.Url }).ToList()
     };
 
     private static FocusEnvironmentDto ToDto(FocusEnvironment e) => new()
@@ -237,7 +246,8 @@ internal static class SettingsMapper
             .Where(kv => Enum.TryParse<StudyKind>(kv.Key, ignoreCase: true, out _))
             .ToDictionary(kv => Enum.Parse<StudyKind>(kv.Key, ignoreCase: true), kv => kv.Value),
         NavidromeServerUrl = d.NavidromeServerUrl,
-        NavidromeUser = d.NavidromeUser
+        NavidromeUser = d.NavidromeUser,
+        CalendarFeeds = d.CalendarFeeds.Select(f => new CalendarFeed { Id = f.Id, Name = f.Name, Url = f.Url }).ToList()
     };
 
     private static FocusEnvironment FromDto(FocusEnvironmentDto e) => new()
