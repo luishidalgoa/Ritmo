@@ -24,6 +24,9 @@ internal sealed class SettingsDto
     public Dictionary<string, string> EnvironmentByKind { get; set; } = [];
     public string? NavidromeServerUrl { get; set; }
     public string? NavidromeUser { get; set; }
+    public bool NtfyEnabled { get; set; }
+    public string? NtfyServerUrl { get; set; }
+    public string? NtfyTopic { get; set; }
     public List<CalendarFeedDto> CalendarFeeds { get; set; } = [];
     public List<OverlapPriorityDto> OverlapPriorities { get; set; } = [];
 }
@@ -205,6 +208,9 @@ internal static class SettingsMapper
         EnvironmentByKind = s.EnvironmentByKind.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
         NavidromeServerUrl = s.NavidromeServerUrl,
         NavidromeUser = s.NavidromeUser,
+        NtfyEnabled = s.NtfyEnabled,
+        NtfyServerUrl = s.NtfyServerUrl,
+        NtfyTopic = s.NtfyTopic,
         CalendarFeeds = s.CalendarFeeds.Select(f => new CalendarFeedDto { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
         OverlapPriorities = s.OverlapPriorities
             .Select(p => new OverlapPriorityDto { EventKey = p.EventKey, PreferCalendar = p.PreferCalendar }).ToList()
@@ -308,6 +314,9 @@ internal static class SettingsMapper
             .ToDictionary(kv => Enum.Parse<StudyKind>(kv.Key, ignoreCase: true), kv => kv.Value),
         NavidromeServerUrl = d.NavidromeServerUrl,
         NavidromeUser = d.NavidromeUser,
+        NtfyEnabled = d.NtfyEnabled,
+        NtfyServerUrl = d.NtfyServerUrl,
+        NtfyTopic = d.NtfyTopic,
         CalendarFeeds = d.CalendarFeeds.Select(f => new CalendarFeed { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
         OverlapPriorities = d.OverlapPriorities
             .Where(p => !string.IsNullOrWhiteSpace(p.EventKey))

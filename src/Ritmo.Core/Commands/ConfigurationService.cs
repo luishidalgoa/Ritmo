@@ -579,6 +579,31 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Conexión de Navidrome eliminada.");
     }
 
+    /// <summary>
+    /// Configura las notificaciones push al móvil vía ntfy (#122). Si <paramref name="enabled"/>
+    /// es true, el topic es obligatorio y el servidor debe ser una URL http/https (vacío =
+    /// ntfy.sh por defecto). El topic actúa como secreto compartido con el móvil.
+    /// </summary>
+    public CommandResult SetNtfy(bool enabled, string? serverUrl, string? topic)
+    {
+        if (enabled)
+        {
+            if (string.IsNullOrWhiteSpace(topic))
+                return CommandResult.Fail("Para activar las notificaciones al móvil necesitas un topic de ntfy.");
+            var server = Notifications.NtfyPublish.NormalizeServer(serverUrl);
+            if (!server.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                return CommandResult.Fail("El servidor de ntfy debe ser una URL http/https.");
+        }
+        var s = _store.Load();
+        _store.Save(s with
+        {
+            NtfyEnabled = enabled,
+            NtfyServerUrl = string.IsNullOrWhiteSpace(serverUrl) ? null : serverUrl.Trim(),
+            NtfyTopic = string.IsNullOrWhiteSpace(topic) ? null : topic.Trim()
+        });
+        return CommandResult.Ok(enabled ? "Notificaciones al móvil activadas." : "Notificaciones al móvil desactivadas.");
+    }
+
     // ---------- Suscripciones de calendario (ICS, #112) ----------
 
     /// <summary>Añade una suscripción a un calendario externo por enlace ICS. Devuelve su Id.</summary>

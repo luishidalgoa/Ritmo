@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 41 herramientas
+### 🤖 La IA (servidor MCP) — 42 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -58,7 +58,8 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Notas (markdown, opcional post-it de sesión): `add_note`, `update_note`, `remove_note`.
 - Atajos globales: `add_shortcut`, `remove_shortcut`.
 
-**Música, calendarios y solapamientos**
+**Notificaciones, música, calendarios y solapamientos**
+- Notificaciones push al móvil (ntfy): `set_ntfy`.
 - Navidrome (servidor + usuario; **sin contraseña**, esa va en el almacén seguro):
   `set_navidrome_connection`, `clear_navidrome_connection`.
 - Calendarios externos ICS: `add_calendar_feed`, `remove_calendar_feed`.
@@ -142,6 +143,9 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - **Servicio en segundo plano**: bucle de timers sobre el planificador, arranque con
   Windows y bandeja del sistema (#3, #18, #20).
 - **Toasts** de Windows conectados a los avisos previos (#28, #29).
+- **Notificaciones push al móvil vía ntfy** (opt-in, #122): cada aviso del horario se publica
+  además en un topic de ntfy, y la app ntfy (Android/iOS) suscrita al topic lo recibe en el
+  teléfono. Modo JSON (acentos/emoji intactos), configurable en Ajustes con botón "Enviar prueba".
 - **Capa de comandos** `ConfigurationService` como punto único de validación para UI e IA (#57).
 
 ### 📚 Ayuda
@@ -159,6 +163,12 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#122 — Notificaciones push al móvil vía ntfy** (opt-in, parte A del ticket). Cuando un aviso
+  se dispara, además del toast de Windows se publica en ntfy (`{servidor}/{topic}`, modo JSON) y
+  el móvil suscrito al topic lo recibe. Núcleo puro `NtfyPublish` (con tests) decide el QUÉ; el host
+  `NtfyPublisher` hace el POST. Sección en Ajustes (activar + servidor + topic + "Generar" + "Enviar
+  prueba") y herramienta MCP `set_ntfy`. Por defecto desactivado (Ritmo sigue 100% local). Verificado
+  end-to-end contra ntfy.sh: el suscriptor recibe título/mensaje/prioridad/tags con UTF-8 intacto.
 - **#61 — Granularidad de la rejilla del horario configurable.** Selector 60/30/15 min en
   Ajustes (60 por defecto). La granularidad solo dibuja las líneas-guía de fondo; los bloques
   pasan a posicionarse por su **minuto real** (geometría pura `ScheduleGeometry`, con tests),

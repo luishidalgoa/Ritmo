@@ -58,7 +58,20 @@ public sealed class ScheduleHost : IDisposable
     }
 
     private static void OnEventDue(PlannedEvent ev)
-        => ToastService.Show(NotificationBuilder.ForEvent(ev));
+    {
+        var msg = NotificationBuilder.ForEvent(ev);
+        ToastService.Show(msg);
+
+        // Push al móvil vía ntfy (opt-in, #122). Fire-and-forget best-effort: si está
+        // activo y hay topic, publicamos en paralelo al toast; nunca bloquea ni rompe.
+        try
+        {
+            var s = AppState.Load();
+            if (s.NtfyEnabled && !string.IsNullOrWhiteSpace(s.NtfyTopic))
+                _ = NtfyPublisher.PublishAsync(NtfyPublish.For(s.NtfyServerUrl, s.NtfyTopic!, msg, ev.Type));
+        }
+        catch { /* tolerar: el aviso local ya se mostró */ }
+    }
 
     public void Stop()
     {

@@ -424,6 +424,16 @@ public sealed class RitmoTools
     public string ClearNavidromeConnection()
         => Report(_config.ClearNavidromeConnection());
 
+    // ==================== NOTIFICACIONES AL MÓVIL (ntfy) ====================
+
+    [McpServerTool(Name = "set_ntfy")]
+    [Description("Configura las notificaciones push al móvil vía ntfy (#122). enabled=true las activa (requiere topic); enabled=false las desactiva. serverUrl vacío = https://ntfy.sh. El topic es un secreto compartido: el usuario instala la app ntfy (Android/iOS) y se suscribe al MISMO topic para recibir los avisos del horario en el teléfono.")]
+    public string SetNtfy(
+        [Description("Activar (true) o desactivar (false) el push al móvil")] bool enabled,
+        [Description("Topic de ntfy (obligatorio si enabled=true)")] string? topic = null,
+        [Description("URL del servidor ntfy (vacío = https://ntfy.sh)")] string? serverUrl = null)
+        => Report(_config.SetNtfy(enabled, serverUrl, topic));
+
     // ==================== CALENDARIOS (ICS) ====================
 
     [McpServerTool(Name = "add_calendar_feed")]

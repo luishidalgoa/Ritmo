@@ -38,6 +38,10 @@ public sealed partial class SettingsPage : Page
         DayEndPicker.Time = s.ViewConfig.DayEnd.ToTimeSpan();
         GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
 
+        NtfyEnabledToggle.IsOn = s.NtfyEnabled;
+        NtfyServerBox.Text = s.NtfyServerUrl ?? "";
+        NtfyTopicBox.Text = s.NtfyTopic ?? "";
+
         ThemeBox.SelectedIndex = (this.ActualTheme) switch
         {
             ElementTheme.Light => 1,
@@ -694,6 +698,8 @@ public sealed partial class SettingsPage : Page
         int gran = (GranularityBox.SelectedItem is ComboBoxItem gi && gi.Tag is string gt && int.TryParse(gt, out var gm)) ? gm : 60;
         var r3 = AppState.Config.SetGranularity(gran);
 
+        var r4 = AppState.Config.SetNtfy(NtfyEnabledToggle.IsOn, NtfyServerBox.Text, NtfyTopicBox.Text);
+
         if (ThemeBox.SelectedItem is ComboBoxItem it && it.Tag is string tag)
         {
             var theme = tag switch { "Light" => ElementTheme.Light, "Dark" => ElementTheme.Dark, _ => ElementTheme.Default };
@@ -701,8 +707,32 @@ public sealed partial class SettingsPage : Page
                 root.RequestedTheme = theme;
         }
 
-        SaveStatus.Text = (r1.Success && r2.Success && r3.Success)
+        SaveStatus.Text = (r1.Success && r2.Success && r3.Success && r4.Success)
             ? "✓ Guardado"
-            : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : r3.Message)}";
+            : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : !r3.Success ? r3.Message : r4.Message)}";
+    }
+
+    // ---------- Notificaciones al móvil (ntfy, #122) ----------
+
+    private void NtfyGenBtn_Click(object sender, RoutedEventArgs e)
+        => NtfyTopicBox.Text = "ritmo-" + Guid.NewGuid().ToString("N").Substring(0, 10);
+
+    private async void NtfyTestBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var topic = (NtfyTopicBox.Text ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(topic)) { NtfyStatus.Text = "Pon (o genera) un topic primero."; return; }
+
+        NtfyStatus.Text = "Enviando…";
+        NtfyTestBtn.IsEnabled = false;
+        try
+        {
+            var pub = Ritmo.Core.Notifications.NtfyPublish.ForTest(NtfyServerBox.Text, topic);
+            bool ok = await Services.NtfyPublisher.PublishAsync(pub);
+            NtfyStatus.Text = ok
+                ? "✓ Enviado. Revisa el móvil suscrito a ese topic."
+                : "⚠ No se pudo enviar (revisa servidor, topic y conexión).";
+        }
+        catch { NtfyStatus.Text = "⚠ Error al enviar la prueba."; }
+        finally { NtfyTestBtn.IsEnabled = true; }
     }
 }

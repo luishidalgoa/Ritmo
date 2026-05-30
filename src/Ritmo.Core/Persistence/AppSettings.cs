@@ -45,6 +45,16 @@ public sealed record AppSettings
     public string? NavidromeServerUrl { get; init; }
     public string? NavidromeUser { get; init; }
 
+    /// <summary>
+    /// Notificaciones push al móvil vía ntfy (#122). OPT-IN: por defecto desactivado.
+    /// Cuando está activo, cada aviso del horario (además del toast de Windows) se
+    /// publica en {NtfyServerUrl}/{NtfyTopic} y el móvil suscrito al topic lo recibe.
+    /// El topic actúa como secreto compartido (quien lo conoce, recibe los avisos).
+    /// </summary>
+    public bool NtfyEnabled { get; init; }
+    public string? NtfyServerUrl { get; init; }
+    public string? NtfyTopic { get; init; }
+
     /// <summary>Suscripciones a calendarios externos por enlace ICS (lectura). #112</summary>
     public IReadOnlyList<CalendarFeed> CalendarFeeds { get; init; } = [];
 
