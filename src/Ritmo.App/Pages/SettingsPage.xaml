@@ -139,8 +139,15 @@
                     </Expander>
 
                     <TextBlock Text="CALENDARIO" FontSize="11" FontWeight="SemiBold" Opacity="0.55" Margin="0,4,0,0" />
-                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                               Text="Suscríbete por enlace ICS (Google: «dirección secreta en formato iCal»; Outlook: «publicar calendario»; iCloud: «calendario público»). Solo lectura: tus eventos aparecen en «Hoy»." />
+                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap">
+                        <Run Text="Suscríbete por enlace ICS (" />
+                        <Hyperlink NavigateUri="https://calendar.google.com">Google</Hyperlink>
+                        <Run Text=": «dirección secreta en formato iCal»; " />
+                        <Hyperlink NavigateUri="https://outlook.live.com/calendar/">Outlook</Hyperlink>
+                        <Run Text=": «publicar calendario»; " />
+                        <Hyperlink NavigateUri="https://www.icloud.com/es-es/calendar">iCloud</Hyperlink>
+                        <Run Text=": «calendario público»). Solo lectura: tus eventos aparecen en «Hoy»." />
+                    </TextBlock>
                     <Grid ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
