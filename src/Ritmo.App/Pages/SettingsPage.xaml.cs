@@ -45,6 +45,7 @@ public sealed partial class SettingsPage : Page
         };
 
         BuildEnvList();
+        BuildPhases();
         BuildRhythms();
         BuildNotes();
         LoadNavidromeState(s);
@@ -405,6 +406,106 @@ public sealed partial class SettingsPage : Page
         }
         catch (Exception ex) { BackupStatus.Text = $"⚠ {ex.Message}"; }
     }
+
+    // ---------- Fases del plan (#46) ----------
+
+    private void BuildPhases()
+    {
+        var s = AppState.Load();
+        PhasesList.Children.Clear();
+        var active = s.Plan.GetActivePhase(DateOnly.FromDateTime(DateTime.Now));
+        foreach (var ph in s.Plan.OrderedPhases)
+            PhasesList.Children.Add(PhaseRow(ph, active is not null && ph.Name == active.Name));
+    }
+
+    private FrameworkElement PhaseRow(Ritmo.Core.Model.SchedulePhase ph, bool isActive)
+    {
+        var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        titleRow.Children.Add(new TextBlock { Text = ph.Name, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        if (isActive)
+        {
+            titleRow.Children.Add(new Border
+            {
+                Background = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"],
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(8, 1, 8, 1), VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock { Text = "Vigente", FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"] }
+            });
+        }
+        info.Children.Add(titleRow);
+        var to = ph.ValidTo is { } end ? end.ToString("dd/MM/yyyy") : "indefinida";
+        info.Children.Add(new TextBlock
+        {
+            Text = $"{ph.ValidFrom:dd/MM/yyyy} → {to}   ·   {ph.Schedule.Sessions.Count} sesión(es)",
+            Opacity = 0.65, FontSize = 12
+        });
+        Grid.SetColumn(info, 0);
+
+        var edit = new Button { Content = new SymbolIcon(Symbol.Edit) };
+        ToolTipService.SetToolTip(edit, "Editar fase");
+        edit.Click += (_, _) => _ = EditPhase(ph);
+        Grid.SetColumn(edit, 1);
+
+        var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
+        ToolTipService.SetToolTip(del, "Eliminar fase");
+        del.Click += (_, _) => _ = DeletePhase(ph);
+        Grid.SetColumn(del, 2);
+
+        var grid = new Grid { ColumnSpacing = 6 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(info); grid.Children.Add(edit); grid.Children.Add(del);
+
+        return new Border
+        {
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(12, 8, 8, 8), Child = grid
+        };
+    }
+
+    private async void AddPhaseBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new PhaseDialog { XamlRoot = this.XamlRoot };
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+        {
+            var r = AppState.Config.AddPhase(dlg.PhaseName, dlg.ValidFrom, dlg.ValidTo);
+            if (!r.Success) await InfoDialog(r.Message);
+            BuildPhases();
+        }
+    }
+
+    private async Task EditPhase(Ritmo.Core.Model.SchedulePhase ph)
+    {
+        var dlg = new PhaseDialog { XamlRoot = this.XamlRoot };
+        dlg.LoadFrom(ph);
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+        {
+            var r = AppState.Config.UpdatePhase(ph.Name, dlg.PhaseName, dlg.ValidFrom, dlg.ValidTo);
+            if (!r.Success) await InfoDialog(r.Message);
+            BuildPhases();
+        }
+    }
+
+    private async Task DeletePhase(Ritmo.Core.Model.SchedulePhase ph)
+    {
+        var confirm = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot, Title = "Eliminar fase",
+            Content = $"¿Eliminar la fase «{ph.Name}» y su horario? Esta acción no se puede deshacer.",
+            PrimaryButtonText = "Eliminar", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Close
+        };
+        if (await confirm.ShowAsync() == ContentDialogResult.Primary)
+        {
+            var r = AppState.Config.RemovePhase(ph.Name);
+            if (!r.Success) await InfoDialog(r.Message);
+            BuildPhases();
+        }
+    }
+
+    private async Task InfoDialog(string msg)
+        => await new ContentDialog { XamlRoot = this.XamlRoot, Title = "Fases", Content = msg, CloseButtonText = "Vale" }.ShowAsync();
 
     // ---------- Entornos de concentración (#53) ----------
 

@@ -22,6 +22,9 @@
             <StackPanel Grid.Column="0" Spacing="2">
                 <TextBlock Text="Horario semanal" FontSize="24" FontWeight="SemiBold" />
                 <TextBlock x:Name="PhaseInfo" Opacity="0.7" FontSize="13" />
+                <ComboBox x:Name="PhaseSelector" SelectionChanged="PhaseSelector_SelectionChanged"
+                          Margin="0,4,0,0" MinWidth="220" Visibility="Collapsed"
+                          AutomationProperties.Name="Fase del plan" />
                 <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,6,0,0" VerticalAlignment="Center">
                     <Button x:Name="PrevWeekBtn" Click="PrevWeekBtn_Click" AutomationProperties.Name="Semana anterior" Padding="8,4">
                         <FontIcon Glyph="&#xE76B;" FontSize="12" />

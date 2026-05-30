@@ -28,6 +28,8 @@ public sealed partial class SchedulePage : Page
         { "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO" };
 
     private string? _activePhaseName;
+    private string? _viewedPhaseName;   // fase elegida en el selector (null = automática por fecha) (#46)
+    private bool _loadingPhaseSel;
     private IReadOnlyList<CalendarEvent> _calEvents = [];   // eventos del calendario de la semana mostrada (#112)
     private DateOnly _weekStart = MondayOf(DateOnly.FromDateTime(DateTime.Now));   // lunes de la semana mostrada (#113)
 
@@ -227,8 +229,12 @@ public sealed partial class SchedulePage : Page
 
         var today = DateOnly.FromDateTime(DateTime.Now);
         _builtDate = today;
-        var phase = settings.Plan.GetActivePhase(today)
+        var phase = (_viewedPhaseName is not null
+                        ? settings.Plan.Phases.FirstOrDefault(p => p.Name == _viewedPhaseName)
+                        : null)
+                    ?? settings.Plan.GetActivePhase(today)
                     ?? settings.Plan.OrderedPhases.FirstOrDefault();
+        BuildPhaseSelector(settings, phase);
         var schedule = phase?.Schedule ?? settings.Schedule;
         _activePhaseName = phase?.Name;
         AddBtn.IsEnabled = phase is not null;
@@ -583,6 +589,35 @@ public sealed partial class SchedulePage : Page
     };
 
     // ---------- Navegación entre semanas (#113) ----------
+
+    // ---------- Selector de fase del plan (ver pasadas/futuras, #46) ----------
+
+    private void BuildPhaseSelector(Ritmo.Core.Persistence.AppSettings settings, SchedulePhase? current)
+    {
+        _loadingPhaseSel = true;
+        PhaseSelector.Items.Clear();
+        PhaseSelector.Items.Add(new ComboBoxItem { Content = "Automática (por fecha)", Tag = "" });
+        foreach (var p in settings.Plan.OrderedPhases)
+            PhaseSelector.Items.Add(new ComboBoxItem { Content = p.Name, Tag = p.Name });
+
+        int idx = 0;
+        if (_viewedPhaseName is not null)
+            for (int i = 0; i < PhaseSelector.Items.Count; i++)
+                if (PhaseSelector.Items[i] is ComboBoxItem it && (string)it.Tag == _viewedPhaseName) { idx = i; break; }
+        PhaseSelector.SelectedIndex = idx;
+        // Solo tiene sentido elegir si hay más de una fase.
+        PhaseSelector.Visibility = settings.Plan.Phases.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        _loadingPhaseSel = false;
+    }
+
+    private void PhaseSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingPhaseSel) return;
+        var tag = (PhaseSelector.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+        _viewedPhaseName = string.IsNullOrEmpty(tag) ? null : tag;
+        CloseDetail(internalRefresh: true);   // la selección previa puede no aplicar a otra fase
+        Build();
+    }
 
     private void PrevWeekBtn_Click(object sender, RoutedEventArgs e) { _weekStart = _weekStart.AddDays(-7); RefreshWeek(); }
     private void NextWeekBtn_Click(object sender, RoutedEventArgs e) { _weekStart = _weekStart.AddDays(7); RefreshWeek(); }

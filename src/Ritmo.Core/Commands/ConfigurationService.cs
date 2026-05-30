@@ -72,10 +72,43 @@ public sealed class ConfigurationService
         if (s.Plan.Phases.Any(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
             return CommandResult.Fail($"Ya existe una fase llamada «{name}».");
 
-        var phase = new SchedulePhase { Name = name, ValidFrom = validFrom, ValidTo = validTo };
+        var phase = new SchedulePhase { Name = name.Trim(), ValidFrom = validFrom, ValidTo = validTo };
         var updated = s with { Plan = new SchedulePlan { Phases = [.. s.Plan.Phases, phase] } };
         _store.Save(updated);
         return CommandResult.Ok($"Fase «{name}» añadida.");
+    }
+
+    /// <summary>Renombra y/o cambia la vigencia de una fase existente (#46).</summary>
+    public CommandResult UpdatePhase(string name, string newName, DateOnly validFrom, DateOnly? validTo)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+            return CommandResult.Fail("El nombre de la fase no puede estar vacío.");
+        if (validTo is { } end && end < validFrom)
+            return CommandResult.Fail("La fecha de fin no puede ser anterior a la de inicio.");
+
+        var s = _store.Load();
+        var phase = s.Plan.Phases.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (phase is null) return CommandResult.Fail($"No existe la fase «{name}».");
+        if (!newName.Trim().Equals(name, StringComparison.OrdinalIgnoreCase) &&
+            s.Plan.Phases.Any(p => p.Name.Equals(newName.Trim(), StringComparison.OrdinalIgnoreCase)))
+            return CommandResult.Fail($"Ya existe una fase llamada «{newName.Trim()}».");
+
+        var updated = phase with { Name = newName.Trim(), ValidFrom = validFrom, ValidTo = validTo };
+        var newPhases = s.Plan.Phases.Select(p => ReferenceEquals(p, phase) ? updated : p).ToList();
+        _store.Save(s with { Plan = new SchedulePlan { Phases = newPhases } });
+        return CommandResult.Ok("Fase actualizada.");
+    }
+
+    /// <summary>Elimina una fase del plan. Debe quedar al menos una (#46).</summary>
+    public CommandResult RemovePhase(string name)
+    {
+        var s = _store.Load();
+        if (s.Plan.Phases.Count <= 1) return CommandResult.Fail("Debe quedar al menos una fase.");
+        var phase = s.Plan.Phases.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (phase is null) return CommandResult.Fail($"No existe la fase «{name}».");
+        var newPhases = s.Plan.Phases.Where(p => !ReferenceEquals(p, phase)).ToList();
+        _store.Save(s with { Plan = new SchedulePlan { Phases = newPhases } });
+        return CommandResult.Ok($"Fase «{name}» eliminada.");
     }
 
     /// <summary>Añade una sesión a una fase existente (por nombre).</summary>
