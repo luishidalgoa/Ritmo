@@ -435,7 +435,7 @@ public sealed partial class SettingsPage : Page
         var rhythm = PomodoroRhythms.Find(env.PomodoroPreset, AppState.Load().Rhythms);
         var parts = new System.Collections.Generic.List<string> { rhythm?.Name ?? "Pomodoro por defecto" };
         if (env.EnableDoNotDisturb) parts.Add("No molestar");
-        if (env.OpenStudyListInEdge) parts.Add("Edge");
+        if (env.OpenLinksInBrowser) parts.Add("abre enlaces");
         if (env.Music is not null) parts.Add($"música: {env.Music.Name}");
         if (env.AppsToClose.Count > 0) parts.Add($"cierra {env.AppsToClose.Count} app(s)");
         if (env.BlockedWebsites.Count > 0) parts.Add($"bloquea {env.BlockedWebsites.Count} web(s)");

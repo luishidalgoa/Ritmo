@@ -31,7 +31,7 @@ public class FocusEnvironmentPersistenceTests : IDisposable
                 BlockedWebsites = ["youtube.com", "reddit.com"],
                 AppsToClose = ["Discord"],
                 AppsToMute = ["Spotify"],
-                OpenStudyListInEdge = true,
+                OpenLinksInBrowser = true,
                 Music = new MusicLauncher { Name = "Aonsoku", Target = @"C:\Apps\Aonsoku.exe", AutoPlay = true }
             },
             new FocusEnvironment { Id = "ligero", Name = "Repaso ligero", EnableDoNotDisturb = false }
@@ -56,7 +56,7 @@ public class FocusEnvironmentPersistenceTests : IDisposable
         Assert.Equal(new[] { "youtube.com", "reddit.com" }, deep.BlockedWebsites.ToArray());
         Assert.Contains("Discord", deep.AppsToClose);
         Assert.Contains("Spotify", deep.AppsToMute);
-        Assert.True(deep.OpenStudyListInEdge);
+        Assert.True(deep.OpenLinksInBrowser);
         Assert.Equal("Aonsoku", deep.Music!.Name);
         Assert.True(deep.Music.AutoPlay);
 

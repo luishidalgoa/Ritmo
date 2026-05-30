@@ -93,14 +93,14 @@ public sealed class RitmoTools
         [Description("Webs a bloquear, separadas por coma (ej. 'youtube.com,reddit.com')")] string? blockedWebsites = null,
         [Description("Apps a cerrar, separadas por coma (ej. 'Discord,Steam')")] string? appsToClose = null,
         [Description("Apps a silenciar, separadas por coma")] string? appsToMute = null,
-        [Description("Abrir la lista 'Estudio' en Edge (true/false)")] bool openStudyList = false,
+        [Description("Abrir los enlaces del entorno en una ventana nueva del navegador por defecto (true/false)")] bool openLinksInBrowser = false,
         [Description("Nombre de la app de música a lanzar, p. ej. 'Spotify' (vacío para ninguna)")] string? musicName = null,
         [Description("Ejecutable o URI de la música, p. ej. 'spotify:'")] string? musicTarget = null)
     {
         var env = new FocusEnvironment
         {
             Id = id, Name = name, EnableDoNotDisturb = doNotDisturb,
-            OpenStudyListInEdge = openStudyList,
+            OpenLinksInBrowser = openLinksInBrowser,
             BlockedWebsites = Split(blockedWebsites),
             AppsToClose = Split(appsToClose),
             AppsToMute = Split(appsToMute),

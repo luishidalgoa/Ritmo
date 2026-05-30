@@ -15,7 +15,7 @@ public class FocusEnvironmentTests
             EnableDoNotDisturb = true,
             HideTaskbarBadges = true,
             ShowDayPreview = false,
-            OpenStudyListInEdge = true,
+            OpenLinksInBrowser = true,
             BlockedWebsites = ["youtube.com", "twitter.com", "reddit.com"],
             AppsToClose = ["Discord", "Steam"],
             AppsToMute = ["Spotify"],
@@ -28,7 +28,7 @@ public class FocusEnvironmentTests
         Assert.Contains("Spotify", env.AppsToMute);
         Assert.Equal("Aonsoku", env.Music!.Name);
         Assert.True(env.Music.AutoPlay);
-        Assert.True(env.OpenStudyListInEdge);
+        Assert.True(env.OpenLinksInBrowser);
         Assert.False(env.ShowDayPreview);
     }
 
@@ -39,7 +39,7 @@ public class FocusEnvironmentTests
         Assert.True(env.EnableDoNotDisturb);     // por defecto silenciar
         Assert.True(env.HideTaskbarBadges);
         Assert.True(env.ShowDayPreview);
-        Assert.False(env.OpenStudyListInEdge);
+        Assert.False(env.OpenLinksInBrowser);
         Assert.Empty(env.BlockedWebsites);
         Assert.Empty(env.AppsToClose);
         Assert.Empty(env.AppsToMute);

@@ -45,7 +45,7 @@ internal sealed class FocusEnvironmentDto
     public bool EnableDoNotDisturb { get; set; } = true;
     public bool HideTaskbarBadges { get; set; } = true;
     public bool ShowDayPreview { get; set; } = true;
-    public bool OpenStudyListInEdge { get; set; }
+    public bool OpenLinksInBrowser { get; set; }
     public List<string> BlockedWebsites { get; set; } = [];
     public List<string> AppsToClose { get; set; } = [];
     public List<string> AppsToMute { get; set; } = [];
@@ -160,7 +160,7 @@ internal static class SettingsMapper
     {
         Id = e.Id, Name = e.Name, PomodoroPreset = e.PomodoroPreset,
         EnableDoNotDisturb = e.EnableDoNotDisturb, HideTaskbarBadges = e.HideTaskbarBadges,
-        ShowDayPreview = e.ShowDayPreview, OpenStudyListInEdge = e.OpenStudyListInEdge,
+        ShowDayPreview = e.ShowDayPreview, OpenLinksInBrowser = e.OpenLinksInBrowser,
         BlockedWebsites = e.BlockedWebsites.ToList(),
         AppsToClose = e.AppsToClose.ToList(),
         AppsToMute = e.AppsToMute.ToList(),
@@ -240,7 +240,7 @@ internal static class SettingsMapper
     {
         Id = e.Id, Name = e.Name, PomodoroPreset = e.PomodoroPreset,
         EnableDoNotDisturb = e.EnableDoNotDisturb, HideTaskbarBadges = e.HideTaskbarBadges,
-        ShowDayPreview = e.ShowDayPreview, OpenStudyListInEdge = e.OpenStudyListInEdge,
+        ShowDayPreview = e.ShowDayPreview, OpenLinksInBrowser = e.OpenLinksInBrowser,
         BlockedWebsites = e.BlockedWebsites.ToList(),
         AppsToClose = e.AppsToClose.ToList(),
         AppsToMute = e.AppsToMute.ToList(),

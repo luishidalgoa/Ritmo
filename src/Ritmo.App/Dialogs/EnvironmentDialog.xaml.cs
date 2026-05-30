@@ -340,7 +340,7 @@ public sealed partial class EnvironmentDialog : ContentDialog
         SelectPreset(env.PomodoroPreset);
         DndCheck.IsChecked = env.EnableDoNotDisturb;
         BadgesCheck.IsChecked = env.HideTaskbarBadges;
-        EdgeCheck.IsChecked = env.OpenStudyListInEdge;
+        OpenLinksCheck.IsChecked = env.OpenLinksInBrowser;
         AutoPlayCheck.IsChecked = env.Music?.AutoPlay ?? false;
         SelectMusic(env.Music);   // #98
 
@@ -389,7 +389,7 @@ public sealed partial class EnvironmentDialog : ContentDialog
             PomodoroPreset = preset,
             EnableDoNotDisturb = DndCheck.IsChecked == true,
             HideTaskbarBadges = BadgesCheck.IsChecked == true,
-            OpenStudyListInEdge = EdgeCheck.IsChecked == true,
+            OpenLinksInBrowser = OpenLinksCheck.IsChecked == true,
             ShowDayPreview = true,
             AppsToClose = [.. _appActions.Where(kv => kv.Value == "close").Select(kv => kv.Key), .. _otherClose],
             AppsToMute = _appActions.Where(kv => kv.Value == "mute").Select(kv => kv.Key).Distinct().ToList(),

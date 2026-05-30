@@ -220,8 +220,8 @@ public sealed partial class TimerPage : Page
                 {
                     MusicService.TryLaunch(env.Music);          // lanzar música (#10)
                     AppCloser.CloseAll(env.AppsToClose);         // cerrar apps de ruido (#35)
-                    if (env.OpenStudyListInEdge)
-                        EdgeStudyProfile.OpenStudyProfile();     // abrir perfil de estudio en Edge (#11)
+                    if (env.OpenLinksInBrowser && env.Links.Count > 0)   // abrir enlaces en ventana nueva del navegador por defecto (#109)
+                        DefaultBrowser.OpenLinksInNewWindow(env.Links.Select(l => l.Url).ToList());
                 }
             }
         }

@@ -55,8 +55,8 @@ public sealed record FocusEnvironment
     public bool HideTaskbarBadges { get; init; } = true;
     /// <summary>Mostrar la vista previa del día al iniciar.</summary>
     public bool ShowDayPreview { get; init; } = true;
-    /// <summary>Abrir (o crear) la lista de trabajo "Estudio" en Edge.</summary>
-    public bool OpenStudyListInEdge { get; init; }
+    /// <summary>Abrir los enlaces del entorno en una ventana nueva del navegador por defecto. #109</summary>
+    public bool OpenLinksInBrowser { get; init; }
 
     /// <summary>Dominios de webs a bloquear durante la sesión (p. ej. "youtube.com").</summary>
     public IReadOnlyList<string> BlockedWebsites { get; init; } = [];
