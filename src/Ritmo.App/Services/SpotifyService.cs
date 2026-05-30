@@ -191,12 +191,20 @@ public static class SpotifyService
 
         var result = new List<SpotifyPlaylist>();
         var url = SpotifyAuth.PlaylistsEndpoint + "?limit=50";
+        bool first = true;
         while (!string.IsNullOrEmpty(url) && result.Count < 200)
         {
             using var req = new HttpRequestMessage(HttpMethod.Get, url);
             req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
             using var resp = await Http.SendAsync(req, ct);
-            if (!resp.IsSuccessStatusCode) break;
+            if (!resp.IsSuccessStatusCode)
+            {
+                if (!first) break;   // páginas siguientes: devolvemos lo que haya
+                var body = await resp.Content.ReadAsStringAsync(ct);
+                if (body.Length > 200) body = body[..200];
+                throw new HttpRequestException($"HTTP {(int)resp.StatusCode} {resp.StatusCode}. {body}");
+            }
+            first = false;
 
             using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
             var root = doc.RootElement;

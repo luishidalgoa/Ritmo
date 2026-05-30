@@ -55,15 +55,16 @@ public sealed partial class SpotifyPlaylistWindow : Window
     {
         if (!SpotifyService.HasSession) { Show(ConnectPanel); return; }
         Show(LoadingPanel);
+        LoadingText.Text = "Cargando tus playlists…";
         try
         {
             var playlists = await SpotifyService.GetPlaylistsAsync();
             Populate(playlists);
         }
-        catch
+        catch (Exception ex)
         {
-            // El refresh falló (sesión caducada/revocada): pedir reconectar.
-            Show(ConnectPanel);
+            ErrorText.Text = "No se pudieron cargar las playlists.\n" + ex.Message;
+            Show(ErrorPanel);
         }
     }
 
@@ -78,7 +79,8 @@ public sealed partial class SpotifyPlaylistWindow : Window
         Show(ListPanel);
         if (_all.Count == 0)
         {
-            ErrorText.Text = "No se encontraron playlists en tu cuenta.";
+            ErrorText.Text = "No se encontraron playlists en tu cuenta.\n" +
+                             "Ojo: «Tus me gusta» no cuenta como playlist; crea o sigue alguna en Spotify.";
             Show(ErrorPanel);
         }
     }
