@@ -183,6 +183,10 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **Nuevo icono de la app.** Diseño propio (squircle teal con barras blancas + pulso rojo y arco
+  punteado: «ritmo + concentración»). Master en `public/icon.png`; regenerados todos los assets MSIX
+  (Square44/150, Wide, Splash, Store, LockScreen) y el `AppIcon.ico` multi-tamaño (16–256) que usa la
+  ventana (`AppWindow.SetIcon`).
 - **#128 — Núcleo central de notificaciones + avisos del horario arreglados.** Los avisos previos
   no llegaban (ni PC ni móvil) por dos causas: (1) el planificador solo se re-armaba al arrancar/
   importar, no al **editar** el horario → una sesión nueva no avisaba hasta reiniciar; (2) las
