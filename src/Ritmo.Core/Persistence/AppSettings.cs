@@ -55,6 +55,13 @@ public sealed record AppSettings
     public string? NtfyServerUrl { get; init; }
     public string? NtfyTopic { get; init; }
 
+    /// <summary>
+    /// Última versión de la app cuyas «Novedades» vio el usuario (p. ej. "1.0.1.0").
+    /// Null = nunca las ha visto. Al actualizar la app, si la versión actual es mayor
+    /// que esta, se activa el botón «Novedades» con el carrusel. #updates
+    /// </summary>
+    public string? LastSeenVersion { get; init; }
+
     /// <summary>Suscripciones a calendarios externos por enlace ICS (lectura). #112</summary>
     public IReadOnlyList<CalendarFeed> CalendarFeeds { get; init; } = [];
 

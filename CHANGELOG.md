@@ -161,6 +161,9 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 - App WinUI 3 (Fluent/Mica, estilo Reloj de Windows 11), sin login ni usuarios.
 - Núcleo `Ritmo.Core` 100% puro y testeable (xUnit); UI y SO son *hosts* tontos.
+- **«Novedades»**: al actualizar la app, un botón con aviso abre un carrusel con las mejoras
+  de la nueva versión, a nivel usuario (base del sistema de actualizaciones; CD y auto-update
+  vía App Installer pendientes de Fase 2/3).
 
 ---
 
@@ -168,6 +171,13 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **Novedades + base del sistema de actualizaciones (Fase 1).** Nuevo botón **«Novedades»** en el
+  menú que se **activa (badge)** cuando la app se actualiza a una versión con notas nuevas; al
+  pulsarlo abre un **carrusel** (FlipView + PipsPager) que explica las mejoras a nivel usuario.
+  Núcleo puro `ReleaseNotes` (notas por versión + `Since`, con tests) + `AppSettings.LastSeenVersion`
+  + `ConfigurationService.SetLastSeenVersion`. Regla de harness: cada feature de usuario añade su
+  nota en `ReleaseNotes`. **Pendiente**: Fase 2 (CD con GitHub Actions que firma y publica el MSIX +
+  `.appinstaller`) y Fase 3 (auto-update silencioso vía App Installer).
 - **#45 — Color por tipo de bloque configurable** (completa el editor tipo Excel). `ScheduleColors`
   pasa a honrar `ViewConfig.ColorsByKind` (override estático refrescado antes de cada render); si un
   tipo no tiene color propio, usa el de por defecto. UI en Ajustes › «Colores del horario» (una fila

@@ -343,6 +343,14 @@ public sealed class ConfigurationService
         return "#" + h.ToUpperInvariant();
     }
 
+    /// <summary>Marca como vistas las «Novedades» hasta la versión dada (carrusel de updates).</summary>
+    public CommandResult SetLastSeenVersion(string version)
+    {
+        var s = _store.Load();
+        _store.Save(s with { LastSeenVersion = string.IsNullOrWhiteSpace(version) ? null : version.Trim() });
+        return CommandResult.Ok("Novedades marcadas como vistas.");
+    }
+
     /// <summary>
     /// Activa/desactiva la vista previa del día al iniciar concentración (#47): si
     /// está activa, al arrancar el foco se muestra un resumen de los bloques de hoy.

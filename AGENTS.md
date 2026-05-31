@@ -36,6 +36,12 @@
   actualiza también la sección «Capacidades actuales». Si tocas las herramientas del
   servidor MCP, refleja el cambio en la subsección **🤖 La IA (MCP)** (y su recuento).
   El CHANGELOG es la fuente única de «qué hace Ritmo hoy».
+- **Mantén las «Novedades» de cara al usuario.** Si la feature es **visible para el usuario**,
+  añade además un highlight a la versión actual en
+  `src/Ritmo.Core/Updates/ReleaseNotes.cs` (lenguaje de usuario, NO técnico). Eso es lo que
+  aparece en el carrusel **«Novedades»** cuando la app se actualiza. Al publicar una versión
+  nueva, crea una `ReleaseNote` nueva con ese `Version` (que coincide con `Package.appxmanifest`).
+  Distinción: `CHANGELOG.md` = devs (técnico); `ReleaseNotes` = usuario final (el carrusel).
 - **Documenta lo no obvio.** Siempre que añadas algo que no sea evidente para el
   usuario, regístralo en la enciclopedia y explícalo con un tooltip de ayuda:
   1. Añade/ajusta la entrada en el glosario del núcleo

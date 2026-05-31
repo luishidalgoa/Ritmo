@@ -58,6 +58,31 @@ public sealed partial class MainWindow : Window
         // Página inicial: Hoy.
         ContentFrame.Navigate(typeof(HomePage));
         RebuildEnvNavItems();
+        UpdateWhatsNewBadge();   // "Novedades" se activa si la app se actualizó (#updates)
+    }
+
+    /// <summary>Muestra el aviso (badge) en «Novedades» si hay notas que el usuario no ha visto.</summary>
+    private void UpdateWhatsNewBadge()
+    {
+        var pending = Ritmo.Core.Updates.ReleaseNotes.Since(AppState.Load().LastSeenVersion, AppVersionInfo.Current);
+        WhatsNewBadge.Visibility = pending.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>Abre el carrusel «Novedades» y marca esta versión como vista (apaga el badge).</summary>
+    private async void ShowWhatsNew()
+    {
+        var current = AppVersionInfo.Current;
+        var pending = Ritmo.Core.Updates.ReleaseNotes.Since(AppState.Load().LastSeenVersion, current);
+        var notes = pending.Count > 0
+            ? pending
+            : Ritmo.Core.Updates.ReleaseNotes.All.Reverse().ToList();   // sin pendientes: navegar el histórico
+        if (notes.Count == 0) return;
+
+        var dlg = new Dialogs.WhatsNewDialog(notes) { XamlRoot = Nav.XamlRoot };
+        await dlg.ShowAsync();
+
+        AppState.Config.SetLastSeenVersion(current);
+        WhatsNewBadge.Visibility = Visibility.Collapsed;
     }
 
     /// <summary>
@@ -149,8 +174,13 @@ public sealed partial class MainWindow : Window
     {
         var tag = args.InvokedItemContainer?.Tag as string;
 
+        // "Novedades" no navega: abre el carrusel de novedades (#updates).
+        if (tag == "whatsnew")
+        {
+            ShowWhatsNew();
+        }
         // "Entornos de trabajo" no navega: abre/cierra el panel lateral derecho (#74).
-        if (tag == "workenv")
+        else if (tag == "workenv")
         {
             if (!RightPanel.IsPaneOpen) BuildWorkEnvPanel();
             RightPanel.IsPaneOpen = !RightPanel.IsPaneOpen;

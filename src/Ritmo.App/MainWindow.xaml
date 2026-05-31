@@ -42,6 +42,14 @@
             </NavigationViewItem>
         </NavigationView.MenuItems>
         <NavigationView.FooterMenuItems>
+            <NavigationViewItem x:Name="WhatsNewNav" Content="Novedades" Tag="whatsnew" SelectsOnInvoked="False">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE734;" />
+                </NavigationViewItem.Icon>
+                <NavigationViewItem.InfoBadge>
+                    <InfoBadge x:Name="WhatsNewBadge" Visibility="Collapsed" />
+                </NavigationViewItem.InfoBadge>
+            </NavigationViewItem>
             <NavigationViewItem Content="Ayuda" Tag="help">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE897;" />

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Ritmo_App.Dialogs.WhatsNewDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Novedades"
+    CloseButtonText="Entendido"
+    DefaultButton="Close">
+
+    <!-- Carrusel de novedades: una diapositiva por versión. Las diapositivas se
+         construyen en el code-behind a partir de las ReleaseNote del núcleo. -->
+    <StackPanel Width="440" Spacing="12">
+        <FlipView x:Name="Flip" Height="340" Background="Transparent" />
+        <PipsPager x:Name="Pips" HorizontalAlignment="Center"
+                   SelectedPageIndex="{Binding SelectedIndex, ElementName=Flip, Mode=TwoWay}" />
+    </StackPanel>
+</ContentDialog>
