@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 45 herramientas
+### 🤖 La IA (servidor MCP) — 50 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -40,7 +40,8 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Fases: `add_phase`, `update_phase`, `remove_phase`.
 - Sesiones recurrentes: `add_session`, `update_session`, `remove_session`.
 - Sesiones provisionales (con fecha): `add_one_off_session`, `remove_one_off_session`.
-- Rango horario, granularidad, vista previa y colores por tipo de bloque: `set_view_hours`, `set_view_granularity`, `set_day_preview`, `set_kind_color`.
+- Rango horario, granularidad, vista previa y color por categoría: `set_view_hours`, `set_view_granularity`, `set_day_preview`, `set_kind_color`.
+- Categorías de bloque (definibles por el usuario, #83): `list_categories`, `add_category`, `update_category`, `remove_category`, `reorder_category`.
 
 **Pomodoro**
 - Pomodoro por defecto: `set_pomodoro`.
@@ -93,8 +94,11 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - **Granularidad de la rejilla configurable** (60/30/15 min, 60 por defecto): solo cambia las
   líneas-guía de fondo; los bloques se posicionan por su minuto real, así una hora irregular
   (p. ej. 16:40) se ve donde toca sin desalinear los demás días (#61).
-- **Colores del horario configurables**: color de fondo personalizable por tipo de bloque
-  (Técnico, Legislación, Inglés…) desde Ajustes; por defecto, la paleta tipo Excel (#45).
+- **Categorías de bloque configurables** (#83): define tus propias categorías (nombre, color y
+  si activan concentración) desde Ajustes → «Categorías»; crea, renombra, recolora, reordena y
+  borra (las de sistema «Otro»/«Por definir» se conservan). El color de fondo del horario sale de
+  la categoría (paleta curada tipo Excel, #45). En el primer arranque, un **onboarding** deja
+  elegir una plantilla de categorías (Estudio / Trabajo / Genérico).
 - **Panel lateral de detalle** de sesión y **resolución de solapamientos** con eventos del
   calendario (elegir qué lado prioriza) (#114).
 - Avisos previos configurables por sesión (1 h / 10 min / 5 min, hasta 2; desplegables con
@@ -183,6 +187,19 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#83 — Ritmo genérico: categorías de bloque configurables + onboarding neutral.** Ritmo deja de
+  asumir un único uso (oposición/estudio). El antiguo tipo fijo de bloque (un enum cerrado de 9
+  valores) se sustituye por **categorías definibles por el usuario**: cada una con su nombre, color
+  y si dispara concentración. Núcleo: modelo `BlockCategory` + registro en `AppSettings` + migración
+  automática (los settings legacy con tipos "Tecnico"/"Otro"… se convierten solos en categorías, sin
+  perder colores ni mapeos; 100% compatible). Fachada + MCP: `list/add/update/remove/reorder_category`.
+  UI: el desplegable de categoría de una sesión se llena dinámicamente; nueva sección **«Categorías»**
+  en Ajustes (crear, renombrar, recolorar, marcar como concentración, reordenar y borrar; las de
+  sistema «Otro»/«Por definir» no se borran). **Onboarding** en el primer arranque: elige una
+  plantilla (Estudio / Trabajo / Genérico) en vez de sembrar un horario fijo; se crea una fase inicial
+  vacía lista para usar. Los usuarios existentes no ven el onboarding (conservan sus datos). Copia y
+  comentarios neutralizados (fin de las referencias a estudio/oposición). Verificado por UIA (sección
+  Categorías + flujo de onboarding, respaldando/restaurando el settings real).
 - **Nuevo icono de la app.** Diseño propio (squircle teal con barras blancas + pulso rojo y arco
   punteado: «ritmo + concentración»). Master en `public/icon.png`; regenerados todos los assets MSIX
   (Square44/150, Wide, Splash, Store, LockScreen) y el `AppIcon.ico` multi-tamaño (16–256) que usa la

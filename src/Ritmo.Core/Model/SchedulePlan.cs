@@ -1,7 +1,7 @@
 namespace Ritmo.Core.Model;
 
 /// <summary>
-/// Plan de estudio completo: las fases temporales ordenadas en el tiempo.
+/// Plan completo: las fases temporales del horario ordenadas en el tiempo.
 /// Sabe qué fase está vigente en una fecha y cuál es la siguiente (para avisar
 /// de los cambios de fase y para dejar preparar versiones futuras con antelación).
 /// Inmutable y puro.

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 namespace Ritmo.Core.Model;
 
 /// <summary>
-/// Mapa de los 9 valores del antiguo enum <c>StudyKind</c> a su categoría equivalente,
+/// Mapa de los 9 valores del antiguo enum fijo de tipos a su categoría equivalente,
 /// para que la migración (#83) auto-cree categorías al cargar settings legacy cuyos
 /// bloques referencian "Tecnico", "Legislacion", etc. Conserva nombre/color/focus actuales.
-/// Los ids son los nombres del enum tal cual (PascalCase) → el JSON existente sigue casando.
+/// Los ids son los nombres legacy tal cual (PascalCase) → el JSON existente sigue casando.
 /// </summary>
 public static class LegacyCategories
 {

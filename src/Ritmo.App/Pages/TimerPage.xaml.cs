@@ -18,8 +18,8 @@ namespace Ritmo_App;
 /// del SystemClock (la lógica vive en el núcleo, ya testeada).
 ///
 /// Además conecta el temporizador con el horario (#67): si ahora toca un bloque
-/// del plan, muestra su asignatura, usa el preset Pomodoro del entorno mapeado a
-/// su tipo y, al concentrar, aplica ese entorno (no el genérico por defecto).
+/// del plan, muestra su título, usa el preset Pomodoro del entorno mapeado a
+/// su categoría y, al concentrar, aplica ese entorno (no el genérico por defecto).
 /// </summary>
 public sealed partial class TimerPage : Page
 {
@@ -74,8 +74,8 @@ public sealed partial class TimerPage : Page
     }
 
     /// <summary>
-    /// Mira el horario: si hay un bloque activo AHORA, carga su asignatura, el
-    /// entorno mapeado a su tipo y el preset Pomodoro de ese entorno. Si no hay
+    /// Mira el horario: si hay un bloque activo AHORA, carga su título, el
+    /// entorno mapeado a su categoría y el preset Pomodoro de ese entorno. Si no hay
     /// bloque, usa el Pomodoro de ajustes ("concentración libre"). Solo recompone
     /// el motor cuando está en Idle, para no interrumpir una sesión en curso.
     /// </summary>
@@ -311,10 +311,10 @@ public sealed partial class TimerPage : Page
                     MusicService.TryLaunch(env.Music);          // lanzar música (#10)
                     AppCloser.CloseAll(env.AppsToClose);         // cerrar apps de ruido (#35)
                     AppMuter.Mute(env.AppsToMute);               // silenciar apps de ruido (#9)
-                    // Solo el subconjunto de apps/enlaces del tipo de sesión activo (#116);
+                    // Solo el subconjunto de apps/enlaces de la categoría de sesión activa (#116);
                     // sin perfil para ese título, ResolveOpen devuelve todo (por defecto).
                     var (openLinks, openApps) = env.ResolveOpen(_activeSessionTitle);
-                    AppLauncher.OpenAll(openApps);               // abrir herramientas de estudio (#109)
+                    AppLauncher.OpenAll(openApps);               // abrir herramientas de trabajo (#109)
                     if (env.OpenLinksInBrowser && openLinks.Count > 0)   // abrir enlaces en ventana nueva del navegador por defecto
                         DefaultBrowser.OpenLinksInNewWindow(openLinks.Select(l => l.Url).ToList());
                 }
@@ -329,7 +329,7 @@ public sealed partial class TimerPage : Page
         {
             _environmentApplied = false;   // reset al parar
             AppMuter.RestoreAll();         // restaurar el audio de las apps silenciadas (#9)
-            if (_createdDesktop) { VirtualDesktops.CloseCurrent(); _createdDesktop = false; }   // cerrar el escritorio de estudio
+            if (_createdDesktop) { VirtualDesktops.CloseCurrent(); _createdDesktop = false; }   // cerrar el escritorio de concentración
         }
         DndBadge.Visibility = _focus.IsActive ? Visibility.Visible : Visibility.Collapsed;
     }

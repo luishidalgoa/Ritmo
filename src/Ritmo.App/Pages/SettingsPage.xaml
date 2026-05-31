@@ -180,7 +180,7 @@
                         </Button>
                     </Grid>
                     <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                               Text="Cada fase tiene su propio horario y un rango de fechas (p. ej. «Primera vuelta», «Repaso»). El Horario muestra la fase vigente según la fecha; puedes ver otras desde el selector del Horario." />
+                               Text="Cada fase tiene su propio horario y un rango de fechas (p. ej. «Fase 1», «Fase 2»). El Horario muestra la fase vigente según la fecha; puedes ver otras desde el selector del Horario." />
                     <StackPanel x:Name="PhasesList" Spacing="8" />
                 </StackPanel>
             </Border>

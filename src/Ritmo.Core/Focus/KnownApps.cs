@@ -25,7 +25,7 @@ public static class KnownApps
 {
     public static readonly System.Collections.Generic.IReadOnlyList<KnownApp> Catalog =
     [
-        // Productividad: herramientas de estudio. LaunchTarget = protocolo o nombre en App Paths (#109).
+        // Productividad: herramientas de trabajo. LaunchTarget = protocolo o nombre en App Paths (#109).
         new("OneNote", "onenote", AppCategory.Productividad, "https://www.onenote.com/download", "onenote", "onenote:"),
         new("Microsoft Word", "WINWORD", AppCategory.Productividad, "https://www.microsoft.com/microsoft-365/word", "word", "winword"),
         new("Microsoft Excel", "EXCEL", AppCategory.Productividad, "https://www.microsoft.com/microsoft-365/excel", "excel", "excel"),

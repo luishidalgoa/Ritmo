@@ -99,7 +99,7 @@ public sealed class RitmoTools
     // ==================== SESIONES (en una fase) ====================
 
     [McpServerTool(Name = "add_session")]
-    [Description("Añade una sesión recurrente a una fase existente (por nombre). day en inglés (Monday..Sunday). start en HH:mm. preAlertsMinutes: minutos de aviso separados por coma (ej. '60,10'). tentative=true para bloque provisional/sin materia decidida.")]
+    [Description("Añade una sesión recurrente a una fase existente (por nombre). day en inglés (Monday..Sunday). start en HH:mm. preAlertsMinutes: minutos de aviso separados por coma (ej. '60,10'). tentative=true para bloque provisional/sin contenido decidido.")]
     public string AddSession(
         [Description("Nombre de la fase destino")] string phaseName,
         [Description("Título de la sesión")] string title,

@@ -10,6 +10,6 @@ public sealed record OverlapPriority
 {
     public required string EventKey { get; init; }
 
-    /// <summary>true = prioriza el evento del calendario; false = prioriza la sesión de estudio.</summary>
+    /// <summary>true = prioriza el evento del calendario; false = prioriza la sesión del horario.</summary>
     public required bool PreferCalendar { get; init; }
 }

@@ -1,6 +1,6 @@
 namespace Ritmo.Core.Model;
 
-/// <summary>Un enlace-atajo: un acceso rápido a un recurso (campus, web…).</summary>
+/// <summary>Un enlace-atajo: un acceso rápido a un recurso (documentación, web…).</summary>
 public sealed record ShortcutLink
 {
     public required string Title { get; init; }

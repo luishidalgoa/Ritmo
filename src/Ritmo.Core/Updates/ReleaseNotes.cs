@@ -46,10 +46,12 @@ public static class ReleaseNotes
         new ReleaseNote
         {
             Version = "1.0.2.0",
-            Title = "Tus entornos, por módulos",
+            Title = "Ritmo, a tu manera",
             Emoji = "🧩",
             Highlights =
             [
+                "Ahora Ritmo es tuyo: define tus propias categorías de bloque (nombre, color y si activan concentración) en Ajustes → Categorías.",
+                "Al empezar, elige una plantilla — Estudio, Trabajo o Genérico — en vez de un horario fijo. Tus categorías de siempre se conservan.",
                 "Cada entorno se despliega en módulos: Concentración, Enlaces, Tareas y Herramientas.",
                 "Toca un módulo para editar solo esa parte, sin perderte en un formulario gigante.",
                 "«Abrir workspace» lanza de golpe todos los enlaces del entorno en una ventana nueva del navegador.",

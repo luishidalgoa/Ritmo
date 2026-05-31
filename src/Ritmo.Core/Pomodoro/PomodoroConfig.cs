@@ -36,7 +36,7 @@ public sealed record PomodoroConfig
     public static PomodoroConfig Classic => new(
         TimeSpan.FromMinutes(25), TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(15), 4);
 
-    /// <summary>Preset largo (encaja con bloques de 2h del horario TAI): 50/10/20, largo cada 2.</summary>
+    /// <summary>Preset largo (encaja con bloques de ~2h): 50/10/20, largo cada 2.</summary>
     public static PomodoroConfig DeepWork => new(
         TimeSpan.FromMinutes(50), TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(20), 2);
 

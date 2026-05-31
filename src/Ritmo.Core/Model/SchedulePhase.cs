@@ -1,7 +1,7 @@
 namespace Ritmo.Core.Model;
 
 /// <summary>
-/// Una "fase" del plan de estudio: un horario semanal con vigencia temporal.
+/// Una "fase" del plan: un horario semanal con vigencia temporal.
 /// Permite que de una fecha a otra rija un horario y, a partir de otra fecha,
 /// otro distinto (p. ej. Fase 1 jun–oct, Fase 2 nov–feb...).
 ///

@@ -14,7 +14,7 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="520">
         <StackPanel Spacing="14" Width="360">
-            <TextBox x:Name="NameBox" Header="Nombre" PlaceholderText="p. ej. Estudio profundo" />
+            <TextBox x:Name="NameBox" Header="Nombre" PlaceholderText="p. ej. Concentración profunda" />
 
             <ComboBox x:Name="PresetBox" Header="Ritmo Pomodoro" HorizontalAlignment="Stretch" />
 

@@ -57,7 +57,7 @@ public sealed record MusicLauncher
 /// usuario entra en modo focus con este perfil. Es un modelo de DATOS puro
 /// (la ejecución real sobre el SO la hará la capa de integración en M4).
 ///
-/// El usuario puede tener varios: "Estudio profundo", "Repaso ligero", "Simulacro"…
+/// El usuario puede tener varios: "Concentración profunda", "Reuniones", "Proyecto X"…
 /// </summary>
 public sealed record FocusEnvironment
 {
@@ -84,7 +84,7 @@ public sealed record FocusEnvironment
     public IReadOnlyList<string> AppsToClose { get; init; } = [];
     /// <summary>Nombres de procesos/apps a silenciar (sin cerrarlos).</summary>
     public IReadOnlyList<string> AppsToMute { get; init; } = [];
-    /// <summary>Apps a ABRIR al concentrarte (herramientas de estudio). #109</summary>
+    /// <summary>Apps a ABRIR al concentrarte (herramientas de trabajo). #109</summary>
     public IReadOnlyList<string> AppsToOpen { get; init; } = [];
 
     /// <summary>Crear un escritorio virtual de Windows nuevo al concentrarte (aísla el contexto). #110</summary>
@@ -94,8 +94,8 @@ public sealed record FocusEnvironment
     public MusicLauncher? Music { get; init; }
 
     /// <summary>
-    /// Enlaces y herramientas del entorno (p. ej. el entorno "Oposiciones" agrupa
-    /// el campus, el BOE, etc.). Accesos rápidos del "entorno de trabajo". #74
+    /// Enlaces y herramientas del entorno (p. ej. el entorno "Proyecto X" agrupa
+    /// su repositorio, su tablero, su documentación, etc.). Accesos rápidos del "entorno de trabajo". #74
     /// </summary>
     public IReadOnlyList<Ritmo.Core.Model.ShortcutLink> Links { get; init; } = [];
 

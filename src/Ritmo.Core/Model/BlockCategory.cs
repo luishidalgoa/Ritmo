@@ -2,16 +2,16 @@ namespace Ritmo.Core.Model;
 
 /// <summary>
 /// Una categoría de bloque del horario, DEFINIBLE por el usuario (#83). Sustituye al
-/// antiguo enum fijo <c>StudyKind</c>: cada categoría lleva su nombre, color, si dispara
+/// antiguo enum fijo de tipos de bloque: cada categoría lleva su nombre, color, si dispara
 /// concentración, y su orden. Las sesiones referencian una categoría por <see cref="Id"/>
 /// (string estable), que es además la clave en el JSON (compatibilidad con los nombres
-/// del enum legacy: "Tecnico", "Otro"…).
+/// de los tipos legacy: "Tecnico", "Otro"…).
 /// </summary>
 public sealed record BlockCategory
 {
     /// <summary>Id estable e inmutable (slug). Clave del JSON y referencia desde las sesiones.</summary>
     public required string Id { get; init; }
-    /// <summary>Nombre visible (reemplaza a <c>StudyKind.Label()</c>).</summary>
+    /// <summary>Nombre visible de la categoría.</summary>
     public required string Name { get; init; }
     /// <summary>Color de fondo "#RRGGBB".</summary>
     public required string ColorHex { get; init; }

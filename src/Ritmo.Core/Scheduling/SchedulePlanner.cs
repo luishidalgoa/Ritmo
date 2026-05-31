@@ -55,7 +55,7 @@ public sealed class SchedulePlanner
 
                 // Evento de inicio de sesión.
                 // No disparan inicio automático de concentración: los bloques tentativos
-                // ni los tipos que no son de estudio (Descanso, Personal, PorDefinir…).
+                // ni las categorías que no son de concentración (Descanso, Personal, PorDefinir…).
                 // Solo se ven en el calendario; sus avisos, si los tienen, suenan igual.
                 if (!s.IsTentative && _focus.Contains(s.CategoryId) && start >= from && start < until)
                 {
@@ -162,7 +162,7 @@ public sealed class SchedulePlanner
             if (s.Day != now.DayOfWeek)
                 continue;
             // No cuentan como sesión activa (no disparan concentración) los tentativos
-            // ni los tipos que no son de estudio (Descanso, Personal…).
+            // ni las categorías que no son de concentración (Descanso, Personal…).
             if (s.IsTentative || !_focus.Contains(s.CategoryId))
                 continue;
             // Sesión que no cruza medianoche (caso normal del horario 08–20).

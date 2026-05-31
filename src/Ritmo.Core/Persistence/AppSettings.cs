@@ -36,7 +36,7 @@ public sealed record AppSettings
 
     /// <summary>
     /// Categorías de bloque definibles por el usuario (#83). Reemplazan al antiguo enum
-    /// <c>StudyKind</c>. De fábrica = set neutral; los usuarios existentes las reciben por
+    /// fijo de tipos. De fábrica = set neutral; los usuarios existentes las reciben por
     /// migración (ver <c>CategoryMigration</c>). Siempre incluye «Otro» y «Por definir».
     /// </summary>
     public IReadOnlyList<BlockCategory> Categories { get; init; } = CategoryDefaults.Neutral();
@@ -83,7 +83,7 @@ public sealed record AppSettings
 
     /// <summary>
     /// Mapeo opcional categoría de bloque (id) → id de entorno, para asociar automáticamente
-    /// (p. ej. un bloque "Simulacro" usa el entorno "Simulacro"). #70
+    /// (p. ej. un bloque "Reunión" usa el entorno "Reunión"). #70
     /// </summary>
     public IReadOnlyDictionary<string, string> EnvironmentByKind { get; init; }
         = new Dictionary<string, string>();
