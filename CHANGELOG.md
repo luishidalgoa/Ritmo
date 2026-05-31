@@ -193,6 +193,10 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **Bug — Diálogo de sesión: los TimePicker de Inicio/Fin recortaban los minutos.** Estaban en una
+  rejilla de 2 columnas dentro de un diálogo estrecho (~154px cada uno) y el `TimePicker` clipaba la
+  parte de los minutos (solo se veía la hora). Ahora van apilados a ancho completo (Inicio sobre Fin),
+  así se ve «HH:mm» entero. Verificado: el control pasa de ~154px a ~480px.
 - **#38 — Duplicar fase.** Nueva acción «Duplicar» en cada fase (Ajustes → Fases): crea otra fase
   con nuevo nombre y vigencia copiando su horario semanal completo — para preparar la siguiente
   fase a partir de la actual y ajustarla, sin rehacer el horario a mano. Núcleo:

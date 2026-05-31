@@ -32,14 +32,12 @@
                        Opacity="0.6" FontSize="12" />
         </StackPanel>
 
-        <Grid ColumnSpacing="12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <TimePicker x:Name="StartPicker" Grid.Column="0" Header="Inicio" ClockIdentifier="24HourClock" MinuteIncrement="5" />
-            <TimePicker x:Name="EndPicker" Grid.Column="1" Header="Fin" ClockIdentifier="24HourClock" MinuteIncrement="5" />
-        </Grid>
+        <!-- Inicio/Fin apilados y a ancho completo: en 2 columnas el TimePicker se quedaba
+             demasiado estrecho (~154px) y recortaba los minutos (solo se veía la hora). -->
+        <TimePicker x:Name="StartPicker" Header="Inicio" ClockIdentifier="24HourClock" MinuteIncrement="5"
+                    HorizontalAlignment="Stretch" />
+        <TimePicker x:Name="EndPicker" Header="Fin" ClockIdentifier="24HourClock" MinuteIncrement="5"
+                    HorizontalAlignment="Stretch" />
 
         <!-- Categorías dinámicas (#83): se llenan en runtime con SetCategories desde los
              ajustes del usuario. Ya no hay tipos fijos. -->
