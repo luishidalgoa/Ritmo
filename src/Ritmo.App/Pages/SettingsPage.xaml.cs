@@ -39,7 +39,7 @@ public sealed partial class SettingsPage : Page
         GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
         DayPreviewToggle.IsOn = s.ViewConfig.ShowDayPreviewOnFocusStart;
 
-        BuildKindColors(s);
+        BuildCategories(s);
         RefreshConnections(s);
         VersionText.Text = $"Versión actual: {AppVersionInfo.Current}";
 
@@ -1037,81 +1037,166 @@ public sealed partial class SettingsPage : Page
     }
 
     /// <summary>Una fila por categoría: etiqueta + muestra que abre nuestra paleta curada.</summary>
-    private void BuildKindColors(Ritmo.Core.Persistence.AppSettings s)
+    /// <summary>
+    /// Sección «Categorías» (#83): una fila por categoría con nombre + chip de concentración,
+    /// botón de color (paleta curada) y acciones (reordenar/editar/borrar). El alta va por el
+    /// botón "Añadir categoría". Las categorías de sistema («Otro»/«Por definir») no se borran.
+    /// </summary>
+    private void BuildCategories(Ritmo.Core.Persistence.AppSettings s)
     {
         Services.ScheduleColors.SetCategories(s.Categories);   // que las muestras reflejen lo guardado
         ColorsHost.Children.Clear();
 
-        foreach (var category in s.Categories.OrderBy(c => c.Order))
+        var ordered = s.Categories.OrderBy(c => c.Order).ToList();
+        for (int i = 0; i < ordered.Count; i++)
         {
-            var row = new Grid { ColumnSpacing = 10 };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var category = ordered[i];
+            bool isFirst = i == 0, isLast = i == ordered.Count - 1;
 
-            var label = new TextBlock { Text = category.Name, VerticalAlignment = VerticalAlignment.Center, FontSize = 14 };
-            Grid.SetColumn(label, 0);
+            var row = new Grid { ColumnSpacing = 8 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });   // nombre
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                        // color
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                        // acciones
 
-            var current = ((SolidColorBrush)Services.ScheduleColors.For(category.Id)).Color;
+            var namePanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+            namePanel.Children.Add(new TextBlock { Text = category.Name, VerticalAlignment = VerticalAlignment.Center, FontSize = 14 });
+            if (category.IsFocus) namePanel.Children.Add(FocusChip());
+            Grid.SetColumn(namePanel, 0);
 
-            var swatch = new Microsoft.UI.Xaml.Shapes.Rectangle
-            {
-                Width = 28, Height = 22, RadiusX = 4, RadiusY = 4,
-                Fill = new SolidColorBrush(current),
-                Stroke = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"], StrokeThickness = 1
-            };
-            var btn = new Button
-            {
-                Padding = new Thickness(6, 4, 6, 4),
-                Content = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal, Spacing = 8,
-                    Children = { swatch, new TextBlock { Text = "Cambiar", FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 } }
-                }
-            };
-            Grid.SetColumn(btn, 1);
+            var colorBtn = BuildColorButton(category);
+            Grid.SetColumn(colorBtn, 1);
 
-            var thisCategoryId = category.Id;
-            var flyout = new Flyout();
-            string currentHex = $"#{current.R:X2}{current.G:X2}{current.B:X2}";
+            var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+            var catId = category.Id;
+            actions.Children.Add(IconBtn("", "Subir", !isFirst, () => { AppState.Config.ReorderCategory(catId, true); BuildCategories(AppState.Load()); }));
+            actions.Children.Add(IconBtn("", "Bajar", !isLast, () => { AppState.Config.ReorderCategory(catId, false); BuildCategories(AppState.Load()); }));
+            actions.Children.Add(IconBtn("", "Editar", true, () => _ = EditCategory(category)));
+            actions.Children.Add(IconBtn("", "Borrar", !category.IsSystem, () => _ = ConfirmRemoveCategory(category)));
+            Grid.SetColumn(actions, 2);
 
-            // Nuestra paleta curada: columnas por color, filas de mayor a menor intensidad (#45).
-            var swatches = new Grid { ColumnSpacing = 3, RowSpacing = 3 };
-            var cols = Services.SchedulePalette.Columns();
-            int nRows = cols.Count > 0 ? cols[0].Count : 0;
-            for (int c = 0; c < cols.Count; c++) swatches.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            for (int rr = 0; rr < nRows; rr++) swatches.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            var strokeBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"];
-            var accentBrush = new SolidColorBrush(((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color);
-
-            for (int c = 0; c < cols.Count; c++)
-                for (int rr = 0; rr < cols[c].Count; rr++)
-                {
-                    var hex = cols[c][rr];
-                    bool isSel = string.Equals(hex, currentHex, StringComparison.OrdinalIgnoreCase);
-                    var sw = new Button
-                    {
-                        Width = 26, Height = 22, MinWidth = 0, Padding = new Thickness(0),
-                        Background = new SolidColorBrush(ParseHex(hex)),
-                        CornerRadius = new CornerRadius(4),
-                        BorderThickness = new Thickness(isSel ? 2 : 1),
-                        BorderBrush = isSel ? accentBrush : strokeBrush
-                    };
-                    ToolTipService.SetToolTip(sw, hex);
-                    Grid.SetColumn(sw, c); Grid.SetRow(sw, rr);
-                    var thisHex = hex;
-                    sw.Click += (_, _) => { AppState.Config.SetKindColor(thisCategoryId, thisHex); flyout.Hide(); BuildKindColors(AppState.Load()); };
-                    swatches.Children.Add(sw);
-                }
-
-            var resetBtn = new Button { Content = "Usar por defecto", HorizontalAlignment = HorizontalAlignment.Stretch };
-            resetBtn.Click += (_, _) => { AppState.Config.SetKindColor(thisCategoryId, null); flyout.Hide(); BuildKindColors(AppState.Load()); };
-
-            flyout.Content = new StackPanel { Spacing = 10, Children = { swatches, resetBtn } };
-            btn.Flyout = flyout;
-
-            row.Children.Add(label); row.Children.Add(btn);
+            row.Children.Add(namePanel); row.Children.Add(colorBtn); row.Children.Add(actions);
             ColorsHost.Children.Add(row);
         }
     }
+
+    /// <summary>Etiqueta visual de que una categoría dispara concentración.</summary>
+    private static Border FocusChip() => new()
+    {
+        Background = new SolidColorBrush(((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color),
+        CornerRadius = new CornerRadius(8), Padding = new Thickness(7, 1, 7, 2), VerticalAlignment = VerticalAlignment.Center,
+        Child = new TextBlock { Text = "Concentración", FontSize = 10, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) }
+    };
+
+    /// <summary>Botón pequeño con icono Fluent (deshabilitado si no aplica).</summary>
+    private static Button IconBtn(string glyph, string tip, bool enabled, Action onClick)
+    {
+        var b = new Button
+        {
+            Content = new FontIcon { Glyph = glyph, FontSize = 14 },
+            Padding = new Thickness(7, 5, 7, 5), MinWidth = 0, IsEnabled = enabled
+        };
+        ToolTipService.SetToolTip(b, tip);
+        b.Click += (_, _) => onClick();
+        return b;
+    }
+
+    /// <summary>Botón de color de una categoría con flyout de la paleta curada (#45).</summary>
+    private Button BuildColorButton(BlockCategory category)
+    {
+        var current = ((SolidColorBrush)Services.ScheduleColors.For(category.Id)).Color;
+        var swatch = new Microsoft.UI.Xaml.Shapes.Rectangle
+        {
+            Width = 28, Height = 22, RadiusX = 4, RadiusY = 4,
+            Fill = new SolidColorBrush(current),
+            Stroke = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"], StrokeThickness = 1
+        };
+        var btn = new Button
+        {
+            Padding = new Thickness(6, 4, 6, 4),
+            Content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal, Spacing = 8,
+                Children = { swatch, new TextBlock { Text = "Color", FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 } }
+            }
+        };
+
+        var thisCategoryId = category.Id;
+        var flyout = new Flyout();
+        string currentHex = $"#{current.R:X2}{current.G:X2}{current.B:X2}";
+
+        var swatches = new Grid { ColumnSpacing = 3, RowSpacing = 3 };
+        var cols = Services.SchedulePalette.Columns();
+        int nRows = cols.Count > 0 ? cols[0].Count : 0;
+        for (int c = 0; c < cols.Count; c++) swatches.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        for (int rr = 0; rr < nRows; rr++) swatches.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var strokeBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"];
+        var accentBrush = new SolidColorBrush(((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color);
+
+        for (int c = 0; c < cols.Count; c++)
+            for (int rr = 0; rr < cols[c].Count; rr++)
+            {
+                var hex = cols[c][rr];
+                bool isSel = string.Equals(hex, currentHex, StringComparison.OrdinalIgnoreCase);
+                var sw = new Button
+                {
+                    Width = 26, Height = 22, MinWidth = 0, Padding = new Thickness(0),
+                    Background = new SolidColorBrush(ParseHex(hex)),
+                    CornerRadius = new CornerRadius(4),
+                    BorderThickness = new Thickness(isSel ? 2 : 1),
+                    BorderBrush = isSel ? accentBrush : strokeBrush
+                };
+                ToolTipService.SetToolTip(sw, hex);
+                Grid.SetColumn(sw, c); Grid.SetRow(sw, rr);
+                var thisHex = hex;
+                sw.Click += (_, _) => { AppState.Config.SetKindColor(thisCategoryId, thisHex); flyout.Hide(); BuildCategories(AppState.Load()); };
+                swatches.Children.Add(sw);
+            }
+
+        var resetBtn = new Button { Content = "Usar por defecto", HorizontalAlignment = HorizontalAlignment.Stretch };
+        resetBtn.Click += (_, _) => { AppState.Config.SetKindColor(thisCategoryId, null); flyout.Hide(); BuildCategories(AppState.Load()); };
+
+        flyout.Content = new StackPanel { Spacing = 10, Children = { swatches, resetBtn } };
+        btn.Flyout = flyout;
+        return btn;
+    }
+
+    private async void AddCategoryBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new CategoryDialog { XamlRoot = this.XamlRoot };
+        dlg.LoadDefaults();
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        var res = AppState.Config.AddCategory(dlg.CategoryName, dlg.SelectedColorHex, dlg.IsFocus);
+        if (!res.Success) await CategoryError(res.Message);
+        BuildCategories(AppState.Load());
+    }
+
+    private async Task EditCategory(BlockCategory cat)
+    {
+        var dlg = new CategoryDialog { XamlRoot = this.XamlRoot };
+        dlg.LoadFrom(cat);
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        var res = AppState.Config.UpdateCategory(cat.Id, dlg.CategoryName, dlg.SelectedColorHex, dlg.IsFocus);
+        if (!res.Success) await CategoryError(res.Message);
+        BuildCategories(AppState.Load());
+        BuildKindEnvMap();   // cambiar el focus altera qué categorías mapean a un entorno
+    }
+
+    private async Task ConfirmRemoveCategory(BlockCategory cat)
+    {
+        var confirm = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot, Title = "Borrar categoría",
+            Content = $"¿Borrar «{cat.Name}»? Los bloques que la usan pasarán a «Otro».",
+            PrimaryButtonText = "Borrar", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Close
+        };
+        if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+        var res = AppState.Config.RemoveCategory(cat.Id);
+        if (!res.Success) await CategoryError(res.Message);
+        BuildCategories(AppState.Load());
+        BuildKindEnvMap();
+    }
+
+    private async Task CategoryError(string msg)
+        => await new ContentDialog { XamlRoot = this.XamlRoot, Title = "Categorías", Content = msg, CloseButtonText = "Vale" }.ShowAsync();
 }

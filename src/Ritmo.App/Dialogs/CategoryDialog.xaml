@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Ritmo_App.Dialogs.CategoryDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Categoría"
+    PrimaryButtonText="Guardar"
+    SecondaryButtonText="Cancelar"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="14" Width="320">
+        <TextBox x:Name="NameBox" Header="Nombre" HorizontalAlignment="Stretch"
+                 PlaceholderText="p. ej. Concentración, Reunión, Lectura…" />
+
+        <StackPanel Spacing="6">
+            <TextBlock Text="Es de concentración" FontWeight="SemiBold" />
+            <ToggleSwitch x:Name="FocusSwitch" OffContent="No" OnContent="Sí" />
+            <TextBlock Text="Si está activado, al empezar un bloque de esta categoría se activa el modo concentración (Pomodoro, entorno, silenciado…)."
+                       Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <StackPanel Spacing="6">
+            <TextBlock Text="Color" FontWeight="SemiBold" />
+            <Grid x:Name="SwatchHost" ColumnSpacing="3" RowSpacing="3" HorizontalAlignment="Left" />
+        </StackPanel>
+    </StackPanel>
+</ContentDialog>

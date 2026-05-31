@@ -36,6 +36,18 @@ public sealed partial class SessionDialog : ContentDialog
         TitleBox.Text = current;   // no perder lo escrito al rellenar las sugerencias
     }
 
+    /// <summary>
+    /// Llena el desplegable de categorías desde los ajustes del usuario (#83). Debe llamarse
+    /// ANTES de <see cref="LoadFrom"/>/<see cref="LoadDefaults"/> para que la preselección
+    /// case. Content = nombre visible, Tag = id estable de la categoría.
+    /// </summary>
+    public void SetCategories(IEnumerable<BlockCategory> categories)
+    {
+        KindBox.Items.Clear();
+        foreach (var c in categories.OrderBy(c => c.Order))
+            KindBox.Items.Add(new ComboBoxItem { Content = c.Name, Tag = c.Id });
+    }
+
     /// <summary>Días marcados (uno o varios). El que crea la sesión itera sobre ellos.</summary>
     public IReadOnlyList<DayOfWeek> SelectedDays =>
         _dayToggles.Where(t => t.btn.IsChecked == true).Select(t => t.day).ToList();

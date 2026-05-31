@@ -87,13 +87,17 @@
                 </StackPanel>
             </Border>
 
-            <!-- Colores del horario por tipo de bloque (#45) -->
+            <!-- Categorías de bloque configurables (#83): nombre, color, si es de concentración -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Colores del horario" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock Text="Personaliza el color de fondo de cada tipo de bloque en la rejilla del horario."
+                    <Grid>
+                        <TextBlock Text="Categorías" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button x:Name="AddCategoryBtn" Content="Añadir categoría" HorizontalAlignment="Right"
+                                Click="AddCategoryBtn_Click" />
+                    </Grid>
+                    <TextBlock Text="Define tus categorías de bloque: su nombre, su color en la rejilla del horario y si al empezar disparan el modo concentración."
                                Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
                     <StackPanel x:Name="ColorsHost" Spacing="6" />
                 </StackPanel>

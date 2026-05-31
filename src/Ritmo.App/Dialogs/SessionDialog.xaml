@@ -41,17 +41,10 @@
             <TimePicker x:Name="EndPicker" Grid.Column="1" Header="Fin" ClockIdentifier="24HourClock" MinuteIncrement="5" />
         </Grid>
 
-        <ComboBox x:Name="KindBox" Header="Tipo" HorizontalAlignment="Stretch">
-            <ComboBoxItem Content="Técnico" Tag="Tecnico" />
-            <ComboBoxItem Content="Legislación" Tag="Legislacion" />
-            <ComboBoxItem Content="Inglés" Tag="Ingles" />
-            <ComboBoxItem Content="Tests" Tag="Tests" />
-            <ComboBoxItem Content="Simulacro" Tag="Simulacro" />
-            <ComboBoxItem Content="Descanso" Tag="Descanso" />
-            <ComboBoxItem Content="Personal (comida, deporte…)" Tag="Personal" />
-            <ComboBoxItem Content="Por definir" Tag="PorDefinir" />
-            <ComboBoxItem Content="Otro" Tag="Otro" />
-        </ComboBox>
+        <!-- Categorías dinámicas (#83): se llenan en runtime con SetCategories desde los
+             ajustes del usuario. Ya no hay tipos fijos. -->
+        <ComboBox x:Name="KindBox" Header="Categoría" HorizontalAlignment="Stretch"
+                  PlaceholderText="Elige una categoría" />
 
         <StackPanel Spacing="6">
             <StackPanel Orientation="Horizontal">

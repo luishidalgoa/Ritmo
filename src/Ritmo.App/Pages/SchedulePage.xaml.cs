@@ -983,6 +983,7 @@ public sealed partial class SchedulePage : Page
             SecondaryButtonText = "Cancelar",
             CloseButtonText = "Eliminar"
         };
+        dlg.SetCategories(AppState.Load().Categories);   // categorías dinámicas (#83)
         dlg.SetKnownTitles(AllTitles());
         dlg.LoadFrom(one.AsSession());
         dlg.PreselectDays([one.Date.DayOfWeek]);
@@ -1175,6 +1176,7 @@ public sealed partial class SchedulePage : Page
     {
         if (_activePhaseName is null) return;
         var dlg = new SessionDialog { XamlRoot = this.XamlRoot };
+        dlg.SetCategories(AppState.Load().Categories);   // categorías dinámicas (#83)
         dlg.SetKnownTitles(AllTitles());
         dlg.LoadDefaults(day, start);
         var result = await dlg.ShowAsync();
@@ -1224,6 +1226,7 @@ public sealed partial class SchedulePage : Page
             SecondaryButtonText = "Cancelar",
             CloseButtonText = "Eliminar"
         };
+        dlg.SetCategories(AppState.Load().Categories);   // categorías dinámicas (#83)
         dlg.SetKnownTitles(AllTitles());
         dlg.LoadFrom(rep);
         dlg.PreselectDays(groupDays);   // todos los días del grupo marcados
