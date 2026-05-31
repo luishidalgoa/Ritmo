@@ -58,6 +58,7 @@ public static class ReleaseNotes
                 "Cada entorno tiene su lista de Tareas: añade, marca como hecha y reordena.",
                 "Marca apps como «Silenciar» y Ritmo las silencia al concentrarte (y las restaura al terminar).",
                 "Los avisos del horario llegan al PC y al móvil de forma fiable, también en sesiones provisionales y al editar el horario.",
+                "Opción para que Ritmo arranque solo al iniciar sesión en Windows, en segundo plano: tus avisos suenan sin tener que abrirlo.",
                 "Próximamente: vincular tu calendario externo a cada entorno.",
             ]
         },

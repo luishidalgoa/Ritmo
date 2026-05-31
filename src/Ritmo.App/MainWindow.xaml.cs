@@ -38,6 +38,18 @@ public sealed partial class MainWindow : Window
         sender.Hide();                 // …y ocultar a segundo plano
     }
 
+    /// <summary>
+    /// Arranca en segundo plano sin robar el foco (autoarranque al iniciar sesión, #37):
+    /// la ventana no se activa ni se muestra; solo corren los servicios de fondo (avisos).
+    /// El usuario la abre cuando quiera (reaparece vía <see cref="ShowFromBackground"/>).
+    /// </summary>
+    public void StartInBackground()
+    {
+        // No llamamos Activate() (eso robaría el foco al iniciar sesión). Ocultamos por si
+        // alguna versión de WinUI mostrara la ventana al crearse.
+        try { AppWindow.Hide(); } catch { /* best-effort */ }
+    }
+
     /// <summary>Reaparece desde segundo plano (al reactivar la app o pulsar abrir).</summary>
     public void ShowFromBackground()
     {

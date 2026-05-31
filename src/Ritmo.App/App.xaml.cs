@@ -50,7 +50,24 @@ public partial class App : Application
         AppState.SettingsChanged += () => ScheduleHost.Instance.Start();
 
         _window = new MainWindow();
-        _window.Activate();
+        // Autoarranque al iniciar sesión (#37): si nos lanzó la tarea de inicio de Windows,
+        // arrancamos EN SEGUNDO PLANO (sin robar foco ni abrir la ventana). Los avisos del
+        // horario corren igual porque ScheduleHost es de nivel app. El usuario abre la ventana
+        // cuando quiera desde Inicio (reactivación → ShowFromBackground).
+        if (LaunchedAtStartup())
+            _window.StartInBackground();
+        else
+            _window.Activate();
+    }
+
+    /// <summary>¿Nos ha lanzado la tarea de arranque automático al iniciar sesión? #37</summary>
+    private static bool LaunchedAtStartup()
+    {
+        try
+        {
+            return AppInstance.GetCurrent().GetActivatedEventArgs().Kind == ExtendedActivationKind.StartupTask;
+        }
+        catch { return false; }
     }
 
     private static async void RedirectAndExit(AppInstance main)

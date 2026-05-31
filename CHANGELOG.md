@@ -156,8 +156,13 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Pantalla de **Ajustes** central; editar notas y atajos desde Ajustes (#54, #55).
 - Persistencia JSON local (plan, fases, notas, view-config, entornos) (#19, #43, #52).
 - **Exportar/importar** configuración completa como respaldo (#56).
-- **Servicio en segundo plano**: bucle de timers sobre el planificador, arranque con
-  Windows y bandeja del sistema (#3, #18, #20).
+- **Servicio en segundo plano**: bucle de timers sobre el planificador; al cerrar la ventana
+  la app sigue viva para que los avisos suenen, y se sale del todo con «Salir de Ritmo» (#3, #18, #20).
+- **Autoarranque al iniciar sesión** (#37, opt-in desde Ajustes): cuando Windows lanza Ritmo al
+  iniciar sesión, arranca **en segundo plano** (sin abrir la ventana ni robar el foco), de modo que
+  los avisos del horario suenan desde el primer momento. La app gestiona los estados de la tarea de
+  inicio (activado/desactivado/bloqueado por el usuario o por directiva) y guía al Administrador de
+  tareas cuando corresponde.
 - **Núcleo central de notificaciones** (`NotificationHub`, #128): todo aviso pasa por un único
   punto que lo reparte a los canales registrados (toast del SO + ntfy al móvil + futuros), aislados
   y best-effort. Los avisos del horario se re-planifican en cada cambio (UI o IA), e incluyen las
@@ -187,6 +192,13 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#37 — Autoarranque al iniciar sesión, en segundo plano.** El toggle de Ajustes ya registraba la
+  tarea de inicio de Windows (con manejo de los estados activado/desactivado/bloqueado), pero faltaba
+  la pieza clave: cuando Windows lanzaba Ritmo al iniciar sesión, abría la ventana cada vez. Ahora la
+  app **detecta el arranque por la tarea de inicio** (`ExtendedActivationKind.StartupTask`) y arranca
+  **en segundo plano** (`MainWindow.StartInBackground`: no activa ni muestra la ventana, no roba el
+  foco). Los servicios de fondo (avisos del horario, #128) corren igual; el usuario abre la ventana
+  cuando quiera desde Inicio. Cierra #37.
 - **#83 — Ritmo genérico: categorías de bloque configurables + onboarding neutral.** Ritmo deja de
   asumir un único uso (oposición/estudio). El antiguo tipo fijo de bloque (un enum cerrado de 9
   valores) se sustituye por **categorías definibles por el usuario**: cada una con su nombre, color
