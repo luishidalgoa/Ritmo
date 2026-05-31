@@ -39,9 +39,16 @@ public sealed partial class WhatsNewDialog : ContentDialog
 
         foreach (var h in n.Highlights)
         {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            row.Children.Add(new TextBlock { Text = "•", FontSize = 14, Opacity = 0.7, VerticalAlignment = VerticalAlignment.Top });
-            row.Children.Add(new TextBlock { Text = h, FontSize = 13, Opacity = 0.85, TextWrapping = TextWrapping.Wrap });
+            // Grid (bala auto + texto en columna *) para que el texto AJUSTE y no se corte.
+            var row = new Grid { ColumnSpacing = 8 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var bullet = new TextBlock { Text = "•", FontSize = 14, Opacity = 0.7, VerticalAlignment = VerticalAlignment.Top };
+            var txt = new TextBlock { Text = h, FontSize = 13, Opacity = 0.85, TextWrapping = TextWrapping.Wrap };
+            Grid.SetColumn(bullet, 0);
+            Grid.SetColumn(txt, 1);
+            row.Children.Add(bullet);
+            row.Children.Add(txt);
             panel.Children.Add(row);
         }
 
