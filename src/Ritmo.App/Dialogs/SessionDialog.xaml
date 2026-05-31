@@ -12,7 +12,11 @@
     SecondaryButtonText="Cancelar"
     DefaultButton="Primary">
 
-    <StackPanel Spacing="12" Width="320">
+    <!-- ScrollViewer: el diálogo tiene muchos campos y puede superar la altura disponible
+         (con Inicio/Fin apilados, etc.). Sin esto, el ContentDialog recortaba el último control
+         (el toggle de sesión extraordinaria). Ahora se hace scroll. -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="560">
+        <StackPanel Spacing="12" Width="320" Padding="0,0,4,0">
         <!-- Editable: reutiliza títulos existentes del horario para no fragmentarlos (#116) -->
         <ComboBox x:Name="TitleBox" Header="Título" IsEditable="True" HorizontalAlignment="Stretch"
                   PlaceholderText="p. ej. Concentración (elige uno existente o escribe)" />
@@ -98,5 +102,6 @@
         <!-- Sesión extraordinaria con fecha(s) concreta(s) (#103/#131) -->
         <ToggleSwitch x:Name="OneOffSwitch" Header="Sesión extraordinaria (en fechas concretas)"
                       OffContent="No, recurrente" OnContent="Sí, en fechas" Toggled="OneOffSwitch_Toggled" />
-    </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
 </ContentDialog>
