@@ -99,10 +99,45 @@ public sealed partial class SchedulePage : Page
 
     private void CancelDrag()
     {
+        Dbg($"CancelDrag (mode={_mode}, oneoff={_dragOne is not null})");
         if (_card is not null) _card.Opacity = _group is not null && _group.Representative.IsTentative ? 0.6 : 1.0;
         _mode = DragMode.None; _card = null; _group = null;
         if (_oneCard is not null) _oneCard.Opacity = _dragOne?.IsTentative == true ? 0.6 : 1.0;
         _dragOne = null; _oneCard = null;
+        RestoreScroll();
+    }
+
+    // --- Diagnóstico temporal del arrastre (#127) + workaround del robo de captura del ScrollViewer ---
+    private static void Dbg(string msg)
+    {
+        try
+        {
+            var path = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ritmo", "drag-log.txt");
+            System.IO.File.AppendAllText(path, $"{DateTime.Now:HH:mm:ss.fff}  {msg}{Environment.NewLine}");
+        }
+        catch { }
+    }
+
+    /// <summary>Desactiva el desplazamiento del ScrollViewer para que no robe la captura durante el arrastre.</summary>
+    private void SuppressScroll()
+    {
+        try
+        {
+            ScrollHost.VerticalScrollMode = ScrollMode.Disabled;
+            ScrollHost.HorizontalScrollMode = ScrollMode.Disabled;
+        }
+        catch { }
+    }
+
+    private void RestoreScroll()
+    {
+        try
+        {
+            ScrollHost.VerticalScrollMode = ScrollMode.Auto;
+            ScrollHost.HorizontalScrollMode = ScrollMode.Auto;
+        }
+        catch { }
     }
 
     private void GridRoot_PointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
@@ -113,7 +148,7 @@ public sealed partial class SchedulePage : Page
             var p = e.GetCurrentPoint(GridRoot).Position;
             if (!_oneMoved && (Math.Abs(p.X - _oneStartX) > 6 || Math.Abs(p.Y - _oneStartY) > 6))
             {
-                _oneMoved = true; _oneCard.Opacity = 0.6;
+                _oneMoved = true; _oneCard.Opacity = 0.6; Dbg("oneoff moved-enough");
             }
             if (!_oneMoved) return;
             int dDelta = (int)Math.Round((p.X - _oneStartX) / _dayColWidth);
@@ -132,6 +167,7 @@ public sealed partial class SchedulePage : Page
         {
             _movedEnough = true;
             if (_mode == DragMode.Move) _card.Opacity = 0.6;
+            Dbg($"recurring moved-enough mode={_mode}");
         }
         if (!_movedEnough) return;
 
@@ -178,6 +214,8 @@ public sealed partial class SchedulePage : Page
     private void GridRoot_PointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
         GridRoot.ReleasePointerCapture(e.Pointer);
+        Dbg($"Released oneoff={_dragOne is not null} mode={_mode} oneMoved={_oneMoved} moved={_movedEnough} curSlot={_curSlotDelta} oneCurSlot={_oneCurSlotDelta}");
+        RestoreScroll();
 
         // Soltar una sesión provisional (one-off): persistir nueva fecha/hora. #126
         if (_dragOne is not null)
@@ -238,7 +276,9 @@ public sealed partial class SchedulePage : Page
 
         // Nota: NO marcamos e.Handled — eso suprimiría el gesto Tapped de la tarjeta
         // (que es como se abre el detalle). El arrastre usa la captura del puntero.
-        GridRoot.CapturePointer(e.Pointer);
+        bool cap = GridRoot.CapturePointer(e.Pointer);
+        SuppressScroll();   // que el ScrollViewer no robe la captura (#127)
+        Dbg($"BeginDrag mode={mode} c0={c0} startSlot={startSlot} capture={cap}");
     }
 
     /// <summary>Empieza a arrastrar una sesión provisional (#126). X = día, Y = hora.</summary>
@@ -250,7 +290,9 @@ public sealed partial class SchedulePage : Page
         _oneStartDayCol = dayCol; _oneStartTopPx = topPx;
         _oneCurDayCol = dayCol; _oneCurSlotDelta = 0;
         var pt = e.GetCurrentPoint(GridRoot).Position; _oneStartX = pt.X; _oneStartY = pt.Y;
-        GridRoot.CapturePointer(e.Pointer);
+        bool cap = GridRoot.CapturePointer(e.Pointer);
+        SuppressScroll();   // que el ScrollViewer no robe la captura (#127)
+        Dbg($"BeginOneOffDrag '{one.Title}' dayCol={dayCol} capture={cap}");
     }
 
     /// <summary>Persiste el movimiento de una provisional: nueva fecha (por el día) + hora. #126</summary>
@@ -258,7 +300,8 @@ public sealed partial class SchedulePage : Page
     {
         var newDate = _weekStart.AddDays(Math.Clamp(dayCol, 0, 6));
         var newStart = ScheduleMath.ShiftStart(one.Start, slotDelta, _granularity);
-        if (newDate == one.Date && newStart == one.Start) { Build(); return; }   // no se movió de verdad
+        Dbg($"ApplyOneOffMove col={dayCol} slot={slotDelta} date {one.Date}->{newDate} start {one.Start}->{newStart}");
+        if (newDate == one.Date && newStart == one.Start) { Dbg("ApplyOneOffMove: sin cambio"); Build(); return; }   // no se movió de verdad
         // No hay UpdateOneOff en la fachada: se quita y se vuelve a crear con la nueva posición.
         AppState.Config.RemoveOneOffSession(one.Id);
         AppState.Config.AddOneOffSession(newDate, one.Title, newStart, one.Duration, one.CategoryId, one.PreAlerts, one.IsTentative);
@@ -1054,8 +1097,9 @@ public sealed partial class SchedulePage : Page
     /// </summary>
     private async Task ApplyMove(Ritmo.Core.Scheduling.SessionGroup group, int dayDelta, int slotDelta)
     {
+        Dbg($"ApplyMove dayDelta={dayDelta} slotDelta={slotDelta} phase={_activePhaseName}");
         if (_activePhaseName is null) { Build(); return; }
-        if (dayDelta == 0 && slotDelta == 0) { Build(); return; }   // no se movió de verdad
+        if (dayDelta == 0 && slotDelta == 0) { Dbg("ApplyMove: sin cambio (deltas 0)"); Build(); return; }   // no se movió de verdad
 
         var settings = AppState.Load();
         var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
@@ -1076,8 +1120,9 @@ public sealed partial class SchedulePage : Page
             .Select(i => rep with { Day = Days[i], Start = newStart })
             .ToList();
 
-        if (Collides(moved, kept)) { Build(); return; }   // no pisar otra sesión (#88)
+        if (Collides(moved, kept)) { Dbg("ApplyMove: REVERTIDO por colisión"); Build(); return; }   // no pisar otra sesión (#88)
 
+        Dbg($"ApplyMove: COMMIT newStart={newStart}");
         AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. moved]);
         await Task.CompletedTask;
         Build();
