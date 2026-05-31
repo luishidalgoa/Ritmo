@@ -366,8 +366,10 @@ public sealed partial class MainWindow : Window
     private FrameworkElement WorkTrackingSection(Ritmo.Core.Focus.FocusEnvironment env)
     {
         var s = Services.AppState.Load();
+        var today = System.DateOnly.FromDateTime(System.DateTime.Now);
         decimal rate = s.EnvironmentRates.TryGetValue(env.Id, out var r) ? r : 0m;
-        var sum = Ritmo.Core.Model.WorkTracking.Summarize(s.WorkLog, env.Id, rate, System.DateOnly.FromDateTime(System.DateTime.Now));
+        double goal = s.EnvironmentGoals.TryGetValue(env.Id, out var g) ? g : 0;
+        var sum = Ritmo.Core.Model.WorkTracking.Summarize(s.WorkLog, env.Id, rate, today);
 
         var box = new StackPanel { Spacing = 6, Margin = new Thickness(0, 8, 0, 0) };
         box.Children.Add(new TextBlock { Text = "SEGUIMIENTO LABORAL", FontSize = 10, Opacity = 0.55,
@@ -384,18 +386,53 @@ public sealed partial class MainWindow : Window
         };
         box.Children.Add(rateBox);
 
-        // Resumen del mes + proyección.
-        box.Children.Add(new TextBlock
+        // Objetivo de horas/mes (al cambiar, persiste). #84 V2
+        var goalBox = new NumberBox { Header = "Objetivo (h/mes)", Value = goal, Minimum = 0, SmallChange = 5,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 160, HorizontalAlignment = HorizontalAlignment.Left };
+        goalBox.ValueChanged += (_, _) =>
         {
-            Text = $"Este mes: {sum.HoursThisMonth:0.##} h · {sum.EarningsThisMonth:0.##} €",
-            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 13
-        });
+            Services.AppState.Config.SetEnvironmentGoal(env.Id, double.IsNaN(goalBox.Value) ? 0 : goalBox.Value);
+            BuildWorkEnvPanel(env.Id);
+        };
+        box.Children.Add(goalBox);
+
+        // Resumen del mes (+ progreso de objetivo si lo hay) + proyección.
+        string monthLine = $"Este mes: {sum.HoursThisMonth:0.##} h · {sum.EarningsThisMonth:0.##} €";
+        if (goal > 0) monthLine += $"  ({Ritmo.Core.Model.WorkTracking.GoalProgress(sum.HoursThisMonth, goal) * 100:0}% de {goal:0.##} h)";
+        box.Children.Add(new TextBlock { Text = monthLine, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 13, TextWrapping = TextWrapping.Wrap });
         if (sum.HoursThisMonth > 0)
             box.Children.Add(new TextBlock
             {
                 Text = $"Proyección fin de mes: ~{sum.ProjectedMonthHours:0.#} h · {sum.ProjectedMonthEarnings:0.##} €",
                 Opacity = 0.65, FontSize = 12
             });
+
+        // Mini-gráfico de barras: horas por día del mes (#84 V2). Hoy resaltado.
+        var daily = Ritmo.Core.Model.WorkTracking.DailyHours(s.WorkLog, env.Id, today.Year, today.Month);
+        if (daily.Any(h => h > 0))
+        {
+            double maxH = Math.Max(daily.Max(), 0.001);
+            var accent = ((Microsoft.UI.Xaml.Media.SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color;
+            var barBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(accent) { Opacity = 0.55 };
+            var todayBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(accent);
+            var emptyBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"];
+            var bars = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 1, Height = 44, Margin = new Thickness(0, 2, 0, 0) };
+            for (int d = 0; d < daily.Length; d++)
+            {
+                double hPx = daily[d] > 0 ? Math.Max(2, daily[d] / maxH * 40) : 1;
+                bool isToday = (d + 1) == today.Day;
+                var bar = new Border
+                {
+                    Width = 6, Height = hPx, CornerRadius = new CornerRadius(1),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    Background = daily[d] > 0 ? (isToday ? todayBrush : barBrush) : emptyBrush
+                };
+                ToolTipService.SetToolTip(bar, $"Día {d + 1}: {daily[d]:0.##} h");
+                bars.Children.Add(bar);
+            }
+            box.Children.Add(new TextBlock { Text = "Horas por día (este mes)", FontSize = 10, Opacity = 0.55, Margin = new Thickness(0, 4, 0, 0) });
+            box.Children.Add(bars);
+        }
 
         // Anotar horas de hoy (acumulativo).
         var hoursBox = new NumberBox { PlaceholderText = "Horas hoy", Minimum = 0, SmallChange = 0.5,

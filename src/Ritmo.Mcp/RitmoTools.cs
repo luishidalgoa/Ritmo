@@ -294,6 +294,13 @@ public sealed class RitmoTools
         [Description("Tarifa por hora (>= 0; 0 quita la tarifa)")] double rate)
         => Report(_config.SetEnvironmentRate(environmentId, (decimal)rate));
 
+    [McpServerTool(Name = "set_environment_goal")]
+    [Description("Seguimiento laboral: fija el objetivo de horas/mes de un entorno/proyecto. 0 = sin objetivo.")]
+    public string SetEnvironmentGoal(
+        [Description("Id del entorno")] string environmentId,
+        [Description("Horas objetivo al mes (>= 0; 0 quita el objetivo)")] double monthlyHours)
+        => Report(_config.SetEnvironmentGoal(environmentId, monthlyHours));
+
     [McpServerTool(Name = "log_work_hours")]
     [Description("Seguimiento laboral: anota horas trabajadas en un entorno/proyecto un día (acumulativo). Fecha yyyy-MM-dd; horas > 0.")]
     public string LogWorkHours(

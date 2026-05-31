@@ -88,6 +88,7 @@ public static class ReleaseNotes
             [
                 "Seguimiento laboral: pon una tarifa €/h a cada entorno/proyecto y ve sumando las horas que trabajas cada día.",
                 "Ritmo te dice cuánto llevas este mes y una estimación de fin de mes, sin necesitar un horario fijo.",
+                "Fija un objetivo de horas/mes y míralo de un vistazo: % de progreso + mini-gráfico de horas por día.",
             ]
         },
     ];

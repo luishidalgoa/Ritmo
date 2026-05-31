@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 58 herramientas
+### 🤖 La IA (servidor MCP) — 59 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -54,7 +54,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Tareas del entorno: `add_environment_task`, `toggle_environment_task`, `remove_environment_task`, `move_environment_task` (reordenar).
 - Perfiles por tipo de sesión (qué se abre en cada bloque): `set_session_profile`, `clear_session_profile`.
 - Mapeo tipo de bloque → entorno: `map_environment_to_kind`, `clear_environment_kind`.
-- Seguimiento laboral (tarifa + horas): `set_environment_rate`, `log_work_hours`, `remove_work_log_entry`.
+- Seguimiento laboral (tarifa + objetivo + horas): `set_environment_rate`, `set_environment_goal`, `log_work_hours`, `remove_work_log_entry`.
 
 **Notas y atajos**
 - Notas (markdown, opcional post-it de sesión): `add_note`, `update_note`, `remove_note`.
@@ -198,6 +198,10 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#84 V2 — Seguimiento laboral: objetivo mensual + mini-gráfico.** Añade **objetivo de horas/mes**
+  por entorno (con % de progreso en el resumen) y un **mini-gráfico de barras** de horas por día del
+  mes (hoy resaltado, tooltip por día). Núcleo: `WorkTracking.DailyHours` + `GoalProgress` +
+  `AppSettings.EnvironmentGoals` + comando `SetEnvironmentGoal` (3 tests). MCP: `set_environment_goal`.
 - **#84 — Seguimiento laboral por proyecto (V1).** Para perfiles de trabajo: cada entorno/proyecto
   tiene una **tarifa €/h** y un **registro MANUAL y acumulativo de horas** (los perfiles sin horario
   fijo van sumando horas día a día). En el panel de un entorno → módulo **«Seguimiento laboral»**:

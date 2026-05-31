@@ -28,9 +28,10 @@ internal sealed class SettingsDto
     // Modo descanso (#135): manual + periodos programados.
     public bool RestActive { get; set; }
     public List<RestPeriodDto> RestPeriods { get; set; } = [];
-    // Seguimiento laboral (#84): tarifa por entorno + registro de horas.
+    // Seguimiento laboral (#84): tarifa por entorno + registro de horas + objetivo mensual.
     public Dictionary<string, decimal> EnvironmentRates { get; set; } = [];
     public List<WorkLogEntryDto> WorkLog { get; set; } = [];
+    public Dictionary<string, double> EnvironmentGoals { get; set; } = [];
     public string? NavidromeServerUrl { get; set; }
     public string? NavidromeUser { get; set; }
     public bool NtfyEnabled { get; set; }
@@ -259,6 +260,7 @@ internal static class SettingsMapper
             Label = p.Label
         }).ToList(),
         EnvironmentRates = s.EnvironmentRates.ToDictionary(kv => kv.Key, kv => kv.Value),
+        EnvironmentGoals = s.EnvironmentGoals.ToDictionary(kv => kv.Key, kv => kv.Value),
         WorkLog = s.WorkLog.Select(w => new WorkLogEntryDto
         {
             Id = w.Id,
@@ -395,6 +397,7 @@ internal static class SettingsMapper
             Label = p.Label ?? ""
         }).ToList(),
         EnvironmentRates = (d.EnvironmentRates ?? []).ToDictionary(kv => kv.Key, kv => kv.Value),
+        EnvironmentGoals = (d.EnvironmentGoals ?? []).ToDictionary(kv => kv.Key, kv => kv.Value),
         WorkLog = (d.WorkLog ?? []).Select(w => new WorkLogEntry
         {
             Id = string.IsNullOrWhiteSpace(w.Id) ? $"work-{Guid.NewGuid():N}"[..12] : w.Id,

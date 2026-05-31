@@ -91,6 +91,7 @@ public class WorkTrackingTests
     {
         var svc = NewWithEnv(out _);
         svc.SetEnvironmentRate("p1", 30m);
+        svc.SetEnvironmentGoal("p1", 120);
         svc.AddWorkHours("p1", new DateOnly(2026, 8, 1), 5);
         var json = svc.ExportJson();
 
@@ -99,6 +100,39 @@ public class WorkTrackingTests
         Assert.True(svc2.ImportJson(json).Success);
         var s = store2.Load();
         Assert.Equal(30m, s.EnvironmentRates["p1"]);
+        Assert.Equal(120, s.EnvironmentGoals["p1"]);
         Assert.Equal(5, s.WorkLog.Single().Hours);
+    }
+
+    // ---- V2: gráfico diario + objetivo ----
+
+    [Fact]
+    public void DailyHours_reparte_por_dia_del_mes()
+    {
+        var log = new[] { E("p1", 2026, 8, 1, 2), E("p1", 2026, 8, 1, 3), E("p1", 2026, 8, 15, 4), E("p1", 2026, 7, 31, 9) };
+        var days = WorkTracking.DailyHours(log, "p1", 2026, 8);
+        Assert.Equal(31, days.Length);     // agosto
+        Assert.Equal(5, days[0]);          // día 1: 2+3
+        Assert.Equal(4, days[14]);         // día 15
+        Assert.Equal(0, days[1]);          // día 2
+    }
+
+    [Fact]
+    public void GoalProgress_es_fraccion_y_cero_sin_objetivo()
+    {
+        Assert.Equal(0.5, WorkTracking.GoalProgress(60, 120), 3);
+        Assert.Equal(0, WorkTracking.GoalProgress(60, 0));   // sin objetivo
+    }
+
+    [Fact]
+    public void SetEnvironmentGoal_guarda_quita_y_valida()
+    {
+        var svc = NewWithEnv(out var store);
+        Assert.True(svc.SetEnvironmentGoal("p1", 100).Success);
+        Assert.Equal(100, store.Load().EnvironmentGoals["p1"]);
+        Assert.True(svc.SetEnvironmentGoal("p1", 0).Success);
+        Assert.False(store.Load().EnvironmentGoals.ContainsKey("p1"));
+        Assert.False(svc.SetEnvironmentGoal("p1", -5).Success);
+        Assert.False(svc.SetEnvironmentGoal("noexiste", 50).Success);
     }
 }

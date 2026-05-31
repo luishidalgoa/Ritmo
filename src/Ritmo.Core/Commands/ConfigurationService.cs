@@ -944,6 +944,18 @@ public sealed class ConfigurationService
         return CommandResult.Ok(rate == 0 ? "Tarifa quitada." : $"Tarifa: {rate:0.##} €/h.");
     }
 
+    /// <summary>Fija el objetivo de horas/mes de un entorno (#84 V2). 0 = sin objetivo.</summary>
+    public CommandResult SetEnvironmentGoal(string environmentId, double monthlyHours)
+    {
+        if (monthlyHours < 0) return CommandResult.Fail("El objetivo no puede ser negativo.");
+        var s = _store.Load();
+        if (s.FocusEnvironments.All(e => e.Id != environmentId)) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
+        var map = s.EnvironmentGoals.ToDictionary(kv => kv.Key, kv => kv.Value);
+        if (monthlyHours == 0) map.Remove(environmentId); else map[environmentId] = monthlyHours;
+        _store.Save(s with { EnvironmentGoals = map });
+        return CommandResult.Ok(monthlyHours == 0 ? "Objetivo quitado." : $"Objetivo: {monthlyHours:0.##} h/mes.");
+    }
+
     /// <summary>Anota horas trabajadas en un entorno un día (acumulativo). Horas &gt; 0.</summary>
     public CommandResult AddWorkHours(string environmentId, DateOnly date, double hours)
     {

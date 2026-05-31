@@ -25,6 +25,21 @@ public static class WorkTracking
         => log.Where(e => e.EnvironmentId == envId).Sum(e => e.Hours);
 
     /// <summary>
+    /// Horas trabajadas por DÍA del mes (índice 0 = día 1). Para el mini-gráfico de barras (#84 V2).
+    /// </summary>
+    public static double[] DailyHours(IEnumerable<WorkLogEntry> log, string envId, int year, int month)
+    {
+        var days = new double[System.DateTime.DaysInMonth(year, month)];
+        foreach (var e in log.Where(e => e.EnvironmentId == envId && e.Date.Year == year && e.Date.Month == month))
+            days[e.Date.Day - 1] += e.Hours;
+        return days;
+    }
+
+    /// <summary>Progreso 0..1 del mes frente al objetivo (0 si no hay objetivo). #84 V2</summary>
+    public static double GoalProgress(double hoursThisMonth, double monthlyGoalHours)
+        => monthlyGoalHours > 0 ? hoursThisMonth / monthlyGoalHours : 0;
+
+    /// <summary>
     /// Resumen del entorno para el mes de <paramref name="today"/>. La proyección extrapola
     /// linealmente el ritmo del mes (horas/día transcurrido) a los días totales del mes.
     /// </summary>

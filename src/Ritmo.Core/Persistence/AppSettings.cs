@@ -58,6 +58,10 @@ public sealed record AppSettings
     /// <summary>Seguimiento laboral (#84): registro MANUAL de horas trabajadas por día y entorno.</summary>
     public IReadOnlyList<WorkLogEntry> WorkLog { get; init; } = [];
 
+    /// <summary>Seguimiento laboral (#84 V2): objetivo de horas/mes por entorno (id → horas). 0/ausente = sin objetivo.</summary>
+    public IReadOnlyDictionary<string, double> EnvironmentGoals { get; init; }
+        = new Dictionary<string, double>();
+
     /// <summary>Entornos de concentración definidos por el usuario.</summary>
     public IReadOnlyList<FocusEnvironment> FocusEnvironments { get; init; } = [];
 
