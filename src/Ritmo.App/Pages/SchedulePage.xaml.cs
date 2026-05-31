@@ -103,8 +103,12 @@ public sealed partial class SchedulePage : Page
         copyAcc.Invoked += (_, a) => { a.Handled = true; CopySelectedSession(); };
         var pasteAcc = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = Windows.System.VirtualKey.V, Modifiers = Windows.System.VirtualKeyModifiers.Control };
         pasteAcc.Invoked += (_, a) => { a.Handled = true; PasteSessionAtHover(); };
+        // Supr: borra la sesión seleccionada (recurrente o provisional) del calendario (#134).
+        var deleteAcc = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = Windows.System.VirtualKey.Delete };
+        deleteAcc.Invoked += (_, a) => { a.Handled = true; DeleteSelected(); };
         KeyboardAccelerators.Add(copyAcc);
         KeyboardAccelerators.Add(pasteAcc);
+        KeyboardAccelerators.Add(deleteAcc);
 
         // Indicador de "ahora" reactivo: se recoloca cada 30 s mientras la página vive. #115
         _nowTimer = DispatcherQueue.CreateTimer();
@@ -233,6 +237,29 @@ public sealed partial class SchedulePage : Page
         if (_selectedGroup is not null) { _clipSession = _selectedGroup.Representative; _clipWasOneOff = false; }
         else if (_selectedOneOff is not null) { _clipSession = _selectedOneOff.AsSession(); _clipWasOneOff = true; }
         // Sin nada seleccionado: no hace nada.
+    }
+
+    /// <summary>Supr: borra del calendario la sesión seleccionada (recurrente o provisional). #134</summary>
+    private void DeleteSelected()
+    {
+        if (_selectedOneOff is not null)
+        {
+            AppState.Config.RemoveOneOffSession(_selectedOneOff.Id);
+            CloseDetail();   // cierra el panel + repinta
+            return;
+        }
+        if (_selectedGroup is not null && _activePhaseName is not null)
+        {
+            var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+            if (phase is null) return;
+            var rep = _selectedGroup.Representative;
+            var groupDays = _selectedGroup.Members.Select(m => m.Day).ToHashSet();
+            bool Belongs(StudySession x) => SameBlock(x, rep) && groupDays.Contains(x.Day);
+            var kept = phase.Schedule.Sessions.Where(x => !Belongs(x)).ToList();
+            AppState.Config.ReplaceSessions(_activePhaseName, kept);
+            CloseDetail();
+        }
+        // Un evento de calendario externo (_selectedEvent) no se borra desde aquí.
     }
 
     /// <summary>

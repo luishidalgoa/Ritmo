@@ -194,6 +194,10 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#134 — Borrar una sesión con la tecla Suprimir.** Selecciona una sesión del calendario (clic →
+  se abre su detalle) y pulsa **Supr** para borrarla: recurrente (quita el grupo de la fase) o
+  provisional (la elimina). Los eventos de calendario externo no se borran desde aquí. Vía
+  KeyboardAccelerator en `SchedulePage`, reusando la selección de #114/#132.
 - **#133 — Icono de bandeja del sistema (segundo plano visible).** Al cerrar la ventana, Ritmo ya
   seguía vivo en segundo plano (para que los avisos del horario sigan sonando, verificado: el
   proceso sobrevive y reabrir reactiva la misma instancia), pero **no había forma de verlo** → daba

@@ -67,6 +67,16 @@ public static class ReleaseNotes
                 "Próximamente: vincular tu calendario externo a cada entorno.",
             ]
         },
+        new ReleaseNote
+        {
+            Version = "1.0.3.0",
+            Title = "Detalles que se agradecen",
+            Emoji = "✨",
+            Highlights =
+            [
+                "Borra una sesión del calendario con la tecla Suprimir: selecciónala y pulsa Supr.",
+            ]
+        },
     ];
 
     /// <summary>
