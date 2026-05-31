@@ -43,6 +43,13 @@ public sealed partial class SessionDialog : ContentDialog
     /// <summary>¿Es una sesión extraordinaria solo para la semana mostrada? (#103)</summary>
     public bool IsOneOff => OneOffSwitch.IsOn;
 
+    /// <summary>Pre-marca/desmarca «solo esta semana» (al editar una sesión provisional). #103</summary>
+    public void SetOneOff(bool on)
+    {
+        OneOffSwitch.IsOn = on;
+        OneOffHint.Visibility = on ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+    }
+
     private void OneOffSwitch_Toggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         => OneOffHint.Visibility = OneOffSwitch.IsOn ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
 

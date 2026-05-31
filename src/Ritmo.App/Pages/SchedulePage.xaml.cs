@@ -866,11 +866,57 @@ public sealed partial class SchedulePage : Page
         meta.Children.Add(MetaLine("Solo esta semana · no se repite"));
         content.Children.Add(meta);
 
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var edit = new Button { Content = "Editar" };
+        edit.Click += (_, _) => _ = EditOneOff(one);
         var del = new Button { Content = "Eliminar" };
         del.Click += (_, _) => { AppState.Config.RemoveOneOffSession(one.Id); CloseDetail(); };
-        content.Children.Add(del);
+        actions.Children.Add(edit); actions.Children.Add(del);
+        content.Children.Add(actions);
 
         DetailPanel.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Edita una sesión provisional (#103): permite cambiar título/día/hora/tipo/avisos, y
+    /// también reconvertirla en recurrente (desmarcando «solo esta semana»). «Eliminar» la borra.
+    /// </summary>
+    private async Task EditOneOff(OneOffSession one)
+    {
+        var dlg = new SessionDialog
+        {
+            XamlRoot = this.XamlRoot,
+            PrimaryButtonText = "Guardar",
+            SecondaryButtonText = "Cancelar",
+            CloseButtonText = "Eliminar"
+        };
+        dlg.SetKnownTitles(AllTitles());
+        dlg.LoadFrom(one.AsSession());
+        dlg.PreselectDays([one.Date.DayOfWeek]);
+        dlg.SetOneOff(true);
+
+        var result = await dlg.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+        {
+            AppState.Config.RemoveOneOffSession(one.Id);   // se reemplaza por lo editado
+            foreach (var d in dlg.SelectedDays)
+            {
+                int di = Array.IndexOf(Days, d);
+                if (di < 0) continue;
+                var ss = dlg.ToSession(d);
+                if (dlg.IsOneOff)
+                    AppState.Config.AddOneOffSession(_weekStart.AddDays(di), ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative);
+                else if (_activePhaseName is not null)
+                    AppState.Config.AddSession(_activePhaseName, ss);   // reconvertida a recurrente
+                else
+                    AppState.Config.AddOneOffSession(_weekStart.AddDays(di), ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative);
+            }
+        }
+        else if (result == ContentDialogResult.None)   // Eliminar
+            AppState.Config.RemoveOneOffSession(one.Id);
+        else
+            return;   // Cancelar
+        CloseDetail();
     }
 
     /// <summary>Lleva al temporizador y arranca la concentración del bloque activo.</summary>
@@ -1096,9 +1142,25 @@ public sealed partial class SchedulePage : Page
 
         if (result == ContentDialogResult.Primary)
         {
-            // Reemplaza el grupo por una sesión en cada día marcado.
-            var rebuilt = dlg.SelectedDays.Select(d => dlg.ToSession(d));
-            AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
+            if (dlg.IsOneOff)
+            {
+                // Convertir a «solo esta semana» (#103): quitar el grupo recurrente y crear una
+                // sesión provisional por cada día marcado, en la semana mostrada.
+                AppState.Config.ReplaceSessions(_activePhaseName, kept);
+                foreach (var d in dlg.SelectedDays)
+                {
+                    int di = Array.IndexOf(Days, d);
+                    if (di < 0) continue;
+                    var ss = dlg.ToSession(d);
+                    AppState.Config.AddOneOffSession(_weekStart.AddDays(di), ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative);
+                }
+            }
+            else
+            {
+                // Reemplaza el grupo por una sesión recurrente en cada día marcado.
+                var rebuilt = dlg.SelectedDays.Select(d => dlg.ToSession(d));
+                AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
+            }
         }
         else if (result == ContentDialogResult.None)   // Eliminar todo el grupo
             AppState.Config.ReplaceSessions(_activePhaseName, kept);
