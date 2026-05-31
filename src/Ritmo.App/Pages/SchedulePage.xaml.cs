@@ -63,6 +63,13 @@ public sealed partial class SchedulePage : Page
     private int _startHour = 8;
     private IReadOnlyList<StudySession> _keptForDrag = [];
 
+    // Arrastre de sesiones provisionales (one-off): estado propio (#126). Y → hora, X → día.
+    private OneOffSession? _dragOne;
+    private Border? _oneCard;
+    private double _oneStartX, _oneStartY, _oneStartTopPx;
+    private int _oneStartDayCol, _oneCurDayCol, _oneCurSlotDelta;
+    private bool _oneMoved;
+
     // Panel de detalle y resolución de solapamientos (#114).
     private IReadOnlyList<StudySession> _sessions = [];        // sesiones de la fase visible (para detectar conflictos)
     private IReadOnlyList<OverlapPriority> _priorities = [];   // decisiones de prioridad guardadas
@@ -94,10 +101,30 @@ public sealed partial class SchedulePage : Page
     {
         if (_card is not null) _card.Opacity = _group is not null && _group.Representative.IsTentative ? 0.6 : 1.0;
         _mode = DragMode.None; _card = null; _group = null;
+        if (_oneCard is not null) _oneCard.Opacity = _dragOne?.IsTentative == true ? 0.6 : 1.0;
+        _dragOne = null; _oneCard = null;
     }
 
     private void GridRoot_PointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
+        // Arrastre de una sesión provisional (one-off): preview por píxel (X = día, Y = hora). #126
+        if (_dragOne is not null && _oneCard is not null)
+        {
+            var p = e.GetCurrentPoint(GridRoot).Position;
+            if (!_oneMoved && (Math.Abs(p.X - _oneStartX) > 6 || Math.Abs(p.Y - _oneStartY) > 6))
+            {
+                _oneMoved = true; _oneCard.Opacity = 0.6;
+            }
+            if (!_oneMoved) return;
+            int dDelta = (int)Math.Round((p.X - _oneStartX) / _dayColWidth);
+            int sDelta = ScheduleGeometry.PixelsToSlots(p.Y - _oneStartY, HourHeight, _granularity);
+            int col = Math.Clamp(_oneStartDayCol + dDelta, 0, 6);
+            _oneCurDayCol = col; _oneCurSlotDelta = sDelta;
+            Grid.SetColumn(_oneCard, col + 1);
+            _oneCard.Margin = new Thickness(2, _oneStartTopPx + sDelta * _slotHeight + 1.5, 2, 0);
+            return;
+        }
+
         if (_mode == DragMode.None || _card is null || _group is null) return;
         var pt = e.GetCurrentPoint(GridRoot).Position;
 
@@ -151,6 +178,18 @@ public sealed partial class SchedulePage : Page
     private void GridRoot_PointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
         GridRoot.ReleasePointerCapture(e.Pointer);
+
+        // Soltar una sesión provisional (one-off): persistir nueva fecha/hora. #126
+        if (_dragOne is not null)
+        {
+            var one = _dragOne; bool oneMoved = _oneMoved; var oc = _oneCard;
+            int col = _oneCurDayCol, sDelta = _oneCurSlotDelta;
+            _dragOne = null; _oneCard = null;
+            if (oc is not null) oc.Opacity = one.IsTentative ? 0.6 : 1.0;
+            if (oneMoved) ApplyOneOffMove(one, col, sDelta);   // el clic (sin mover) lo abre Tapped
+            return;
+        }
+
         if (_mode == DragMode.None || _card is null || _group is null) { CancelDrag(); return; }
 
         var mode = _mode; var group = _group; bool moved = _movedEnough;
@@ -200,6 +239,30 @@ public sealed partial class SchedulePage : Page
         // Nota: NO marcamos e.Handled — eso suprimiría el gesto Tapped de la tarjeta
         // (que es como se abre el detalle). El arrastre usa la captura del puntero.
         GridRoot.CapturePointer(e.Pointer);
+    }
+
+    /// <summary>Empieza a arrastrar una sesión provisional (#126). X = día, Y = hora.</summary>
+    private void BeginOneOffDrag(Border card, OneOffSession one, int dayCol, double topPx,
+                                 Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (_mode != DragMode.None) return;   // no interferir con el arrastre de una recurrente
+        _dragOne = one; _oneCard = card; _oneMoved = false;
+        _oneStartDayCol = dayCol; _oneStartTopPx = topPx;
+        _oneCurDayCol = dayCol; _oneCurSlotDelta = 0;
+        var pt = e.GetCurrentPoint(GridRoot).Position; _oneStartX = pt.X; _oneStartY = pt.Y;
+        GridRoot.CapturePointer(e.Pointer);
+    }
+
+    /// <summary>Persiste el movimiento de una provisional: nueva fecha (por el día) + hora. #126</summary>
+    private void ApplyOneOffMove(OneOffSession one, int dayCol, int slotDelta)
+    {
+        var newDate = _weekStart.AddDays(Math.Clamp(dayCol, 0, 6));
+        var newStart = ScheduleMath.ShiftStart(one.Start, slotDelta, _granularity);
+        if (newDate == one.Date && newStart == one.Start) { Build(); return; }   // no se movió de verdad
+        // No hay UpdateOneOff en la fachada: se quita y se vuelve a crear con la nueva posición.
+        AppState.Config.RemoveOneOffSession(one.Id);
+        AppState.Config.AddOneOffSession(newDate, one.Title, newStart, one.Duration, one.CategoryId, one.PreAlerts, one.IsTentative);
+        Build();
     }
 
     /// <summary>Máximo nº de columnas contiguas (desde c0) sin pisar otra sesión.</summary>
@@ -839,7 +902,9 @@ public sealed partial class SchedulePage : Page
                 Child = content
             };
             var captured = one;
+            var capturedCol = dayCol; var capturedTop = topPx;
             card.Tapped += (_, _) => ShowOneOffDetail(captured);
+            card.PointerPressed += (_, e) => BeginOneOffDrag(card, captured, capturedCol, capturedTop, e);   // #126
             Grid.SetRow(card, 1); Grid.SetRowSpan(card, totalRows);
             Grid.SetColumn(card, dayCol + 1);
             g.Children.Add(card);
