@@ -38,9 +38,10 @@ public sealed partial class EnvironmentDialog : ContentDialog
         DndCheck.IsChecked = true;
         BadgesCheck.IsChecked = true;
 
-        // Catálogo de apps por categoría + detección de instaladas (#94).
+        // Catálogo de apps por categoría + detección de instaladas (#94). El catálogo se
+        // edita en el modal "Conectores" (#101); aquí solo el resumen.
         _installed = Services.InstalledApps.DetectInstalled();
-        BuildAppsSelector();
+        UpdateAppsSummary();
         BuildMusicSelector();   // #98
         BuildWebsList();        // #99
         BuildOtherApps();       // #100
@@ -346,22 +347,59 @@ public sealed partial class EnvironmentDialog : ContentDialog
         HelpHint.Attach(PresetBox, "pomodoro");
     }
 
-    private void BuildAppsSelector()
+    /// <summary>Resumen compacto de los conectores configurados (el catálogo vive en el modal). #101</summary>
+    private void UpdateAppsSummary()
     {
-        AppsPanel.Children.Clear();
-        foreach (var (cat, apps) in KnownApps.ByCategory())
+        if (AppsSummary is null) return;
+        int open = _appActions.Count(kv => kv.Value == "open");
+        int close = _appActions.Count(kv => kv.Value == "close");
+        int mute = _appActions.Count(kv => kv.Value == "mute");
+        AppsSummary.Text = (open + close + mute) == 0
+            ? "Ninguno configurado todavía."
+            : $"Abrir {open} · Cerrar {close} · Silenciar {mute}";
+    }
+
+    /// <summary>
+    /// Abre el "modal" de Conectores (#101): catálogo de apps por categoría, FILTRABLE, para
+    /// elegir qué hace Ritmo con cada una. Es un Flyout (no un ContentDialog) porque este
+    /// editor ya es un ContentDialog y no se pueden anidar. Edita el mismo `_appActions`.
+    /// </summary>
+    private void ConnectorsBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var listHost = new StackPanel { Spacing = 2 };
+        var filter = new ComboBox { Header = "Categoría", HorizontalAlignment = HorizontalAlignment.Stretch };
+        filter.Items.Add(new ComboBoxItem { Content = "Todas las categorías", Tag = "" });
+        foreach (var (cat, _) in KnownApps.ByCategory())
+            filter.Items.Add(new ComboBoxItem { Content = KnownApps.Label(cat), Tag = ((int)cat).ToString() });
+        filter.SelectedIndex = 0;
+
+        void Rebuild()
         {
-            var list = new StackPanel { Spacing = 2 };
-            foreach (var app in apps) list.Children.Add(AppRow(app));
-            AppsPanel.Children.Add(new Expander
+            listHost.Children.Clear();
+            var tag = (filter.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+            AppCategory? only = int.TryParse(tag, out var v) ? (AppCategory)v : null;
+            foreach (var (cat, apps) in KnownApps.ByCategory())
             {
-                Header = KnownApps.Label(cat),
-                HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Stretch,
-                HorizontalContentAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Stretch,
-                IsExpanded = false,
-                Content = list
-            });
+                if (only is not null && cat != only) continue;
+                if (only is null)
+                    listHost.Children.Add(new TextBlock
+                    {
+                        Text = KnownApps.Label(cat), FontWeight = FontWeights.SemiBold,
+                        FontSize = 12, Opacity = 0.7, Margin = new Thickness(0, 6, 0, 2)
+                    });
+                foreach (var app in apps) listHost.Children.Add(AppRow(app));
+            }
         }
+        filter.SelectionChanged += (_, _) => Rebuild();
+        Rebuild();
+
+        var content = new StackPanel { Width = 320, Spacing = 8 };
+        content.Children.Add(filter);
+        content.Children.Add(new ScrollViewer { MaxHeight = 360, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = listHost });
+
+        var flyout = new Flyout { Content = content };
+        flyout.Closed += (_, _) => UpdateAppsSummary();
+        flyout.ShowAt(ConnectorsBtn);
     }
 
     private Microsoft.UI.Xaml.FrameworkElement AppRow(KnownApp app)
@@ -472,7 +510,7 @@ public sealed partial class EnvironmentDialog : ContentDialog
             if (KnownApps.ByProcess(p) is not null) _appActions[p] = "mute";
         foreach (var p in env.AppsToOpen)
             if (KnownApps.ByProcess(p) is not null) _appActions[p] = "open";   // #109
-        BuildAppsSelector();
+        UpdateAppsSummary();
         BuildOtherApps();
 
         _links.Clear();

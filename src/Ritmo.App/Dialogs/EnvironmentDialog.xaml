@@ -39,10 +39,13 @@
             </StackPanel>
 
             <StackPanel Spacing="6">
-                <TextBlock Text="Apps al concentrarte (por defecto)" FontWeight="SemiBold" />
-                <TextBlock Text="Comportamiento por defecto del entorno. Marca qué hacer con cada app. Las apps marcadas como «Abrir» se abren en TODAS las sesiones, salvo que abajo, en «Por tipo de sesión», elijas un subconjunto."
+                <TextBlock Text="Conectores (apps al concentrarte)" FontWeight="SemiBold" />
+                <TextBlock Text="Qué hace Ritmo con cada app al concentrarte (abrir / cerrar / silenciar). Las apps «Abrir» se abren en TODAS las sesiones salvo que abajo, en «Por tipo de sesión», elijas un subconjunto."
                            Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
-                <StackPanel x:Name="AppsPanel" Spacing="4" />
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Button x:Name="ConnectorsBtn" Content="Conectores…" Click="ConnectorsBtn_Click" />
+                    <TextBlock x:Name="AppsSummary" VerticalAlignment="Center" Opacity="0.75" FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
                 <StackPanel x:Name="OtherAppsPanel" Spacing="4" />
             </StackPanel>
 

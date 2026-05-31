@@ -118,7 +118,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Modelo `FocusEnvironment` + persistencia + entorno por defecto (#51, #52).
 - Gestor de entornos (crear/editar/elegir), creación y edición **desde el panel derecho**
   con nav desplegable, selector fácil del entorno activo (#53, #92, #102, #104).
-- **Apps** por categoría con catálogo + detección de instaladas (incl. apps de la Store) (#94, #97).
+- **Apps** por categoría con catálogo + detección de instaladas (#94, #97), elegibles desde un modal **«Conectores»** filtrable por categoría (#101).
 - **Enlaces/herramientas** agrupados, **módulo de Tareas** por entorno (#74, #77).
 - **Webs a bloquear** con favicon (#99); apps a cerrar clarificadas (#100).
 - **Comportamiento por tipo de sesión**: qué apps/enlaces se abren en cada tipo de bloque (#70, #116).
@@ -172,6 +172,12 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#101 — Conectores: catálogo de apps por categoría en un modal.** El editor de entornos deja de
+  mostrar el catálogo de apps inline (lo hacía muy largo): ahora hay un botón **«Conectores…»** que
+  abre un popover **filtrable por categoría** (Productividad, Navegadores, Mensajería…) para elegir
+  qué hace Ritmo con cada app (abrir/cerrar/silenciar). Reutiliza el catálogo `KnownApps` y el mismo
+  estado; el editor muestra un resumen («Abrir N · Cerrar M · Silenciar K»). Es un `Flyout` (no un
+  `ContentDialog`) porque el editor ya es uno y no se pueden anidar.
 - **Novedades + base del sistema de actualizaciones (Fase 1).** Nuevo botón **«Novedades»** en el
   menú que se **activa (badge)** cuando la app se actualiza a una versión con notas nuevas; al
   pulsarlo abre un **carrusel** (FlipView + PipsPager) que explica las mejoras a nivel usuario.
