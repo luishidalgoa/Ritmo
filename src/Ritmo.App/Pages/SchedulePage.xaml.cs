@@ -88,6 +88,9 @@ public sealed partial class SchedulePage : Page
     private TimeOnly _hoverStart;                              // hora (ajustada a la rejilla) bajo el ratón
     private bool _hoverValid;                                  // ¿hay una celda válida bajo el ratón?
 
+    // Tarjetas en carril (solape el mismo día, #130): se re-disponen al cambiar el ancho de columna.
+    private readonly List<(SessionCard card, int lane, int count, double topPx)> _laneCards = new();
+
     public SchedulePage()
     {
         InitializeComponent();
@@ -591,12 +594,30 @@ public sealed partial class SchedulePage : Page
             }
         }
 
-        // Fusión visual (#86): sesiones idénticas en días contiguos = una tarjeta con ColumnSpan.
-        foreach (var group in Ritmo.Core.Scheduling.SessionMerge.Merge(schedule.Sessions, Days))
+        // Solape (#130): por cada día, las sesiones que coinciden en el tiempo se reparten en
+        // CARRILES lado a lado (no se fusionan); las demás mantienen la fusión visual (#86).
+        _laneCards.Clear();
+        var laneInfo = new Dictionary<StudySession, (int lane, int count)>(ReferenceEqualityComparer.Instance);
+        var overlapping = new HashSet<StudySession>(ReferenceEqualityComparer.Instance);
+        foreach (var dayGrp in schedule.Sessions.GroupBy(x => x.Day))
+            foreach (var a in Ritmo.Core.Scheduling.OverlapLanes.Assign(dayGrp.ToList()))
+                if (a.LaneCount > 1) { laneInfo[a.Session] = (a.Lane, a.LaneCount); overlapping.Add(a.Session); }
+
+        // Grupos a pintar: fusionar solo las NO solapadas; cada solapada, una tarjeta de un día.
+        var mergeable = schedule.Sessions.Where(x => !overlapping.Contains(x)).ToList();
+        var groups = new List<Ritmo.Core.Scheduling.SessionGroup>(Ritmo.Core.Scheduling.SessionMerge.Merge(mergeable, Days));
+        foreach (var ov in overlapping)
+        {
+            int di = Array.IndexOf(Days, ov.Day);
+            if (di >= 0) groups.Add(new Ritmo.Core.Scheduling.SessionGroup(ov, di, 1, new[] { ov }));
+        }
+
+        foreach (var group in groups)
         {
             var s = group.Representative;
             int dayCol = group.FirstDayIndex;
             if (dayCol < 0) continue;
+            var (laneIdx, laneCount) = laneInfo.TryGetValue(s, out var li) ? li : (0, 1);
             // Posición por píxeles según el minuto REAL (independiente de la granularidad): #61
             double topPx = ScheduleGeometry.TopPixels(s.Start, startH, HourHeight);
             double heightPx = ScheduleGeometry.HeightPixels(s.Duration, HourHeight);
@@ -669,6 +690,12 @@ public sealed partial class SchedulePage : Page
             card.Tapped += (_, _) => ShowSessionDetail(thisGroup);
             Grid.SetRow(card, 1); Grid.SetRowSpan(card, totalRows);   // flota; alto/margen lo posicionan (#61)
             Grid.SetColumn(card, dayCol + 1); Grid.SetColumnSpan(card, group.DaySpan);
+            if (laneCount > 1)   // solape (#130): se estrecha a su carril y se desplaza al lado
+            {
+                card.HorizontalAlignment = HorizontalAlignment.Left;
+                ApplyLaneLayout(card, laneIdx, laneCount, topPx);
+                _laneCards.Add((card, laneIdx, laneCount, topPx));
+            }
             g.Children.Add(card);
 
             // Bloque activo: botón ▶ para concentrarse en él (lleva al temporizador).
@@ -742,6 +769,17 @@ public sealed partial class SchedulePage : Page
         _dayColWidth = dw;
         for (int c = 1; c < GridRoot.ColumnDefinitions.Count; c++)
             GridRoot.ColumnDefinitions[c].Width = new GridLength(dw);
+        // Las tarjetas en carril (solape, #130) tienen ancho FIJO en px -> recalcúlalo al cambiar la columna.
+        foreach (var lc in _laneCards) ApplyLaneLayout(lc.card, lc.lane, lc.count, lc.topPx);
+    }
+
+    /// <summary>Coloca una tarjeta solapada en su carril: 1/n del ancho de la columna, desplazada. #130</summary>
+    private void ApplyLaneLayout(SessionCard card, int lane, int count, double topPx)
+    {
+        double usable = _dayColWidth - 4;                 // 2 px de margen a cada lado de la columna
+        double laneW = usable / count;
+        card.Width = Math.Max(20, laneW - 1);             // pequeño hueco entre carriles
+        card.Margin = new Thickness(2 + lane * laneW, topPx + 1.5, 0, 0);
     }
 
     // ---------- Indicador de la hora actual ("ahora"), reactivo (#115) ----------

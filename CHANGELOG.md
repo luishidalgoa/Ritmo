@@ -194,6 +194,12 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#130 — Sesiones solapadas el mismo día, lado a lado (carriles).** Antes, dos sesiones que
+  coincidían en el tiempo el mismo día se pintaban una ENCIMA de la otra. Ahora se reparten en
+  **carriles** (sub-columnas) estilo calendario: cada una ocupa 1/n del ancho y se desplaza a su
+  carril. Núcleo: `OverlapLanes.Assign` (reparto voraz + componentes conexas, PURO, 6 tests). App:
+  las sesiones solapadas se pintan sin fusionar (una tarjeta por día) y a ancho fraccionado, que se
+  recalcula al cambiar el tamaño de la ventana. Los horarios sin solapes quedan idénticos.
 - **#134 — Borrar una sesión con la tecla Suprimir.** Selecciona una sesión del calendario (clic →
   se abre su detalle) y pulsa **Supr** para borrarla: recurrente (quita el grupo de la fase) o
   provisional (la elimina). Los eventos de calendario externo no se borran desde aquí. Vía

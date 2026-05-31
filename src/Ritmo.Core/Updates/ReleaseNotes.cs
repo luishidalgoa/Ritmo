@@ -75,6 +75,7 @@ public static class ReleaseNotes
             Highlights =
             [
                 "Borra una sesión del calendario con la tecla Suprimir: selecciónala y pulsa Supr.",
+                "Las sesiones que se solapan el mismo día ahora se ven lado a lado, no una encima de otra.",
             ]
         },
     ];
