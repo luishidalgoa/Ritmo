@@ -54,6 +54,7 @@ public static class ReleaseNotes
                 "Toca un módulo para editar solo esa parte, sin perderte en un formulario gigante.",
                 "«Abrir workspace» lanza de golpe todos los enlaces del entorno en una ventana nueva del navegador.",
                 "Cada entorno tiene su lista de Tareas: añade, marca como hecha y reordena.",
+                "Marca apps como «Silenciar» y Ritmo las silencia al concentrarte (y las restaura al terminar).",
                 "Próximamente: vincular tu calendario externo a cada entorno.",
             ]
         },

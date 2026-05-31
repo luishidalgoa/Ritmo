@@ -310,6 +310,7 @@ public sealed partial class TimerPage : Page
                     }
                     MusicService.TryLaunch(env.Music);          // lanzar música (#10)
                     AppCloser.CloseAll(env.AppsToClose);         // cerrar apps de ruido (#35)
+                    AppMuter.Mute(env.AppsToMute);               // silenciar apps de ruido (#9)
                     // Solo el subconjunto de apps/enlaces del tipo de sesión activo (#116);
                     // sin perfil para ese título, ResolveOpen devuelve todo (por defecto).
                     var (openLinks, openApps) = env.ResolveOpen(_activeSessionTitle);
@@ -327,6 +328,7 @@ public sealed partial class TimerPage : Page
         if (_engine.Phase == PomodoroPhase.Idle)
         {
             _environmentApplied = false;   // reset al parar
+            AppMuter.RestoreAll();         // restaurar el audio de las apps silenciadas (#9)
             if (_createdDesktop) { VirtualDesktops.CloseCurrent(); _createdDesktop = false; }   // cerrar el escritorio de estudio
         }
         DndBadge.Visibility = _focus.IsActive ? Visibility.Visible : Visibility.Collapsed;

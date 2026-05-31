@@ -179,6 +179,14 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#9 — Silenciar apps de ruido al concentrarte (antes no se aplicaba).** La opción **«Silenciar»**
+  del catálogo de apps de un entorno ya **hace algo**: al concentrarte, Ritmo silencia (mute) la sesión
+  de audio de esas apps y la **restaura** al parar. Nuevo `AppMuter` (host) sobre la API **Core Audio**
+  de Windows por interop, **sin dependencias** externas; solo toca sesiones que no estaban ya muteadas y
+  restaura exactamente esas (no pisa silencios manuales del usuario); best-effort (si Core Audio falla, no
+  rompe el Pomodoro). Cableado en el flujo de concentración (`TimerPage`) junto a cerrar apps (#35). El
+  interop se validó en aislado (enumeración de sesiones + `SetMute` round-trip reversible sobre un proceso
+  real); la verificación end-to-end en la app se difiere por ser disruptiva (cierra apps / crea escritorio).
 - **#125 — Entornos: editor de Tareas por entorno (módulo Tareas).** El módulo «Tareas» deja de
   ser «Próximamente»: su detalle permite **añadir, marcar como hecha (checkbox), reordenar (↑/↓) y
   borrar** los to-dos del entorno. Núcleo: nuevo `ConfigurationService.MoveEnvironmentTask` (reordena
