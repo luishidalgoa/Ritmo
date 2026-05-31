@@ -896,6 +896,39 @@ public sealed class ConfigurationService
         _store.Save(s with { Categories = cats, OnboardingCompleted = true });
         return CommandResult.Ok($"Plantilla «{templateId}» aplicada.");
     }
+
+    // ---------- Modo descanso (#135) ----------
+
+    /// <summary>Activa/desactiva el descanso MANUAL (pausa los avisos del horario «ahora»).</summary>
+    public CommandResult SetRestActive(bool on)
+    {
+        var s = _store.Load();
+        _store.Save(s with { RestActive = on });
+        return CommandResult.Ok(on ? "Modo descanso activado: avisos en pausa." : "Modo descanso desactivado.");
+    }
+
+    /// <summary>Programa un periodo de descanso (vacaciones…). Valida que fin ≥ inicio.</summary>
+    public CommandResult AddRestPeriod(DateOnly from, DateOnly to, string label = "")
+    {
+        if (to < from) return CommandResult.Fail("La fecha de fin no puede ser anterior a la de inicio.");
+        var s = _store.Load();
+        var period = new Ritmo.Core.Model.RestPeriod
+        {
+            Id = $"rest-{Guid.NewGuid():N}"[..12],
+            From = from, To = to, Label = (label ?? "").Trim()
+        };
+        _store.Save(s with { RestPeriods = [.. s.RestPeriods, period] });
+        return CommandResult.Ok($"Descanso programado del {from:dd/MM/yyyy} al {to:dd/MM/yyyy}.");
+    }
+
+    /// <summary>Elimina un periodo de descanso programado por su id.</summary>
+    public CommandResult RemoveRestPeriod(string id)
+    {
+        var s = _store.Load();
+        if (s.RestPeriods.All(p => p.Id != id)) return CommandResult.Ok("Sin cambios.");
+        _store.Save(s with { RestPeriods = s.RestPeriods.Where(p => p.Id != id).ToList() });
+        return CommandResult.Ok("Periodo de descanso eliminado.");
+    }
 }
 
 /// <summary>Resumen del estado de la app (respuesta para IA / UI).</summary>

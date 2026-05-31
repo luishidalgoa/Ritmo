@@ -264,6 +264,29 @@ public sealed class RitmoTools
         [Description("Minutos de aviso previo por defecto (0 = ninguno; máx. 1440)")] int minutes)
         => Report(_config.SetDefaultPreAlert(minutes));
 
+    [McpServerTool(Name = "set_rest_active")]
+    [Description("Activa/desactiva el modo descanso MANUAL: mientras está activo, el horario NO lanza avisos (útil para una pausa). El horario se sigue viendo; no borra nada.")]
+    public string SetRestActive(
+        [Description("true = en descanso (avisos en pausa); false = normal")] bool active)
+        => Report(_config.SetRestActive(active));
+
+    [McpServerTool(Name = "add_rest_period")]
+    [Description("Programa un periodo de descanso (p. ej. vacaciones): durante esas fechas el horario no lanza avisos. Fechas en yyyy-MM-dd; fin >= inicio. label opcional.")]
+    public string AddRestPeriod(
+        [Description("Fecha de inicio (yyyy-MM-dd)")] string from,
+        [Description("Fecha de fin INCLUSIVE (yyyy-MM-dd)")] string to,
+        [Description("Etiqueta opcional, p. ej. 'Vacaciones'")] string? label = null)
+    {
+        if (!TryDate(from, out var f)) return Err($"Fecha de inicio inválida: '{from}' (usa yyyy-MM-dd).");
+        if (!TryDate(to, out var t)) return Err($"Fecha de fin inválida: '{to}'.");
+        return Report(_config.AddRestPeriod(f, t, label ?? ""));
+    }
+
+    [McpServerTool(Name = "remove_rest_period")]
+    [Description("Elimina un periodo de descanso programado por su id (ver get_config).")]
+    public string RemoveRestPeriod([Description("Id del periodo de descanso")] string id)
+        => Report(_config.RemoveRestPeriod(id));
+
     [McpServerTool(Name = "set_kind_color")]
     [Description("Fija el color de fondo de un tipo de bloque en la rejilla del horario. hex en formato #RRGGBB; deja hex vacío para volver al color por defecto de ese tipo.")]
     public string SetKindColor(

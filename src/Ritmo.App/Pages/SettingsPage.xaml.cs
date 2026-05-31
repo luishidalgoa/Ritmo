@@ -41,6 +41,7 @@ public sealed partial class SettingsPage : Page
         SelectComboByTag(DefaultPreAlertBox, s.ViewConfig.DefaultPreAlertMinutes.ToString());
 
         BuildCategories(s);
+        LoadRest(s);   // modo descanso (#135)
         RefreshConnections(s);
         VersionText.Text = $"Versión actual: {AppVersionInfo.Current}";
 
@@ -1228,5 +1229,71 @@ public sealed partial class SettingsPage : Page
         for (int i = 0; i < box.Items.Count; i++)
             if (box.Items[i] is ComboBoxItem it && (string)it.Tag == tag) { box.SelectedIndex = i; return; }
         box.SelectedIndex = 0;
+    }
+
+    // ---------- Modo descanso (#135) ----------
+
+    private bool _loadingRest;
+
+    /// <summary>Refleja en la UI el estado de descanso guardado.</summary>
+    private void LoadRest(Ritmo.Core.Persistence.AppSettings s)
+    {
+        _loadingRest = true;
+        RestToggle.IsOn = s.RestActive;
+        _loadingRest = false;
+        BuildRestPeriods(s);
+    }
+
+    private void RestToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loadingRest) return;
+        AppState.Config.SetRestActive(RestToggle.IsOn);
+    }
+
+    private async void AddRestPeriodBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new RestPeriodDialog { XamlRoot = this.XamlRoot };
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        var r = AppState.Config.AddRestPeriod(dlg.FromDate, dlg.ToDate, dlg.Label);
+        if (!r.Success) await InfoDialog(r.Message);
+        BuildRestPeriods(AppState.Load());
+    }
+
+    private void BuildRestPeriods(Ritmo.Core.Persistence.AppSettings s)
+    {
+        RestPeriodsHost.Children.Clear();
+        var periods = s.RestPeriods.OrderBy(p => p.From).ToList();
+        RestPeriodsEmpty.Visibility = periods.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        foreach (var p in periods)
+        {
+            var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            if (!string.IsNullOrWhiteSpace(p.Label))
+                info.Children.Add(new TextBlock { Text = p.Label, FontWeight = FontWeights.SemiBold });
+            info.Children.Add(new TextBlock
+            {
+                Text = $"{p.From:dd/MM/yyyy} → {p.To:dd/MM/yyyy}",
+                Opacity = 0.65, FontSize = 12
+            });
+            Grid.SetColumn(info, 0);
+
+            var del = new Button { Content = new SymbolIcon(Symbol.Delete) };
+            ToolTipService.SetToolTip(del, "Eliminar periodo");
+            var pid = p.Id;
+            del.Click += (_, _) => { AppState.Config.RemoveRestPeriod(pid); BuildRestPeriods(AppState.Load()); };
+            Grid.SetColumn(del, 1);
+
+            var grid = new Grid { ColumnSpacing = 6 };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.Children.Add(info); grid.Children.Add(del);
+
+            RestPeriodsHost.Children.Add(new Border
+            {
+                BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+                BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(12, 8, 8, 8), Child = grid
+            });
+        }
     }
 }

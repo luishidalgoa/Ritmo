@@ -25,6 +25,9 @@ internal sealed class SettingsDto
     // Categorías de bloque definibles (#83). Vacío en JSON legacy → la migración las deriva.
     public List<CategoryDto> Categories { get; set; } = [];
     public bool OnboardingCompleted { get; set; }
+    // Modo descanso (#135): manual + periodos programados.
+    public bool RestActive { get; set; }
+    public List<RestPeriodDto> RestPeriods { get; set; } = [];
     public string? NavidromeServerUrl { get; set; }
     public string? NavidromeUser { get; set; }
     public bool NtfyEnabled { get; set; }
@@ -40,6 +43,14 @@ internal sealed class CalendarFeedDto
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string Url { get; set; } = "";
+}
+
+internal sealed class RestPeriodDto
+{
+    public string Id { get; set; } = "";
+    public string From { get; set; } = "2026-01-01";
+    public string To { get; set; } = "2026-01-01";
+    public string Label { get; set; } = "";
 }
 
 internal sealed class CategoryDto
@@ -228,6 +239,14 @@ internal static class SettingsMapper
             IsFocus = c.IsFocus, Order = c.Order, IsSystem = c.IsSystem
         }).ToList(),
         OnboardingCompleted = s.OnboardingCompleted,
+        RestActive = s.RestActive,
+        RestPeriods = s.RestPeriods.Select(p => new RestPeriodDto
+        {
+            Id = p.Id,
+            From = p.From.ToString(DateFormat, CultureInfo.InvariantCulture),
+            To = p.To.ToString(DateFormat, CultureInfo.InvariantCulture),
+            Label = p.Label
+        }).ToList(),
         NavidromeServerUrl = s.NavidromeServerUrl,
         NavidromeUser = s.NavidromeUser,
         NtfyEnabled = s.NtfyEnabled,
@@ -348,6 +367,14 @@ internal static class SettingsMapper
                 IsFocus = c.IsFocus, Order = c.Order, IsSystem = c.IsSystem
             }).ToList(),
         OnboardingCompleted = d.OnboardingCompleted,
+        RestActive = d.RestActive,
+        RestPeriods = (d.RestPeriods ?? []).Select(p => new RestPeriod
+        {
+            Id = string.IsNullOrWhiteSpace(p.Id) ? $"rest-{Guid.NewGuid():N}"[..12] : p.Id,
+            From = DateOnly.ParseExact(p.From, DateFormat, CultureInfo.InvariantCulture),
+            To = DateOnly.ParseExact(p.To, DateFormat, CultureInfo.InvariantCulture),
+            Label = p.Label ?? ""
+        }).ToList(),
         NavidromeServerUrl = d.NavidromeServerUrl,
         NavidromeUser = d.NavidromeUser,
         NtfyEnabled = d.NtfyEnabled,

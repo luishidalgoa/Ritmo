@@ -115,6 +115,28 @@
                 </StackPanel>
             </Border>
 
+            <!-- Modo descanso (#135): pausa los avisos (manual + periodos programados) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Descanso" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Text="Pausa los avisos del horario. Útil para vacaciones o pausas: el horario se sigue viendo, pero no suenan avisos."
+                               Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
+                    <ToggleSwitch x:Name="RestToggle" Header="Modo descanso (ahora)"
+                                  OffContent="No" OnContent="Sí" Toggled="RestToggle_Toggled" />
+
+                    <Grid Margin="0,4,0,0">
+                        <TextBlock Text="Periodos programados" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button x:Name="AddRestPeriodBtn" Content="Añadir periodo" HorizontalAlignment="Right"
+                                Click="AddRestPeriodBtn_Click" />
+                    </Grid>
+                    <StackPanel x:Name="RestPeriodsHost" Spacing="6" />
+                    <TextBlock x:Name="RestPeriodsEmpty" Text="No hay periodos de descanso programados."
+                               Opacity="0.6" FontSize="13" Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+
             <!-- Conexiones (#123): se DESCUBREN/añaden en el modal; aquí se VEN y GESTIONAN
                  directamente las que ya están creadas (estilo conectores de Claude). -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

@@ -62,6 +62,8 @@ public sealed class ScheduleHost : IDisposable
     private static void OnEventDue(PlannedEvent ev)
     {
         var s = AppState.Load();
+        // Modo descanso (#135): en vacaciones / pausa, el horario NO lanza avisos.
+        if (s.IsRestingOn(DateOnly.FromDateTime(ev.At))) return;
         var msg = NotificationBuilder.ForEvent(ev, s.CategoryName(ev.Session.CategoryId));
         // Núcleo CENTRALIZADO (#128): el host solo EMITE; el hub reparte a sus canales
         // (toast del SO + ntfy al móvil + futuros) de forma aislada y best-effort.

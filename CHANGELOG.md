@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 52 herramientas
+### 🤖 La IA (servidor MCP) — 55 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -65,6 +65,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
   `set_navidrome_connection`, `clear_navidrome_connection`.
 - Calendarios externos ICS: `add_calendar_feed`, `remove_calendar_feed`.
 - Prioridad ante solapamiento horario↔calendario: `set_overlap_priority`, `clear_overlap_priority`.
+- Modo descanso (pausar avisos): `set_rest_active`, `add_rest_period`, `remove_rest_period`.
 
 **Respaldo**
 - `import_config` — reemplaza toda la configuración desde un JSON (formato de `get_config`).
@@ -104,6 +105,8 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Avisos previos configurables por sesión (1 h / 10 min / 5 min, hasta 2; desplegables con
   variedad + personalizado) (#6, #27, #87). **Aviso previo por defecto** configurable desde
   Ajustes: con qué aviso se pre-rellena una sesión nueva (#48).
+- **Modo descanso** (#135): pausa los avisos del horario (toast + ntfy) sin borrar nada — un toggle
+  manual «ahora» y periodos programados de fecha a fecha (vacaciones). El horario se sigue viendo.
 
 ### 🎯 Concentración (modo focus)
 
@@ -194,6 +197,12 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#135 — Modo descanso (vacaciones / pausa).** Pausa los avisos del horario sin borrar nada (el
+  horario se sigue viendo): un **toggle manual** «Modo descanso (ahora)» y **periodos programados**
+  de fecha a fecha (p. ej. vacaciones) en Ajustes → Descanso. Núcleo: `AppSettings.RestActive` +
+  `RestPeriods` + helper `IsRestingOn(date)` + comandos `SetRestActive`/`AddRestPeriod`/
+  `RemoveRestPeriod` (8 tests). El `ScheduleHost` no avisa en días de descanso (toast y ntfy). MCP:
+  `set_rest_active`, `add_rest_period`, `remove_rest_period`.
 - **#130 — Sesiones solapadas el mismo día, lado a lado (carriles).** Antes, dos sesiones que
   coincidían en el tiempo el mismo día se pintaban una ENCIMA de la otra. Ahora se reparten en
   **carriles** (sub-columnas) estilo calendario: cada una ocupa 1/n del ancho y se desplaza a su

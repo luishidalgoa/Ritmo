@@ -76,6 +76,7 @@ public static class ReleaseNotes
             [
                 "Borra una sesión del calendario con la tecla Suprimir: selecciónala y pulsa Supr.",
                 "Las sesiones que se solapan el mismo día ahora se ven lado a lado, no una encima de otra.",
+                "Modo descanso: pausa los avisos con un interruptor, o programa periodos (vacaciones) de fecha a fecha.",
             ]
         },
     ];

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Ritmo_App.Dialogs.RestPeriodDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Periodo de descanso"
+    PrimaryButtonText="Guardar"
+    SecondaryButtonText="Cancelar"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="14" Width="320">
+        <TextBox x:Name="LabelBox" Header="Nombre (opcional)" HorizontalAlignment="Stretch"
+                 PlaceholderText="p. ej. Vacaciones de verano" />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+            <CalendarDatePicker x:Name="FromPicker" Header="Desde" MinWidth="150" DateChanged="FromPicker_DateChanged" />
+            <CalendarDatePicker x:Name="ToPicker" Header="Hasta" MinWidth="150" />
+        </StackPanel>
+        <TextBlock Text="Durante esas fechas, el horario no lanzará avisos. El horario se sigue viendo."
+                   Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
+        <TextBlock x:Name="ErrorText" Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                   FontSize="12" TextWrapping="Wrap" Visibility="Collapsed" />
+    </StackPanel>
+</ContentDialog>

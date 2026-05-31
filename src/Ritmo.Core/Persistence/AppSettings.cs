@@ -44,6 +44,13 @@ public sealed record AppSettings
     /// <summary>Si el usuario ya pasó el onboarding (selector de plantillas). #83</summary>
     public bool OnboardingCompleted { get; init; }
 
+    /// <summary>Modo descanso MANUAL (#135): pausa los avisos del horario «ahora» hasta apagarlo.</summary>
+    public bool RestActive { get; init; }
+
+    /// <summary>Periodos de descanso PROGRAMADOS (#135): pausan los avisos del horario en sus fechas
+    /// (p. ej. vacaciones). El horario sigue viéndose; solo se silencian los avisos.</summary>
+    public IReadOnlyList<RestPeriod> RestPeriods { get; init; } = [];
+
     /// <summary>Entornos de concentración definidos por el usuario.</summary>
     public IReadOnlyList<FocusEnvironment> FocusEnvironments { get; init; } = [];
 
@@ -123,4 +130,10 @@ public sealed record AppSettings
     /// <summary>Ids de las categorías que disparan concentración (para el planificador). #83</summary>
     public IReadOnlySet<string> FocusCategoryIds()
         => Categories.Where(c => c.IsFocus).Select(c => c.Id).ToHashSet(System.StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// ¿Está en modo descanso esa fecha? (#135) Lo está si el descanso manual está activo o si
+    /// algún periodo programado cubre esa fecha. En descanso, el horario NO lanza avisos.
+    /// </summary>
+    public bool IsRestingOn(System.DateOnly date) => RestActive || RestPeriods.Any(p => p.Covers(date));
 }
