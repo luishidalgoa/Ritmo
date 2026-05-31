@@ -163,11 +163,16 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
-- **#123 — Modal "Conexiones" para apps externas** (declutter de Ajustes). Nuevo `ConnectionsDialog`
-  que centraliza las conexiones: notificaciones al móvil (ntfy, con enlaces de descarga de la app por
-  plataforma) y calendarios OAuth ("Próximamente", futuro #112). Ajustes deja de tener la tarjeta
-  grande de ntfy: ahora muestra una tarjeta compacta con botón "Gestionar conexiones" + un resumen de
-  las conexiones que el usuario ya ha activado. Verificado en la app.
+- **#123 — Conexiones con apps externas** (declutter de Ajustes, estilo conectores de Claude).
+  - **Modal de descubrimiento** `ConnectionsDialog` ("Añadir conexión"): catálogo de lo conectable
+    —notificaciones al móvil (ntfy) y calendarios OAuth ("Próximamente", futuro #112)—. "Conectar"
+    crea la conexión (topic privado generado) y cierra; el modal es solo para descubrir/añadir.
+  - **Gestión inline en Ajustes**: las conexiones YA creadas se ven y gestionan directamente en
+    Ajustes › Conexiones (toggle activar/pausar, servidor, topic + Generar/Copiar, Enviar prueba,
+    Eliminar), sin volver a abrir el modal. Si no hay ninguna, estado vacío con invitación.
+  - **Guía visual tipo carrusel** `NtfyGuideDialog` (botón "Cómo conectar mi móvil"): pasos con
+    ilustración + `PipsPager`, incl. enlaces de descarga por plataforma y el topic con copiar.
+  Verificado en la app (descubrir → conectar → gestión inline → guía).
 - **#122 — Notificaciones push al móvil vía ntfy** (opt-in, parte A del ticket). Cuando un aviso
   se dispara, además del toast de Windows se publica en ntfy (`{servidor}/{topic}`, modo JSON) y
   el móvil suscrito al topic lo recibe. Núcleo puro `NtfyPublish` (con tests) decide el QUÉ; el host

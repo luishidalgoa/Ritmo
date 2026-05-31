@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Ritmo_App.Dialogs.NtfyGuideDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Conectar tu móvil"
+    CloseButtonText="Entendido"
+    DefaultButton="Close">
+
+    <StackPanel Width="420" Spacing="12">
+        <!-- Carrusel de pasos: swipe o flechas; los puntos de abajo indican el paso. -->
+        <FlipView x:Name="StepsFlip" Height="320" Background="Transparent">
+
+            <!-- Paso 1: instalar -->
+            <FlipViewItem>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" Padding="24,0">
+                    <TextBlock Text="📲" FontSize="58" HorizontalAlignment="Center" />
+                    <TextBlock Text="1 · Instala la app ntfy" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock TextWrapping="Wrap" TextAlignment="Center" Opacity="0.8" FontSize="13"
+                               Text="Es gratis y no necesita cuenta. Descárgala en tu teléfono:" />
+                    <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Center">
+                        <HyperlinkButton Content="Android (Play)" NavigateUri="https://play.google.com/store/apps/details?id=io.heckel.ntfy" />
+                        <HyperlinkButton Content="iPhone (App Store)" NavigateUri="https://apps.apple.com/app/ntfy/id1625396347" />
+                    </StackPanel>
+                </StackPanel>
+            </FlipViewItem>
+
+            <!-- Paso 2: añadir suscripción -->
+            <FlipViewItem>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" Padding="24,0">
+                    <TextBlock Text="➕" FontSize="58" HorizontalAlignment="Center" />
+                    <TextBlock Text="2 · Añade una suscripción" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock TextWrapping="Wrap" TextAlignment="Center" Opacity="0.8" FontSize="13"
+                               Text="Abre ntfy y toca el botón «+» (arriba a la derecha) para crear o suscribirte a un topic." />
+                </StackPanel>
+            </FlipViewItem>
+
+            <!-- Paso 3: pegar el topic -->
+            <FlipViewItem>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" Padding="24,0">
+                    <TextBlock Text="🔑" FontSize="58" HorizontalAlignment="Center" />
+                    <TextBlock Text="3 · Pega tu topic" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock TextWrapping="Wrap" TextAlignment="Center" Opacity="0.8" FontSize="13"
+                               Text="Escribe EXACTAMENTE este topic y pulsa «Subscribe»:" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                        <TextBox x:Name="GuideTopicBox" IsReadOnly="True" TextAlignment="Center" Width="230"
+                                 VerticalAlignment="Center" />
+                        <Button Content="Copiar" Click="Copy_Click" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock x:Name="GuideServerNote" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.7" FontSize="12"
+                               Visibility="Collapsed" />
+                </StackPanel>
+            </FlipViewItem>
+
+            <!-- Paso 4: listo -->
+            <FlipViewItem>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" Padding="24,0">
+                    <TextBlock Text="✅" FontSize="58" HorizontalAlignment="Center" />
+                    <TextBlock Text="¡Listo!" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock TextWrapping="Wrap" TextAlignment="Center" Opacity="0.8" FontSize="13"
+                               Text="Ya recibirás los avisos del horario en el móvil. Pulsa «Enviar prueba» en Ajustes para comprobar que llega." />
+                </StackPanel>
+            </FlipViewItem>
+        </FlipView>
+
+        <!-- Puntos del carrusel, sincronizados con el FlipView -->
+        <PipsPager NumberOfPages="4" HorizontalAlignment="Center"
+                   SelectedPageIndex="{Binding SelectedIndex, ElementName=StepsFlip, Mode=TwoWay}" />
+    </StackPanel>
+</ContentDialog>

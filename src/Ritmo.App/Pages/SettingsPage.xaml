@@ -83,8 +83,8 @@
                 </StackPanel>
             </Border>
 
-            <!-- Conexiones con apps externas (#122 / OAuth futuro). Setup en el modal;
-                 aquí solo el acceso + un resumen de lo que está activo. -->
+            <!-- Conexiones (#123): se DESCUBREN/añaden en el modal; aquí se VEN y GESTIONAN
+                 directamente las que ya están creadas (estilo conectores de Claude). -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
@@ -96,13 +96,51 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Spacing="2">
                             <TextBlock Text="Conexiones" FontSize="18" FontWeight="SemiBold" />
-                            <TextBlock Text="Conecta Ritmo con apps externas: notificaciones al móvil, calendarios…"
+                            <TextBlock Text="Apps externas conectadas a Ritmo. Añade nuevas desde «Añadir conexión»."
                                        Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
                         </StackPanel>
-                        <Button Grid.Column="1" Content="Gestionar conexiones" Click="ConnectionsBtn_Click"
+                        <Button Grid.Column="1" Content="Añadir conexión" Click="ConnectionsBtn_Click"
                                 VerticalAlignment="Center" />
                     </Grid>
-                    <StackPanel x:Name="ConnectionsSummary" Spacing="6" />
+
+                    <TextBlock x:Name="NoConnectionsText" Visibility="Collapsed" Opacity="0.6" FontSize="13" TextWrapping="Wrap"
+                               Text="Aún no has conectado ninguna app. Pulsa «Añadir conexión» para empezar." />
+
+                    <!-- Gestión de la conexión ntfy (solo visible si está creada) -->
+                    <Border x:Name="NtfyManageCard" Visibility="Collapsed"
+                            Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="📱  Notificaciones al móvil (ntfy)" FontWeight="SemiBold" FontSize="15" />
+                            <ToggleSwitch x:Name="NtfyEnabledToggle" Header="Enviar avisos al móvil"
+                                          OnContent="Activado" OffContent="Pausado" />
+                            <TextBox x:Name="NtfyServerBox" Header="Servidor" PlaceholderText="https://ntfy.sh" />
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="NtfyTopicBox" Grid.Column="0" Header="Topic" />
+                                <Button x:Name="NtfyGenBtn" Grid.Column="1" Content="Generar" Click="NtfyGenBtn_Click"
+                                        VerticalAlignment="Bottom" ToolTipService.ToolTip="Generar un topic aleatorio" />
+                                <Button x:Name="NtfyCopyBtn" Grid.Column="2" Content="Copiar" Click="NtfyCopyBtn_Click"
+                                        VerticalAlignment="Bottom" ToolTipService.ToolTip="Copiar el topic al portapapeles" />
+                            </Grid>
+
+                            <!-- Guía visual (carrusel) de cómo suscribir el móvil al topic -->
+                            <Button Click="NtfyGuideBtn_Click" HorizontalAlignment="Left"
+                                    Content="📲  Cómo conectar mi móvil" />
+
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <Button Content="Guardar conexión" Click="NtfySaveBtn_Click" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="NtfyTestBtn" Content="Enviar prueba" Click="NtfyTestBtn_Click" />
+                                <Button Content="Eliminar" Click="NtfyRemoveBtn_Click" />
+                                <TextBlock x:Name="NtfyStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="12" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
 

@@ -38,7 +38,7 @@ public sealed partial class SettingsPage : Page
         DayEndPicker.Time = s.ViewConfig.DayEnd.ToTimeSpan();
         GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
 
-        BuildConnectionsSummary(s);
+        RefreshConnections(s);
 
         ThemeBox.SelectedIndex = (this.ActualTheme) switch
         {
@@ -708,50 +708,85 @@ public sealed partial class SettingsPage : Page
             : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : r3.Message)}";
     }
 
-    // ---------- Conexiones con apps externas (#122) ----------
+    // ---------- Conexiones con apps externas (#123) ----------
 
-    /// <summary>Abre el modal de Conexiones y, al cerrarlo, refresca el resumen.</summary>
+    /// <summary>Abre el modal de DESCUBRIMIENTO; al cerrarlo refresca lo conectado.</summary>
     private async void ConnectionsBtn_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new ConnectionsDialog { XamlRoot = this.XamlRoot };
         await dlg.ShowAsync();
-        BuildConnectionsSummary(AppState.Load());
+        RefreshConnections(AppState.Load());
     }
 
     /// <summary>
-    /// Pinta en Ajustes solo las conexiones que el usuario YA ha activado. Si no hay
-    /// ninguna, un texto tenue invita a abrir el modal. El setup vive en el modal.
+    /// Muestra la gestión inline de las conexiones YA creadas (estilo conectores de
+    /// Claude). Si no hay ninguna, un texto tenue invita a añadir desde el modal.
+    /// «Creada» = tiene topic, aunque esté pausada.
     /// </summary>
-    private void BuildConnectionsSummary(Ritmo.Core.Persistence.AppSettings s)
+    private void RefreshConnections(Ritmo.Core.Persistence.AppSettings s)
     {
-        ConnectionsSummary.Children.Clear();
-        bool any = false;
-
-        if (s.NtfyEnabled && !string.IsNullOrWhiteSpace(s.NtfyTopic))
+        bool created = !string.IsNullOrWhiteSpace(s.NtfyTopic);
+        NtfyManageCard.Visibility = created ? Visibility.Visible : Visibility.Collapsed;
+        NoConnectionsText.Visibility = created ? Visibility.Collapsed : Visibility.Visible;
+        if (created)
         {
-            any = true;
-            var server = Ritmo.Core.Notifications.NtfyPublish.NormalizeServer(s.NtfyServerUrl);
-            ConnectionsSummary.Children.Add(ConnectionRow(
-                "📱", "Notificaciones al móvil", $"Activado · {server} · topic {s.NtfyTopic}"));
+            NtfyEnabledToggle.IsOn = s.NtfyEnabled;
+            NtfyServerBox.Text = s.NtfyServerUrl ?? "";
+            NtfyTopicBox.Text = s.NtfyTopic ?? "";
+            NtfyStatus.Text = "";
         }
-
-        if (!any)
-            ConnectionsSummary.Children.Add(new TextBlock
-            {
-                Text = "Sin conexiones activas. Pulsa «Gestionar conexiones» para añadir una.",
-                Opacity = 0.6, FontSize = 13, TextWrapping = TextWrapping.Wrap
-            });
     }
 
-    /// <summary>Fila compacta de una conexión activa: icono + nombre + detalle.</summary>
-    private static StackPanel ConnectionRow(string icon, string name, string detail)
+    private void NtfyGenBtn_Click(object sender, RoutedEventArgs e)
+        => NtfyTopicBox.Text = "ritmo-" + Guid.NewGuid().ToString("N").Substring(0, 10);
+
+    /// <summary>Abre la guía visual (carrusel) de cómo conectar el móvil con el topic actual.</summary>
+    private async void NtfyGuideBtn_Click(object sender, RoutedEventArgs e)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        row.Children.Add(new TextBlock { Text = icon, FontSize = 16, VerticalAlignment = VerticalAlignment.Center });
-        var texts = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
-        texts.Children.Add(new TextBlock { Text = name, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 13 });
-        texts.Children.Add(new TextBlock { Text = detail, Opacity = 0.7, FontSize = 12, TextWrapping = TextWrapping.Wrap });
-        row.Children.Add(texts);
-        return row;
+        var dlg = new NtfyGuideDialog((NtfyTopicBox.Text ?? "").Trim(), (NtfyServerBox.Text ?? "").Trim())
+        {
+            XamlRoot = this.XamlRoot
+        };
+        await dlg.ShowAsync();
+    }
+
+    private void NtfyCopyBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        dp.SetText((NtfyTopicBox.Text ?? "").Trim());
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+        NtfyStatus.Text = "Topic copiado.";
+    }
+
+    private void NtfySaveBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var r = AppState.Config.SetNtfy(NtfyEnabledToggle.IsOn, NtfyServerBox.Text, NtfyTopicBox.Text);
+        NtfyStatus.Text = r.Success ? "✓ Guardado." : $"⚠ {r.Message}";
+        if (r.Success) RefreshConnections(AppState.Load());
+    }
+
+    private void NtfyRemoveBtn_Click(object sender, RoutedEventArgs e)
+    {
+        AppState.Config.SetNtfy(false, null, null);   // sin topic -> deja de ser una conexión creada
+        RefreshConnections(AppState.Load());
+    }
+
+    private async void NtfyTestBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var topic = (NtfyTopicBox.Text ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(topic)) { NtfyStatus.Text = "Pon (o genera) un topic primero."; return; }
+
+        NtfyStatus.Text = "Enviando…";
+        NtfyTestBtn.IsEnabled = false;
+        try
+        {
+            var pub = Ritmo.Core.Notifications.NtfyPublish.ForTest(NtfyServerBox.Text, topic);
+            bool ok = await Services.NtfyPublisher.PublishAsync(pub);
+            NtfyStatus.Text = ok
+                ? "✓ Enviado. Revisa el móvil suscrito a ese topic."
+                : "⚠ No se pudo enviar (revisa servidor, topic y conexión).";
+        }
+        catch { NtfyStatus.Text = "⚠ Error al enviar la prueba."; }
+        finally { NtfyTestBtn.IsEnabled = true; }
     }
 }
