@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Ritmo_App.Dialogs.DayPreviewDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Tu día de hoy"
+    CloseButtonText="Empezar a concentrarme"
+    DefaultButton="Close">
+
+    <ScrollViewer MaxHeight="460" HorizontalScrollMode="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Width="380" Spacing="10">
+            <TextBlock x:Name="DateText" Opacity="0.7" FontSize="13" />
+            <StackPanel x:Name="ListHost" Spacing="8" />
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

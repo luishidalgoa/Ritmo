@@ -80,6 +80,10 @@
                     </ComboBox>
                     <TextBlock Text="Solo cambia las líneas-guía de fondo. Los bloques se siguen colocando por su hora real (p. ej. 16:40)."
                                Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
+                    <ToggleSwitch x:Name="DayPreviewToggle" Header="Vista previa del día al iniciar concentración"
+                                  OnContent="Sí" OffContent="No" Margin="0,4,0,0" />
+                    <TextBlock Text="Al pulsar «Iniciar» en el temporizador, muestra un resumen de los bloques de hoy antes de concentrarte."
+                               Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 

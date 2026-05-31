@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 42 herramientas
+### 🤖 La IA (servidor MCP) — 43 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -40,7 +40,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Fases: `add_phase`, `update_phase`, `remove_phase`.
 - Sesiones recurrentes: `add_session`, `update_session`, `remove_session`.
 - Sesiones provisionales (con fecha): `add_one_off_session`, `remove_one_off_session`.
-- Rango horario visible y granularidad de la rejilla: `set_view_hours`, `set_view_granularity`.
+- Rango horario, granularidad y vista previa del día al iniciar foco: `set_view_hours`, `set_view_granularity`, `set_day_preview`.
 
 **Pomodoro**
 - Pomodoro por defecto: `set_pomodoro`.
@@ -107,6 +107,9 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
   ventana arriba a la derecha con la **hora del sistema** en grande + mini-controles del
   Pomodoro (abrir en grande / pausar / reanudar / saltar) (#118).
 - Concentrarse en un bloque concreto o con un entorno desde el panel derecho (#67, #69, #111).
+- **Vista previa del día al iniciar concentración** (configurable, #47): al pulsar «Iniciar» se
+  muestra un resumen de los bloques de hoy (orden, color por tipo, bloque actual resaltado) antes
+  de concentrarse. Toggle en Ajustes y herramienta MCP `set_day_preview`.
 
 ### 🧰 Entornos de trabajo
 
@@ -163,6 +166,11 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#47 — Vista previa del día al iniciar concentración** (configurable). Al pulsar «Iniciar» en el
+  temporizador, si está activada (por defecto sí), se muestra `DayPreviewDialog` con los bloques de hoy
+  (horario de la fase + provisionales, ordenados, color por tipo, bloque actual resaltado y marca ✦ de
+  provisional) antes de arrancar el foco. Toggle en Ajustes, comando `SetShowDayPreviewOnFocusStart` (con
+  test) y herramienta MCP `set_day_preview`. Verificado en la app.
 - **#123 — Conexiones con apps externas** (declutter de Ajustes, estilo conectores de Claude).
   - **Modal de descubrimiento** `ConnectionsDialog` ("Añadir conexión"): catálogo de lo conectable
     —notificaciones al móvil (ntfy) y calendarios OAuth ("Próximamente", futuro #112)—. "Conectar"

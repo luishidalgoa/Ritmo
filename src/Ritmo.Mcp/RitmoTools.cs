@@ -239,6 +239,12 @@ public sealed class RitmoTools
         [Description("Minutos por línea de la rejilla: 60, 30 o 15")] int minutes)
         => Report(_config.SetGranularity(minutes));
 
+    [McpServerTool(Name = "set_day_preview")]
+    [Description("Activa o desactiva la vista previa del día al iniciar concentración: si está activa, al arrancar el foco se muestra un resumen de los bloques de hoy.")]
+    public string SetDayPreview(
+        [Description("true = mostrar la vista previa al iniciar foco; false = no mostrarla")] bool enabled)
+        => Report(_config.SetShowDayPreviewOnFocusStart(enabled));
+
     // ==================== NOTAS ====================
 
     [McpServerTool(Name = "add_note")]

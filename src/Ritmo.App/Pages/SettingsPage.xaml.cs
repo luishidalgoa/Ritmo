@@ -37,6 +37,7 @@ public sealed partial class SettingsPage : Page
         DayStartPicker.Time = s.ViewConfig.DayStart.ToTimeSpan();
         DayEndPicker.Time = s.ViewConfig.DayEnd.ToTimeSpan();
         GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
+        DayPreviewToggle.IsOn = s.ViewConfig.ShowDayPreviewOnFocusStart;
 
         RefreshConnections(s);
 
@@ -696,6 +697,8 @@ public sealed partial class SettingsPage : Page
         int gran = (GranularityBox.SelectedItem is ComboBoxItem gi && gi.Tag is string gt && int.TryParse(gt, out var gm)) ? gm : 60;
         var r3 = AppState.Config.SetGranularity(gran);
 
+        var r4 = AppState.Config.SetShowDayPreviewOnFocusStart(DayPreviewToggle.IsOn);
+
         if (ThemeBox.SelectedItem is ComboBoxItem it && it.Tag is string tag)
         {
             var theme = tag switch { "Light" => ElementTheme.Light, "Dark" => ElementTheme.Dark, _ => ElementTheme.Default };
@@ -703,9 +706,9 @@ public sealed partial class SettingsPage : Page
                 root.RequestedTheme = theme;
         }
 
-        SaveStatus.Text = (r1.Success && r2.Success && r3.Success)
+        SaveStatus.Text = (r1.Success && r2.Success && r3.Success && r4.Success)
             ? "✓ Guardado"
-            : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : r3.Message)}";
+            : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : !r3.Success ? r3.Message : r4.Message)}";
     }
 
     // ---------- Conexiones con apps externas (#123) ----------

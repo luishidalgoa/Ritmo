@@ -145,11 +145,23 @@ public sealed partial class TimerPage : Page
         Refresh();
     }
 
-    private void StartBtn_Click(object sender, RoutedEventArgs e)
+    private async void StartBtn_Click(object sender, RoutedEventArgs e)
     {
         bool wasIdle = _engine.Phase == PomodoroPhase.Idle;
         if (wasIdle)
         {
+            // Vista previa del día al arrancar concentración, si está activada (#47).
+            var settings = AppState.Load();
+            if (settings.ViewConfig.ShowDayPreviewOnFocusStart)
+            {
+                try
+                {
+                    var preview = new Dialogs.DayPreviewDialog(settings, _clock.Now) { XamlRoot = this.XamlRoot };
+                    await preview.ShowAsync();
+                }
+                catch { /* si no se puede mostrar, no bloquear el inicio */ }
+            }
+
             ResolveContext();          // recoge el bloque vigente en el momento de arrancar
             _engine.Start(_clock.Now);
         }

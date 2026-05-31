@@ -311,6 +311,17 @@ public sealed class ConfigurationService
     }
 
     /// <summary>
+    /// Activa/desactiva la vista previa del día al iniciar concentración (#47): si
+    /// está activa, al arrancar el foco se muestra un resumen de los bloques de hoy.
+    /// </summary>
+    public CommandResult SetShowDayPreviewOnFocusStart(bool show)
+    {
+        var s = _store.Load();
+        _store.Save(s with { ViewConfig = s.ViewConfig with { ShowDayPreviewOnFocusStart = show } });
+        return CommandResult.Ok(show ? "Vista previa del día activada." : "Vista previa del día desactivada.");
+    }
+
+    /// <summary>
     /// Fija la granularidad de la rejilla de fondo del horario (60, 30 o 15 min).
     /// Solo afecta a las líneas-guía; los bloques se siguen posicionando por su
     /// minuto real. #61
