@@ -325,7 +325,6 @@ public sealed partial class SchedulePage : Page
 
     private void Build()
     {
-        AppState.EnsureSeeded();
         var settings = AppState.Load();
 
         // Granularidad de la rejilla de fondo (#61): solo cambia las líneas-guía.

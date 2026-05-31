@@ -31,16 +31,12 @@ public static class AppState
     public static AppSettings Load() => _store.Load();
 
     /// <summary>
-    /// Asegura que hay algo que mostrar la primera vez: si no hay ninguna fase,
-    /// siembra un horario de ejemplo (las fases TAI) para que el usuario vea la
-    /// rejilla con contenido. No pisa nada si ya hay datos.
+    /// ¿Es el primer arranque? (#83) Lo es mientras el usuario no haya completado el
+    /// onboarding. Ya no se siembra ningún horario de ejemplo: en su lugar el onboarding
+    /// deja elegir una plantilla de categorías neutra. La migración marca este flag a true
+    /// para los usuarios EXISTENTES (que ya tienen datos), así no ven el onboarding.
     /// </summary>
-    public static void EnsureSeeded()
-    {
-        var s = _store.Load();
-        if (s.Plan.Phases.Count > 0 || s.Schedule.Sessions.Count > 0) return;
-        _store.Save(s with { Plan = SampleData.TaiPlan() });
-    }
+    public static bool IsFirstRun() => !_store.Load().OnboardingCompleted;
 
     /// <summary>Store que reenvía a otro y notifica tras guardar (patrón decorador). #128</summary>
     private sealed class ChangeNotifyingStore(ISettingsStore inner) : ISettingsStore

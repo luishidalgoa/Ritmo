@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Ritmo_App.Dialogs.OnboardingDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Te damos la bienvenida a Ritmo"
+    PrimaryButtonText="Empezar"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="16" Width="400">
+        <TextBlock TextWrapping="Wrap" Opacity="0.8" FontSize="14"
+                   Text="Ritmo organiza tu semana en bloques. Elige un punto de partida para tus categorías; podrás añadir, renombrar o quitar las que quieras en Ajustes." />
+
+        <StackPanel Spacing="10">
+            <RadioButton x:Name="OptStudy" GroupName="tpl" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="2">
+                    <TextBlock Text="Estudio" FontWeight="SemiBold" />
+                    <TextBlock Text="Concentración, Lectura, Repaso, Tests, Simulacro…"
+                               Opacity="0.65" FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+            </RadioButton>
+
+            <RadioButton x:Name="OptWork" GroupName="tpl" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="2">
+                    <TextBlock Text="Trabajo" FontWeight="SemiBold" />
+                    <TextBlock Text="Concentración, Reuniones, Email, Gestión…"
+                               Opacity="0.65" FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+            </RadioButton>
+
+            <RadioButton x:Name="OptBlank" GroupName="tpl" IsChecked="True" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="2">
+                    <TextBlock Text="Genérico" FontWeight="SemiBold" />
+                    <TextBlock Text="Lo básico: Concentración, Reunión, Descanso, Personal."
+                               Opacity="0.65" FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+            </RadioButton>
+        </StackPanel>
+    </StackPanel>
+</ContentDialog>

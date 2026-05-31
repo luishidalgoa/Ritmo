@@ -62,6 +62,27 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(typeof(HomePage));
         RebuildEnvNavItems();
         UpdateWhatsNewBadge();   // "Novedades" se activa si la app se actualizó (#updates)
+
+        // Primer arranque (#83): onboarding neutral con plantillas. Ya no se siembra TAI.
+        if (AppState.IsFirstRun()) _ = RunOnboarding();
+    }
+
+    /// <summary>
+    /// Muestra el onboarding del primer arranque, aplica la plantilla de categorías elegida
+    /// y deja una fase inicial vacía para que el horario sea usable de inmediato (#83).
+    /// </summary>
+    private async System.Threading.Tasks.Task RunOnboarding()
+    {
+        var dlg = new Dialogs.OnboardingDialog { XamlRoot = Nav.XamlRoot };
+        await dlg.ShowAsync();   // sin cancelar: por defecto la plantilla genérica
+
+        AppState.Config.SeedTemplate(dlg.SelectedTemplate);   // siembra categorías + marca onboarding hecho
+        // Una fase inicial vacía: sin ella el botón "Añadir" del horario está deshabilitado.
+        if (AppState.Load().Plan.Phases.Count == 0)
+            AppState.Config.AddPhase("Mi horario", System.DateOnly.FromDateTime(System.DateTime.Now), null);
+
+        RebuildEnvNavItems();
+        ContentFrame.Navigate(typeof(HomePage));   // refresca con las categorías ya sembradas
     }
 
     /// <summary>Muestra el aviso (badge) en «Novedades» si hay notas que el usuario no ha visto.</summary>

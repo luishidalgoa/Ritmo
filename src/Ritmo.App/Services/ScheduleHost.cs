@@ -32,7 +32,6 @@ public sealed class ScheduleHost : IDisposable
         Stop();
         try
         {
-            AppState.EnsureSeeded();
             var settings = AppState.Load();
             var schedule = ResolveActiveSchedule(settings);
             // Vigilamos si hay recurrentes O sesiones provisionales (#128: antes las one-off
