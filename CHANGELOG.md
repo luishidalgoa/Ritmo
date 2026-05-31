@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 55 herramientas
+### 🤖 La IA (servidor MCP) — 58 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -54,6 +54,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Tareas del entorno: `add_environment_task`, `toggle_environment_task`, `remove_environment_task`, `move_environment_task` (reordenar).
 - Perfiles por tipo de sesión (qué se abre en cada bloque): `set_session_profile`, `clear_session_profile`.
 - Mapeo tipo de bloque → entorno: `map_environment_to_kind`, `clear_environment_kind`.
+- Seguimiento laboral (tarifa + horas): `set_environment_rate`, `log_work_hours`, `remove_work_log_entry`.
 
 **Notas y atajos**
 - Notas (markdown, opcional post-it de sesión): `add_note`, `update_note`, `remove_note`.
@@ -197,6 +198,14 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#84 — Seguimiento laboral por proyecto (V1).** Para perfiles de trabajo: cada entorno/proyecto
+  tiene una **tarifa €/h** y un **registro MANUAL y acumulativo de horas** (los perfiles sin horario
+  fijo van sumando horas día a día). En el panel de un entorno → módulo **«Seguimiento laboral»**:
+  tarifa, anotar horas de hoy, y resumen **«Este mes: X h · €Y»** + **proyección a fin de mes**.
+  Núcleo: `AppSettings.EnvironmentRates` + `WorkLog` (`WorkLogEntry`) + helper puro `WorkTracking`
+  (horas/ganado del mes + proyección lineal); comandos `SetEnvironmentRate`/`AddWorkHours`/
+  `RemoveWorkLogEntry`; 8 tests. MCP: `set_environment_rate`, `log_work_hours`,
+  `remove_work_log_entry`. Gráficos (acumulado vs objetivo) quedan para V2.
 - **#135 — Modo descanso (vacaciones / pausa).** Pausa los avisos del horario sin borrar nada (el
   horario se sigue viendo): un **toggle manual** «Modo descanso (ahora)» y **periodos programados**
   de fecha a fecha (p. ej. vacaciones) en Ajustes → Descanso. Núcleo: `AppSettings.RestActive` +

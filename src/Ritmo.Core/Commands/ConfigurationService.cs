@@ -929,6 +929,44 @@ public sealed class ConfigurationService
         _store.Save(s with { RestPeriods = s.RestPeriods.Where(p => p.Id != id).ToList() });
         return CommandResult.Ok("Periodo de descanso eliminado.");
     }
+
+    // ---------- Seguimiento laboral (#84) ----------
+
+    /// <summary>Fija la tarifa por hora (€/h) de un entorno/proyecto. 0 = sin tarifa.</summary>
+    public CommandResult SetEnvironmentRate(string environmentId, decimal rate)
+    {
+        if (rate < 0) return CommandResult.Fail("La tarifa no puede ser negativa.");
+        var s = _store.Load();
+        if (s.FocusEnvironments.All(e => e.Id != environmentId)) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
+        var map = s.EnvironmentRates.ToDictionary(kv => kv.Key, kv => kv.Value);
+        if (rate == 0) map.Remove(environmentId); else map[environmentId] = rate;
+        _store.Save(s with { EnvironmentRates = map });
+        return CommandResult.Ok(rate == 0 ? "Tarifa quitada." : $"Tarifa: {rate:0.##} €/h.");
+    }
+
+    /// <summary>Anota horas trabajadas en un entorno un día (acumulativo). Horas &gt; 0.</summary>
+    public CommandResult AddWorkHours(string environmentId, DateOnly date, double hours)
+    {
+        if (hours <= 0) return CommandResult.Fail("Las horas deben ser mayores que cero.");
+        var s = _store.Load();
+        if (s.FocusEnvironments.All(e => e.Id != environmentId)) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
+        var entry = new Ritmo.Core.Model.WorkLogEntry
+        {
+            Id = $"work-{Guid.NewGuid():N}"[..12],
+            EnvironmentId = environmentId, Date = date, Hours = hours
+        };
+        _store.Save(s with { WorkLog = [.. s.WorkLog, entry] });
+        return CommandResult.Ok($"Anotadas {hours:0.##} h el {date:dd/MM/yyyy}.");
+    }
+
+    /// <summary>Elimina una anotación de horas por su id.</summary>
+    public CommandResult RemoveWorkLogEntry(string id)
+    {
+        var s = _store.Load();
+        if (s.WorkLog.All(e => e.Id != id)) return CommandResult.Ok("Sin cambios.");
+        _store.Save(s with { WorkLog = s.WorkLog.Where(e => e.Id != id).ToList() });
+        return CommandResult.Ok("Anotación eliminada.");
+    }
 }
 
 /// <summary>Resumen del estado de la app (respuesta para IA / UI).</summary>

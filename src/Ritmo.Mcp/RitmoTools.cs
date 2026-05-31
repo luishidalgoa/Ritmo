@@ -287,6 +287,29 @@ public sealed class RitmoTools
     public string RemoveRestPeriod([Description("Id del periodo de descanso")] string id)
         => Report(_config.RemoveRestPeriod(id));
 
+    [McpServerTool(Name = "set_environment_rate")]
+    [Description("Seguimiento laboral: fija la tarifa por hora (€/h) de un entorno/proyecto. 0 = sin tarifa.")]
+    public string SetEnvironmentRate(
+        [Description("Id del entorno (ver get_config)")] string environmentId,
+        [Description("Tarifa por hora (>= 0; 0 quita la tarifa)")] double rate)
+        => Report(_config.SetEnvironmentRate(environmentId, (decimal)rate));
+
+    [McpServerTool(Name = "log_work_hours")]
+    [Description("Seguimiento laboral: anota horas trabajadas en un entorno/proyecto un día (acumulativo). Fecha yyyy-MM-dd; horas > 0.")]
+    public string LogWorkHours(
+        [Description("Id del entorno")] string environmentId,
+        [Description("Fecha (yyyy-MM-dd)")] string date,
+        [Description("Horas trabajadas (> 0)")] double hours)
+    {
+        if (!TryDate(date, out var d)) return Err($"Fecha inválida: '{date}' (usa yyyy-MM-dd).");
+        return Report(_config.AddWorkHours(environmentId, d, hours));
+    }
+
+    [McpServerTool(Name = "remove_work_log_entry")]
+    [Description("Seguimiento laboral: elimina una anotación de horas por su id (ver get_config).")]
+    public string RemoveWorkLogEntry([Description("Id de la anotación de horas")] string id)
+        => Report(_config.RemoveWorkLogEntry(id));
+
     [McpServerTool(Name = "set_kind_color")]
     [Description("Fija el color de fondo de un tipo de bloque en la rejilla del horario. hex en formato #RRGGBB; deja hex vacío para volver al color por defecto de ese tipo.")]
     public string SetKindColor(

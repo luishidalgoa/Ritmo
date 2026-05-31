@@ -356,7 +356,83 @@ public sealed partial class MainWindow : Window
         addRow.Children.Add(addBox); addRow.Children.Add(addBtn);
         root.Children.Add(addRow);
 
+        // --- Seguimiento laboral (#84): tarifa + registro manual de horas + resumen del mes ---
+        root.Children.Add(WorkTrackingSection(env));
+
         return root;
+    }
+
+    /// <summary>Módulo «Seguimiento laboral» (#84): tarifa €/h, anotar horas (acumulativo) y resumen del mes.</summary>
+    private FrameworkElement WorkTrackingSection(Ritmo.Core.Focus.FocusEnvironment env)
+    {
+        var s = Services.AppState.Load();
+        decimal rate = s.EnvironmentRates.TryGetValue(env.Id, out var r) ? r : 0m;
+        var sum = Ritmo.Core.Model.WorkTracking.Summarize(s.WorkLog, env.Id, rate, System.DateOnly.FromDateTime(System.DateTime.Now));
+
+        var box = new StackPanel { Spacing = 6, Margin = new Thickness(0, 8, 0, 0) };
+        box.Children.Add(new TextBlock { Text = "SEGUIMIENTO LABORAL", FontSize = 10, Opacity = 0.55,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+
+        // Tarifa €/h (al cambiar, persiste).
+        var rateBox = new NumberBox { Header = "Tarifa (€/h)", Value = (double)rate, Minimum = 0, SmallChange = 1,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 160, HorizontalAlignment = HorizontalAlignment.Left };
+        rateBox.ValueChanged += (_, _) =>
+        {
+            var v = double.IsNaN(rateBox.Value) ? 0m : (decimal)rateBox.Value;
+            Services.AppState.Config.SetEnvironmentRate(env.Id, v);
+            BuildWorkEnvPanel(env.Id);   // refresca el resumen
+        };
+        box.Children.Add(rateBox);
+
+        // Resumen del mes + proyección.
+        box.Children.Add(new TextBlock
+        {
+            Text = $"Este mes: {sum.HoursThisMonth:0.##} h · {sum.EarningsThisMonth:0.##} €",
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 13
+        });
+        if (sum.HoursThisMonth > 0)
+            box.Children.Add(new TextBlock
+            {
+                Text = $"Proyección fin de mes: ~{sum.ProjectedMonthHours:0.#} h · {sum.ProjectedMonthEarnings:0.##} €",
+                Opacity = 0.65, FontSize = 12
+            });
+
+        // Anotar horas de hoy (acumulativo).
+        var hoursBox = new NumberBox { PlaceholderText = "Horas hoy", Minimum = 0, SmallChange = 0.5,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline };
+        var logBtn = new Button { Content = "Anotar", Padding = new Thickness(10, 6, 10, 6) };
+        void LogHours()
+        {
+            if (double.IsNaN(hoursBox.Value) || hoursBox.Value <= 0) return;
+            Services.AppState.Config.AddWorkHours(env.Id, System.DateOnly.FromDateTime(System.DateTime.Now), hoursBox.Value);
+            BuildWorkEnvPanel(env.Id);
+        }
+        logBtn.Click += (_, _) => LogHours();
+        var logRow = new Grid { ColumnSpacing = 4, Margin = new Thickness(0, 2, 0, 0) };
+        logRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        logRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(hoursBox, 0); Grid.SetColumn(logBtn, 1);
+        logRow.Children.Add(hoursBox); logRow.Children.Add(logBtn);
+        box.Children.Add(logRow);
+
+        // Últimas anotaciones (con borrar).
+        foreach (var w in s.WorkLog.Where(w => w.EnvironmentId == env.Id).OrderByDescending(w => w.Date).Take(5))
+        {
+            var txt = new TextBlock { Text = $"{w.Date:dd/MM} · {w.Hours:0.##} h", FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(txt, 0);
+            var del = new Button { Content = new SymbolIcon(Symbol.Delete), Padding = new Thickness(6), MinWidth = 0,
+                Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0) };
+            var wid = w.Id;
+            del.Click += (_, _) => { Services.AppState.Config.RemoveWorkLogEntry(wid); BuildWorkEnvPanel(env.Id); };
+            Grid.SetColumn(del, 1);
+            var row = new Grid();
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.Children.Add(txt); row.Children.Add(del);
+            box.Children.Add(row);
+        }
+
+        return box;
     }
 
     private FrameworkElement TaskRow(string envId, Ritmo.Core.Focus.EnvironmentTask task)

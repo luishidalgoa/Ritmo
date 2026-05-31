@@ -28,6 +28,9 @@ internal sealed class SettingsDto
     // Modo descanso (#135): manual + periodos programados.
     public bool RestActive { get; set; }
     public List<RestPeriodDto> RestPeriods { get; set; } = [];
+    // Seguimiento laboral (#84): tarifa por entorno + registro de horas.
+    public Dictionary<string, decimal> EnvironmentRates { get; set; } = [];
+    public List<WorkLogEntryDto> WorkLog { get; set; } = [];
     public string? NavidromeServerUrl { get; set; }
     public string? NavidromeUser { get; set; }
     public bool NtfyEnabled { get; set; }
@@ -51,6 +54,14 @@ internal sealed class RestPeriodDto
     public string From { get; set; } = "2026-01-01";
     public string To { get; set; } = "2026-01-01";
     public string Label { get; set; } = "";
+}
+
+internal sealed class WorkLogEntryDto
+{
+    public string Id { get; set; } = "";
+    public string EnvironmentId { get; set; } = "";
+    public string Date { get; set; } = "2026-01-01";
+    public double Hours { get; set; }
 }
 
 internal sealed class CategoryDto
@@ -247,6 +258,14 @@ internal static class SettingsMapper
             To = p.To.ToString(DateFormat, CultureInfo.InvariantCulture),
             Label = p.Label
         }).ToList(),
+        EnvironmentRates = s.EnvironmentRates.ToDictionary(kv => kv.Key, kv => kv.Value),
+        WorkLog = s.WorkLog.Select(w => new WorkLogEntryDto
+        {
+            Id = w.Id,
+            EnvironmentId = w.EnvironmentId,
+            Date = w.Date.ToString(DateFormat, CultureInfo.InvariantCulture),
+            Hours = w.Hours
+        }).ToList(),
         NavidromeServerUrl = s.NavidromeServerUrl,
         NavidromeUser = s.NavidromeUser,
         NtfyEnabled = s.NtfyEnabled,
@@ -374,6 +393,14 @@ internal static class SettingsMapper
             From = DateOnly.ParseExact(p.From, DateFormat, CultureInfo.InvariantCulture),
             To = DateOnly.ParseExact(p.To, DateFormat, CultureInfo.InvariantCulture),
             Label = p.Label ?? ""
+        }).ToList(),
+        EnvironmentRates = (d.EnvironmentRates ?? []).ToDictionary(kv => kv.Key, kv => kv.Value),
+        WorkLog = (d.WorkLog ?? []).Select(w => new WorkLogEntry
+        {
+            Id = string.IsNullOrWhiteSpace(w.Id) ? $"work-{Guid.NewGuid():N}"[..12] : w.Id,
+            EnvironmentId = w.EnvironmentId ?? "",
+            Date = DateOnly.ParseExact(w.Date, DateFormat, CultureInfo.InvariantCulture),
+            Hours = w.Hours
         }).ToList(),
         NavidromeServerUrl = d.NavidromeServerUrl,
         NavidromeUser = d.NavidromeUser,

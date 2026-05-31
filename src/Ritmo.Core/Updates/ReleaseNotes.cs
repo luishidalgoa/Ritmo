@@ -79,6 +79,17 @@ public static class ReleaseNotes
                 "Modo descanso: pausa los avisos con un interruptor, o programa periodos (vacaciones) de fecha a fecha.",
             ]
         },
+        new ReleaseNote
+        {
+            Version = "1.0.4.0",
+            Title = "Para quien factura por horas",
+            Emoji = "💼",
+            Highlights =
+            [
+                "Seguimiento laboral: pon una tarifa €/h a cada entorno/proyecto y ve sumando las horas que trabajas cada día.",
+                "Ritmo te dice cuánto llevas este mes y una estimación de fin de mes, sin necesitar un horario fijo.",
+            ]
+        },
     ];
 
     /// <summary>

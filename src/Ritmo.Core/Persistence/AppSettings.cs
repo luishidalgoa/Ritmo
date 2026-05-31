@@ -51,6 +51,13 @@ public sealed record AppSettings
     /// (p. ej. vacaciones). El horario sigue viéndose; solo se silencian los avisos.</summary>
     public IReadOnlyList<RestPeriod> RestPeriods { get; init; } = [];
 
+    /// <summary>Seguimiento laboral (#84): tarifa por hora de cada entorno/proyecto (id → €/h).</summary>
+    public IReadOnlyDictionary<string, decimal> EnvironmentRates { get; init; }
+        = new Dictionary<string, decimal>();
+
+    /// <summary>Seguimiento laboral (#84): registro MANUAL de horas trabajadas por día y entorno.</summary>
+    public IReadOnlyList<WorkLogEntry> WorkLog { get; init; } = [];
+
     /// <summary>Entornos de concentración definidos por el usuario.</summary>
     public IReadOnlyList<FocusEnvironment> FocusEnvironments { get; init; } = [];
 
