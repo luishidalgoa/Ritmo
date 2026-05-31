@@ -53,7 +53,8 @@ public static class ReleaseNotes
                 "Cada entorno se despliega en módulos: Concentración, Enlaces, Tareas y Herramientas.",
                 "Toca un módulo para editar solo esa parte, sin perderte en un formulario gigante.",
                 "«Abrir workspace» lanza de golpe todos los enlaces del entorno en una ventana nueva del navegador.",
-                "Las Tareas por entorno y el calendario externo llegarán pronto.",
+                "Cada entorno tiene su lista de Tareas: añade, marca como hecha y reordena.",
+                "Próximamente: vincular tu calendario externo a cada entorno.",
             ]
         },
     ];

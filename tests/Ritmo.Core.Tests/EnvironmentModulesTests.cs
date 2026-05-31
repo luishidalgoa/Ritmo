@@ -19,14 +19,33 @@ public class EnvironmentModulesTests
     }
 
     [Fact]
-    public void Concentracion_Enlaces_y_Herramientas_disponibles_Tareas_no()
+    public void Los_cuatro_modulos_son_accionables()
     {
         var mods = EnvironmentModules.For(Empty()).ToDictionary(m => m.Kind);
         Assert.True(mods[EnvironmentModuleKind.Focus].Available);
         Assert.True(mods[EnvironmentModuleKind.Links].Available);
         Assert.True(mods[EnvironmentModuleKind.Tools].Available);   // #78: abrir workspace
-        Assert.False(mods[EnvironmentModuleKind.Tasks].Available);  // editor de tareas aún no
-        Assert.Equal(EnvironmentModules.ComingSoon, mods[EnvironmentModuleKind.Tasks].Summary);
+        Assert.True(mods[EnvironmentModuleKind.Tasks].Available);   // #125: editor de tareas
+    }
+
+    [Fact]
+    public void TasksSummary_cuenta_pendientes()
+    {
+        Assert.Equal("Sin tareas", EnvironmentModules.TasksSummary(Empty()));
+
+        var env = new FocusEnvironment
+        {
+            Id = "x", Name = "x",
+            Tasks =
+            [
+                new EnvironmentTask { Id = "1", Text = "a", Done = true },
+                new EnvironmentTask { Id = "2", Text = "b", Done = false },
+            ]
+        };
+        Assert.Equal("1/2 pendientes", EnvironmentModules.TasksSummary(env));
+
+        var allDone = env with { Tasks = env.Tasks.Select(t => t with { Done = true }).ToList() };
+        Assert.Equal("Todas hechas (2)", EnvironmentModules.TasksSummary(allDone));
     }
 
     [Fact]

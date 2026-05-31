@@ -62,11 +62,11 @@ public static class EnvironmentModules
                 Kind = EnvironmentModuleKind.Links, Title = "Enlaces",
                 Summary = LinksSummary(env), Available = true
             },
-            // Tareas: aún sin editor en UI (#77 tiene modelo/facade; el editor llega luego).
+            // Tareas (#77/#125): lista de to-dos propia del entorno.
             new EnvironmentModuleInfo
             {
                 Kind = EnvironmentModuleKind.Tasks, Title = "Tareas",
-                Summary = ComingSoon, Available = false
+                Summary = TasksSummary(env), Available = true
             },
             // Herramientas externas (#78): por ahora «abrir el workspace en el navegador».
             new EnvironmentModuleInfo
@@ -100,6 +100,17 @@ public static class EnvironmentModules
             1 => "1 enlace",
             var n => $"{n} enlaces"
         };
+    }
+
+    /// <summary>Resumen del módulo Tareas (#77/#125).</summary>
+    public static string TasksSummary(FocusEnvironment env)
+    {
+        ArgumentNullException.ThrowIfNull(env);
+        if (env.Tasks.Count == 0) return "Sin tareas";
+        var pending = env.Tasks.Count(t => !t.Done);
+        return pending == 0
+            ? $"Todas hechas ({env.Tasks.Count})"
+            : $"{pending}/{env.Tasks.Count} pendientes";
     }
 
     /// <summary>Resumen del módulo Herramientas externas (#78).</summary>

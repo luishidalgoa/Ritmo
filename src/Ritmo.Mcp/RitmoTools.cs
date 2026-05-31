@@ -388,6 +388,14 @@ public sealed class RitmoTools
         [Description("Id de la tarea")] string taskId)
         => Report(_config.RemoveEnvironmentTask(environmentId, taskId));
 
+    [McpServerTool(Name = "move_environment_task")]
+    [Description("Reordena una tarea de un entorno una posición arriba (up=true) o abajo (up=false).")]
+    public string MoveEnvironmentTask(
+        [Description("Id del entorno")] string environmentId,
+        [Description("Id de la tarea")] string taskId,
+        [Description("true = subir, false = bajar")] bool up)
+        => Report(_config.MoveEnvironmentTask(environmentId, taskId, up));
+
     // ==================== PERFILES POR TIPO DE SESIÓN (en un entorno) ====================
 
     [McpServerTool(Name = "set_session_profile")]

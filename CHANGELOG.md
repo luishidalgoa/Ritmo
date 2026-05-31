@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 44 herramientas
+### 🤖 La IA (servidor MCP) — 45 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -50,7 +50,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Entorno: `upsert_focus_environment` (crear/editar; *merge* que conserva enlaces,
   tareas y perfiles), `remove_environment`, `set_default_environment`.
 - Enlaces del entorno: `add_environment_link`, `remove_environment_link`.
-- Tareas del entorno: `add_environment_task`, `toggle_environment_task`, `remove_environment_task`.
+- Tareas del entorno: `add_environment_task`, `toggle_environment_task`, `remove_environment_task`, `move_environment_task` (reordenar).
 - Perfiles por tipo de sesión (qué se abre en cada bloque): `set_session_profile`, `clear_session_profile`.
 - Mapeo tipo de bloque → entorno: `map_environment_to_kind`, `clear_environment_kind`.
 
@@ -122,8 +122,9 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
   Tareas · Herramientas); al pulsar un módulo se abre su **detalle** y se edita solo esa
   parte (#76).
 - **Herramientas externas → «Abrir workspace en el navegador»**: abre de golpe todos los
-  enlaces del entorno en una ventana nueva del navegador por defecto (#78). Tareas sigue
-  como «Próximamente».
+  enlaces del entorno en una ventana nueva del navegador por defecto (#78).
+- **Tareas por entorno**: detalle del módulo para añadir, marcar como hecha, reordenar (↑/↓) y
+  borrar to-dos propios del entorno (#77/#125). Los 4 módulos del entorno ya son accionables.
 - **Apps** por categoría con catálogo + detección de instaladas (#94, #97), elegibles desde un modal **«Conectores»** filtrable por categoría (#101).
 - **Enlaces/herramientas** agrupados, **módulo de Tareas** por entorno (#74, #77).
 - **Webs a bloquear** con favicon (#99); apps a cerrar clarificadas (#100).
@@ -178,6 +179,13 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#125 — Entornos: editor de Tareas por entorno (módulo Tareas).** El módulo «Tareas» deja de
+  ser «Próximamente»: su detalle permite **añadir, marcar como hecha (checkbox), reordenar (↑/↓) y
+  borrar** los to-dos del entorno. Núcleo: nuevo `ConfigurationService.MoveEnvironmentTask` (reordena
+  contiguo 0..n-1) + MCP `move_environment_task` (paridad IA, 45 tools) + `EnvironmentModules` marca
+  Tareas accionable con resumen «N/total pendientes». Tests de reorder + summary. Verificado en
+  runtime (añadir/marcar/subir persiste en `settings.json`). Con esto los **4 módulos** del entorno
+  (Concentración · Enlaces · Tareas · Herramientas) son accionables. Completa la F2 del epic #75.
 - **#78 — Herramientas externas: abrir el workspace en el navegador.** El módulo «Herramientas
   externas» de cada entorno deja de ser «Próximamente»: su detalle ofrece **«Abrir workspace»**,
   que abre de golpe todos los enlaces del entorno en una **ventana nueva** del navegador por

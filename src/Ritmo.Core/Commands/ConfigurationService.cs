@@ -597,6 +597,28 @@ public sealed class ConfigurationService
             e with { Tasks = e.Tasks.Where(t => t.Id != taskId).ToList() }, "Tarea eliminada.");
     }
 
+    /// <summary>
+    /// Mueve una tarea una posición arriba (<paramref name="up"/>=true) o abajo dentro del
+    /// entorno. Reasigna <c>Order</c> de forma contigua (0..n-1). No-op si ya está en el borde.
+    /// </summary>
+    public CommandResult MoveEnvironmentTask(string environmentId, string taskId, bool up)
+    {
+        var s = _store.Load();
+        var env = s.FocusEnvironments.FirstOrDefault(e => e.Id == environmentId);
+        if (env is null) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
+        var ordered = env.Tasks.OrderBy(t => t.Order).ToList();
+        var idx = ordered.FindIndex(t => t.Id == taskId);
+        if (idx < 0) return CommandResult.Fail("No existe la tarea.");
+
+        var target = up ? idx - 1 : idx + 1;
+        if (target < 0 || target >= ordered.Count) return CommandResult.Ok("Sin cambios.");
+
+        (ordered[idx], ordered[target]) = (ordered[target], ordered[idx]);
+        return MutateEnvironment(environmentId, e =>
+            e with { Tasks = ordered.Select((t, i) => t with { Order = i }).ToList() },
+            "Tareas reordenadas.");
+    }
+
     /// <summary>Fija el entorno por defecto (debe existir).</summary>
     public CommandResult SetDefaultEnvironment(string? environmentId)
     {

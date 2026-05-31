@@ -698,6 +698,8 @@ public sealed partial class SettingsPage : Page
     {
         // Herramientas externas (#78): de momento «abrir el workspace en el navegador».
         if (kind == EnvironmentModuleKind.Tools) { await OpenToolsModule(env); return; }
+        // Tareas (#125): lista de to-dos propia del entorno.
+        if (kind == EnvironmentModuleKind.Tasks) { await OpenTasksModule(env); return; }
 
         // Concentración (#53) / Enlaces (#74): el editor restringido a ese módulo.
         var dlg = new EnvironmentDialog { XamlRoot = this.XamlRoot };
@@ -757,6 +759,101 @@ public sealed partial class SettingsPage : Page
         };
         if (await dlg.ShowAsync() == ContentDialogResult.Primary)
             DefaultBrowser.OpenLinksInNewWindow(urls);
+    }
+
+    /// <summary>Detalle del módulo Tareas: listar/añadir/marcar/reordenar/borrar to-dos del entorno (#125).</summary>
+    private async Task OpenTasksModule(FocusEnvironment env)
+    {
+        var listPanel = new StackPanel { Spacing = 4 };
+
+        // Alta de tarea.
+        var input = new TextBox { PlaceholderText = "Nueva tarea…", MinWidth = 250 };
+        var addBtn = new Button { Content = "Añadir" };
+        var addRow = new Grid { ColumnSpacing = 6 };
+        addRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        addRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(input, 0); Grid.SetColumn(addBtn, 1);
+        addRow.Children.Add(input); addRow.Children.Add(addBtn);
+
+        // Re-pinta la lista desde el estado actual del entorno (las mutaciones van por la fachada).
+        void Render()
+        {
+            listPanel.Children.Clear();
+            var cur = AppState.Load().FocusEnvironments.FirstOrDefault(e => e.Id == env.Id);
+            var tasks = cur?.Tasks.OrderBy(t => t.Order).ToList() ?? new System.Collections.Generic.List<EnvironmentTask>();
+            if (tasks.Count == 0)
+            {
+                listPanel.Children.Add(new TextBlock { Text = "Aún no hay tareas. Añade la primera arriba.", Opacity = 0.6, FontSize = 12 });
+                return;
+            }
+            for (int i = 0; i < tasks.Count; i++)
+            {
+                var t = tasks[i];
+                bool isFirst = i == 0, isLast = i == tasks.Count - 1;
+
+                var check = new CheckBox
+                {
+                    IsChecked = t.Done,
+                    Content = new TextBlock { Text = t.Text, TextWrapping = TextWrapping.Wrap, Opacity = t.Done ? 0.5 : 1.0 },
+                    MinWidth = 0
+                };
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(check, t.Text);
+                check.Click += (_, _) => { AppState.Config.ToggleEnvironmentTask(env.Id, t.Id); Render(); };
+                Grid.SetColumn(check, 0);
+
+                var up = new Button { Content = new FontIcon { Glyph = "", FontSize = 12 }, IsEnabled = !isFirst, Padding = new Thickness(6, 2, 6, 2) };
+                ToolTipService.SetToolTip(up, "Subir");
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(up, $"Subir tarea {t.Text}");
+                up.Click += (_, _) => { AppState.Config.MoveEnvironmentTask(env.Id, t.Id, true); Render(); };
+                Grid.SetColumn(up, 1);
+
+                var down = new Button { Content = new FontIcon { Glyph = "", FontSize = 12 }, IsEnabled = !isLast, Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(4, 0, 0, 0) };
+                ToolTipService.SetToolTip(down, "Bajar");
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(down, $"Bajar tarea {t.Text}");
+                down.Click += (_, _) => { AppState.Config.MoveEnvironmentTask(env.Id, t.Id, false); Render(); };
+                Grid.SetColumn(down, 2);
+
+                var del = new Button { Content = new SymbolIcon(Symbol.Delete), Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(4, 0, 0, 0) };
+                ToolTipService.SetToolTip(del, "Eliminar");
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(del, $"Eliminar tarea {t.Text}");
+                del.Click += (_, _) => { AppState.Config.RemoveEnvironmentTask(env.Id, t.Id); Render(); };
+                Grid.SetColumn(del, 3);
+
+                var row = new Grid { ColumnSpacing = 2, VerticalAlignment = VerticalAlignment.Center };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                for (int c = 0; c < 3; c++) row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                row.Children.Add(check); row.Children.Add(up); row.Children.Add(down); row.Children.Add(del);
+                listPanel.Children.Add(row);
+            }
+        }
+
+        void AddTask()
+        {
+            var text = input.Text?.Trim() ?? "";
+            if (text.Length == 0) return;
+            AppState.Config.AddEnvironmentTask(env.Id, text);
+            input.Text = "";
+            Render();
+        }
+        addBtn.Click += (_, _) => AddTask();
+        input.KeyDown += (_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) { AddTask(); e.Handled = true; } };
+
+        Render();
+
+        var body = new StackPanel { Spacing = 12, Width = 360 };
+        body.Children.Add(addRow);
+        body.Children.Add(new ScrollViewer { Content = listPanel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MaxHeight = 320 });
+
+        var dlg = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot,
+            Title = $"Tareas · {env.Name}",
+            Content = body,
+            CloseButtonText = "Cerrar",
+            DefaultButton = ContentDialogButton.Close
+        };
+        await dlg.ShowAsync();
+        BuildEnvList();   // refresca el resumen del módulo (N/total pendientes)
     }
 
     private static string Summary(FocusEnvironment env)

@@ -66,6 +66,46 @@ public class EnvironmentTasksTests
     }
 
     [Fact]
+    public void MoveTask_reordena_arriba_y_abajo()
+    {
+        var (svc, store) = New();
+        var a = svc.AddEnvironmentTask("opos", "A").Message;
+        var b = svc.AddEnvironmentTask("opos", "B").Message;
+        var c = svc.AddEnvironmentTask("opos", "C").Message;
+
+        // Subir C: orden esperado A, C, B
+        Assert.True(svc.MoveEnvironmentTask("opos", c, up: true).Success);
+        var ordered = Env(store).Tasks.OrderBy(t => t.Order).Select(t => t.Text).ToArray();
+        Assert.Equal(["A", "C", "B"], ordered);
+
+        // Bajar A: orden esperado C, A, B
+        Assert.True(svc.MoveEnvironmentTask("opos", a, up: false).Success);
+        ordered = Env(store).Tasks.OrderBy(t => t.Order).Select(t => t.Text).ToArray();
+        Assert.Equal(["C", "A", "B"], ordered);
+
+        // Order queda contiguo 0..n-1
+        Assert.Equal([0, 1, 2], Env(store).Tasks.OrderBy(t => t.Order).Select(t => t.Order).ToArray());
+    }
+
+    [Fact]
+    public void MoveTask_en_el_borde_es_noop_y_no_falla()
+    {
+        var (svc, store) = New();
+        var a = svc.AddEnvironmentTask("opos", "A").Message;
+        svc.AddEnvironmentTask("opos", "B");
+        Assert.True(svc.MoveEnvironmentTask("opos", a, up: true).Success);   // ya el primero
+        Assert.Equal("A", Env(store).Tasks.OrderBy(t => t.Order).First().Text);
+    }
+
+    [Fact]
+    public void MoveTask_de_tarea_o_entorno_inexistente_falla()
+    {
+        var (svc, _) = New();
+        Assert.False(svc.MoveEnvironmentTask("opos", "nope", up: true).Success);
+        Assert.False(svc.MoveEnvironmentTask("nope", "x", up: true).Success);
+    }
+
+    [Fact]
     public void Tasks_sobreviven_round_trip_de_json()
     {
         var (svc, _) = New();
