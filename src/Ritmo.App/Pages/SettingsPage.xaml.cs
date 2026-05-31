@@ -41,6 +41,7 @@ public sealed partial class SettingsPage : Page
 
         BuildKindColors(s);
         RefreshConnections(s);
+        VersionText.Text = $"Versión actual: {AppVersionInfo.Current}";
 
         ThemeBox.SelectedIndex = (this.ActualTheme) switch
         {
@@ -743,6 +744,27 @@ public sealed partial class SettingsPage : Page
 
     private void NtfyGenBtn_Click(object sender, RoutedEventArgs e)
         => NtfyTopicBox.Text = "ritmo-" + Guid.NewGuid().ToString("N").Substring(0, 10);
+
+    // ---------- Actualizaciones (#124, Fase 3) ----------
+
+    private async void CheckUpdateBtn_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateStatus.Text = "Comprobando…";
+        CheckUpdateBtn.IsEnabled = false;
+        try
+        {
+            var latest = await Services.GitHubReleasesService.GetLatestAsync();
+            var current = AppVersionInfo.Current;
+            if (latest is null)
+                UpdateStatus.Text = "No se pudo comprobar (sin conexión o aún no hay versiones publicadas).";
+            else if (Ritmo.Core.Updates.ReleaseNotes.CompareVersions(latest.Version, current) > 0)
+                UpdateStatus.Text = $"✨ Hay una versión nueva ({latest.Tag}). Se instalará sola al reiniciar (App Installer).";
+            else
+                UpdateStatus.Text = $"✓ Estás al día (v{current}).";
+        }
+        catch { UpdateStatus.Text = "⚠ Error al comprobar."; }
+        finally { CheckUpdateBtn.IsEnabled = true; }
+    }
 
     /// <summary>Abre la guía visual (carrusel) de cómo conectar el móvil con el topic actual.</summary>
     private async void NtfyGuideBtn_Click(object sender, RoutedEventArgs e)

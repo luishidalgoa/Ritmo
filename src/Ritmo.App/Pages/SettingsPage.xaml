@@ -285,6 +285,22 @@
                 </StackPanel>
             </Border>
 
+            <!-- Actualizaciones (#124, Fase 3) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Actualizaciones" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Name="VersionText" Opacity="0.7" FontSize="13" />
+                    <TextBlock Text="Ritmo se actualiza solo desde GitHub (App Installer). Aquí puedes comprobarlo manualmente."
+                               Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <Button x:Name="CheckUpdateBtn" Content="Buscar actualizaciones" Click="CheckUpdateBtn_Click" />
+                        <TextBlock x:Name="UpdateStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="13" TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- Apariencia -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"

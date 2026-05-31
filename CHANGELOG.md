@@ -161,9 +161,10 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 - App WinUI 3 (Fluent/Mica, estilo Reloj de Windows 11), sin login ni usuarios.
 - Núcleo `Ritmo.Core` 100% puro y testeable (xUnit); UI y SO son *hosts* tontos.
-- **«Novedades»**: al actualizar la app, un botón con aviso abre un carrusel con las mejoras
-  de la nueva versión, a nivel usuario (base del sistema de actualizaciones; CD y auto-update
-  vía App Installer pendientes de Fase 2/3).
+- **Actualizaciones**: la app se publica y **auto-actualiza desde GitHub Releases** (MSIX firmado +
+  `.appinstaller` vía App Installer; CD en GitHub Actions). Al actualizar, el botón **«Novedades»**
+  abre un carrusel con las mejoras de la nueva versión a nivel usuario; en Ajustes hay
+  **«Buscar actualizaciones»**.
 
 ---
 
@@ -176,8 +177,15 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
   pulsarlo abre un **carrusel** (FlipView + PipsPager) que explica las mejoras a nivel usuario.
   Núcleo puro `ReleaseNotes` (notas por versión + `Since`, con tests) + `AppSettings.LastSeenVersion`
   + `ConfigurationService.SetLastSeenVersion`. Regla de harness: cada feature de usuario añade su
-  nota en `ReleaseNotes`. **Pendiente**: Fase 2 (CD con GitHub Actions que firma y publica el MSIX +
-  `.appinstaller`) y Fase 3 (auto-update silencioso vía App Installer).
+  nota en `ReleaseNotes`.
+- **Sistema de actualizaciones — Fases 2 y 3.** **CD** (`.github/workflows/release.yml`): en un tag
+  `v*` compila + **firma** el MSIX (cert auto-firmado en *secrets*), genera el `.appinstaller`
+  (auto-update nativo vía App Installer desde `releases/latest/download`) y publica la GitHub Release
+  con `.msix`/`.appinstaller`/`.cer`. Script `tools/new-signing-cert.ps1` + guía
+  `docs/INSTALAR-Y-ACTUALIZAR.md`. **Fix** del manifiesto (el `windows.startupTask` usaba tokens no
+  sustituidos → MakeAppx fallaba). En Ajustes, **«Buscar actualizaciones»** (consulta la GitHub API,
+  informativo). Verificado: el empaquetado+firma del MSIX funciona en local y la comprobación maneja
+  el caso «sin releases». Falta que el mantenedor configure los *secrets* y publique el primer tag.
 - **#45 — Color por tipo de bloque configurable** (completa el editor tipo Excel). `ScheduleColors`
   pasa a honrar `ViewConfig.ColorsByKind` (override estático refrescado antes de cada render); si un
   tipo no tiene color propio, usa el de por defecto. UI en Ajustes › «Colores del horario» (una fila
