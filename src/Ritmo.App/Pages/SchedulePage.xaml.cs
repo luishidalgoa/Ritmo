@@ -1175,9 +1175,10 @@ public sealed partial class SchedulePage : Page
     {
         if (_activePhaseName is null) return;
         var dlg = new SessionDialog { XamlRoot = this.XamlRoot };
-        dlg.SetCategories(AppState.Load().Categories);   // categorías dinámicas (#83)
+        var settings = AppState.Load();
+        dlg.SetCategories(settings.Categories);   // categorías dinámicas (#83)
         dlg.SetKnownTitles(AllTitles());
-        dlg.LoadDefaults(day, start);
+        dlg.LoadDefaults(day, start, settings.ViewConfig.DefaultPreAlertMinutes);   // aviso por defecto configurable (#48)
         var result = await dlg.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {

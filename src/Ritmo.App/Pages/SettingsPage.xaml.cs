@@ -38,6 +38,7 @@ public sealed partial class SettingsPage : Page
         DayEndPicker.Time = s.ViewConfig.DayEnd.ToTimeSpan();
         GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
         DayPreviewToggle.IsOn = s.ViewConfig.ShowDayPreviewOnFocusStart;
+        SelectComboByTag(DefaultPreAlertBox, s.ViewConfig.DefaultPreAlertMinutes.ToString());
 
         BuildCategories(s);
         RefreshConnections(s);
@@ -910,6 +911,9 @@ public sealed partial class SettingsPage : Page
 
         var r4 = AppState.Config.SetShowDayPreviewOnFocusStart(DayPreviewToggle.IsOn);
 
+        int preAlert = (DefaultPreAlertBox.SelectedItem is ComboBoxItem pi && pi.Tag is string pt && int.TryParse(pt, out var pm)) ? pm : 10;
+        var r5 = AppState.Config.SetDefaultPreAlert(preAlert);
+
         if (ThemeBox.SelectedItem is ComboBoxItem it && it.Tag is string tag)
         {
             var theme = tag switch { "Light" => ElementTheme.Light, "Dark" => ElementTheme.Dark, _ => ElementTheme.Default };
@@ -917,9 +921,9 @@ public sealed partial class SettingsPage : Page
                 root.RequestedTheme = theme;
         }
 
-        SaveStatus.Text = (r1.Success && r2.Success && r3.Success && r4.Success)
+        SaveStatus.Text = (r1.Success && r2.Success && r3.Success && r4.Success && r5.Success)
             ? "✓ Guardado"
-            : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : !r3.Success ? r3.Message : r4.Message)}";
+            : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : !r3.Success ? r3.Message : !r4.Success ? r4.Message : r5.Message)}";
     }
 
     // ---------- Conexiones con apps externas (#123) ----------
@@ -1199,4 +1203,12 @@ public sealed partial class SettingsPage : Page
 
     private async Task CategoryError(string msg)
         => await new ContentDialog { XamlRoot = this.XamlRoot, Title = "Categorías", Content = msg, CloseButtonText = "Vale" }.ShowAsync();
+
+    /// <summary>Selecciona el item del combo cuyo Tag coincide (cae al primero si no hay match).</summary>
+    private static void SelectComboByTag(ComboBox box, string tag)
+    {
+        for (int i = 0; i < box.Items.Count; i++)
+            if (box.Items[i] is ComboBoxItem it && (string)it.Tag == tag) { box.SelectedIndex = i; return; }
+        box.SelectedIndex = 0;
+    }
 }

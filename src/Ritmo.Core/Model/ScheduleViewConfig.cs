@@ -32,6 +32,13 @@ public sealed record ScheduleViewConfig
     /// <summary>Si al iniciar concentración se muestra la vista previa del día.</summary>
     public bool ShowDayPreviewOnFocusStart { get; init; } = true;
 
+    /// <summary>
+    /// Minutos de aviso previo con que se pre-rellena una sesión NUEVA en el diálogo (#48).
+    /// 0 = sin aviso por defecto. No afecta a las sesiones ya creadas; solo es el valor
+    /// inicial al crear una. Rango válido 0..1440.
+    /// </summary>
+    public int DefaultPreAlertMinutes { get; init; } = 10;
+
     /// <summary>Número de filas (horas) que ocupa la rejilla. 0 si el rango es inválido.</summary>
     public int RowCount
     {

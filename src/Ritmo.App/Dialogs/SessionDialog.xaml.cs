@@ -127,16 +127,19 @@ public sealed partial class SessionDialog : ContentDialog
         SetAlert(Alert2Box, Alert2Custom, mins.Count > 1 ? mins[1] : 0);
     }
 
-    /// <summary>Valores por defecto para una sesión nueva (día/hora opcionales).</summary>
-    public void LoadDefaults(DayOfWeek? day = null, TimeOnly? start = null)
+    /// <summary>
+    /// Valores por defecto para una sesión nueva (día/hora opcionales). El aviso previo inicial
+    /// lo decide el ajuste del usuario (#48); 0 = sin aviso por defecto.
+    /// </summary>
+    public void LoadDefaults(DayOfWeek? day = null, TimeOnly? start = null, int defaultPreAlertMinutes = 10)
     {
         SetDays(day is null ? [] : [day.Value]);
         var st = start ?? new TimeOnly(9, 0);
         StartPicker.Time = st.ToTimeSpan();
         EndPicker.Time = st.Add(TimeSpan.FromHours(1)).ToTimeSpan();
         KindBox.SelectedIndex = 0;
-        SetAlert(Alert1Box, Alert1Custom, 10);   // aviso por defecto: 10 minutos antes
-        SetAlert(Alert2Box, Alert2Custom, 0);    // segundo aviso: ninguno
+        SetAlert(Alert1Box, Alert1Custom, defaultPreAlertMinutes);   // aviso por defecto configurable (#48)
+        SetAlert(Alert2Box, Alert2Custom, 0);                        // segundo aviso: ninguno
     }
 
     /// <summary>Construye la sesión para un día concreto (inicio+fin → duración).</summary>

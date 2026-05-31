@@ -245,6 +245,12 @@ public sealed class RitmoTools
         [Description("true = mostrar la vista previa al iniciar foco; false = no mostrarla")] bool enabled)
         => Report(_config.SetShowDayPreviewOnFocusStart(enabled));
 
+    [McpServerTool(Name = "set_default_prealert")]
+    [Description("Fija el aviso previo por defecto (minutos) con que se pre-rellena una sesión NUEVA. 0 = sin aviso. Rango 0..1440. No cambia las sesiones ya creadas.")]
+    public string SetDefaultPreAlert(
+        [Description("Minutos de aviso previo por defecto (0 = ninguno; máx. 1440)")] int minutes)
+        => Report(_config.SetDefaultPreAlert(minutes));
+
     [McpServerTool(Name = "set_kind_color")]
     [Description("Fija el color de fondo de un tipo de bloque en la rejilla del horario. hex en formato #RRGGBB; deja hex vacío para volver al color por defecto de ese tipo.")]
     public string SetKindColor(

@@ -179,6 +179,7 @@ internal sealed class ViewConfigDto
     public List<ShortcutDto> Shortcuts { get; set; } = [];
     public bool ShowDayPreviewOnFocusStart { get; set; } = true;
     public int GranularityMinutes { get; set; } = 60;
+    public int DefaultPreAlertMinutes { get; set; } = 10;
 }
 
 /// <summary>Conversión entre el modelo de dominio y los DTO de almacenamiento.</summary>
@@ -298,7 +299,8 @@ internal static class SettingsMapper
         ColorsByKind = [],
         Shortcuts = v.Shortcuts.Select(s => new ShortcutDto { Title = s.Title, Url = s.Url }).ToList(),
         ShowDayPreviewOnFocusStart = v.ShowDayPreviewOnFocusStart,
-        GranularityMinutes = v.GranularityMinutes
+        GranularityMinutes = v.GranularityMinutes,
+        DefaultPreAlertMinutes = v.DefaultPreAlertMinutes
     };
 
     // ---------- DTO -> Dominio ----------
@@ -423,6 +425,7 @@ internal static class SettingsMapper
         DayEnd = TimeOnly.ParseExact(v.DayEnd, TimeFormat, CultureInfo.InvariantCulture),
         Shortcuts = v.Shortcuts.Select(s => new ShortcutLink { Title = s.Title, Url = s.Url }).ToList(),
         ShowDayPreviewOnFocusStart = v.ShowDayPreviewOnFocusStart,
-        GranularityMinutes = ScheduleGeometry.NormalizeGranularity(v.GranularityMinutes)
+        GranularityMinutes = ScheduleGeometry.NormalizeGranularity(v.GranularityMinutes),
+        DefaultPreAlertMinutes = Math.Clamp(v.DefaultPreAlertMinutes, 0, 1440)
     };
 }

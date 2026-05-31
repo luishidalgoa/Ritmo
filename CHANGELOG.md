@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 50 herramientas
+### 🤖 La IA (servidor MCP) — 51 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -40,7 +40,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Fases: `add_phase`, `update_phase`, `remove_phase`.
 - Sesiones recurrentes: `add_session`, `update_session`, `remove_session`.
 - Sesiones provisionales (con fecha): `add_one_off_session`, `remove_one_off_session`.
-- Rango horario, granularidad, vista previa y color por categoría: `set_view_hours`, `set_view_granularity`, `set_day_preview`, `set_kind_color`.
+- Rango horario, granularidad, vista previa, color por categoría y aviso previo por defecto: `set_view_hours`, `set_view_granularity`, `set_day_preview`, `set_kind_color`, `set_default_prealert`.
 - Categorías de bloque (definibles por el usuario, #83): `list_categories`, `add_category`, `update_category`, `remove_category`, `reorder_category`.
 
 **Pomodoro**
@@ -102,7 +102,8 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - **Panel lateral de detalle** de sesión y **resolución de solapamientos** con eventos del
   calendario (elegir qué lado prioriza) (#114).
 - Avisos previos configurables por sesión (1 h / 10 min / 5 min, hasta 2; desplegables con
-  variedad + personalizado) (#6, #27, #87).
+  variedad + personalizado) (#6, #27, #87). **Aviso previo por defecto** configurable desde
+  Ajustes: con qué aviso se pre-rellena una sesión nueva (#48).
 
 ### 🎯 Concentración (modo focus)
 
@@ -192,6 +193,12 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#48 — Aviso previo por defecto configurable.** Hasta ahora una sesión nueva se pre-rellenaba
+  siempre con un aviso de 10 min a fuego. Ahora el valor es un ajuste del usuario:
+  `ScheduleViewConfig.DefaultPreAlertMinutes` (0 = sin aviso, rango 0..1440) + comando
+  `ConfigurationService.SetDefaultPreAlert` (validado) + tool MCP `set_default_prealert` +
+  desplegable «Aviso previo por defecto» en Ajustes. El diálogo de sesión usa el ajuste al crear;
+  no toca las sesiones ya creadas. Núcleo 469/469 (nuevo `DefaultPreAlertConfigTests`).
 - **#37 — Autoarranque al iniciar sesión, en segundo plano.** El toggle de Ajustes ya registraba la
   tarea de inicio de Windows (con manejo de los estados activado/desactivado/bloqueado), pero faltaba
   la pieza clave: cuando Windows lanzaba Ritmo al iniciar sesión, abría la ventana cada vez. Ahora la

@@ -84,6 +84,18 @@
                                   OnContent="Sí" OffContent="No" Margin="0,4,0,0" />
                     <TextBlock Text="Al pulsar «Iniciar» en el temporizador, muestra un resumen de los bloques de hoy antes de concentrarte."
                                Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
+                    <ComboBox x:Name="DefaultPreAlertBox" Header="Aviso previo por defecto" Width="240" Margin="0,4,0,0">
+                        <ComboBoxItem Content="Ninguno" Tag="0" />
+                        <ComboBoxItem Content="1 minuto antes" Tag="1" />
+                        <ComboBoxItem Content="5 minutos antes" Tag="5" />
+                        <ComboBoxItem Content="10 minutos antes" Tag="10" />
+                        <ComboBoxItem Content="15 minutos antes" Tag="15" />
+                        <ComboBoxItem Content="30 minutos antes" Tag="30" />
+                        <ComboBoxItem Content="1 hora antes" Tag="60" />
+                        <ComboBoxItem Content="2 horas antes" Tag="120" />
+                    </ComboBox>
+                    <TextBlock Text="Con qué aviso se pre-rellena una sesión nueva. No cambia las sesiones ya creadas."
+                               Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 

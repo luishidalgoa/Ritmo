@@ -380,6 +380,21 @@ public sealed class ConfigurationService
         return CommandResult.Ok($"Granularidad fijada en {minutes} min.");
     }
 
+    /// <summary>
+    /// Fija el aviso previo por defecto (minutos) con que se pre-rellena una sesión nueva (#48).
+    /// 0 = sin aviso. Rango 0..1440. No toca las sesiones existentes.
+    /// </summary>
+    public CommandResult SetDefaultPreAlert(int minutes)
+    {
+        if (minutes < 0 || minutes > 1440)
+            return CommandResult.Fail("El aviso previo debe estar entre 0 y 1440 minutos.");
+        var s = _store.Load();
+        _store.Save(s with { ViewConfig = s.ViewConfig with { DefaultPreAlertMinutes = minutes } });
+        return CommandResult.Ok(minutes == 0
+            ? "Las sesiones nuevas no traerán aviso previo por defecto."
+            : $"Aviso previo por defecto: {minutes} min.");
+    }
+
     // ---------- Notas y enlaces-atajo (#55) ----------
 
     /// <summary>
