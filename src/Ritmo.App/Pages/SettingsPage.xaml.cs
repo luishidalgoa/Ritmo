@@ -693,9 +693,13 @@ public sealed partial class SettingsPage : Page
         return btn;
     }
 
-    /// <summary>Abre el editor restringido a un módulo del entorno (#76).</summary>
+    /// <summary>Abre la vista de detalle de un módulo del entorno (#76).</summary>
     private async Task EditEnvModule(FocusEnvironment env, EnvironmentModuleKind kind)
     {
+        // Herramientas externas (#78): de momento «abrir el workspace en el navegador».
+        if (kind == EnvironmentModuleKind.Tools) { await OpenToolsModule(env); return; }
+
+        // Concentración (#53) / Enlaces (#74): el editor restringido a ese módulo.
         var dlg = new EnvironmentDialog { XamlRoot = this.XamlRoot };
         dlg.LoadFrom(env);
         dlg.ScopeToModule(kind);
@@ -704,6 +708,55 @@ public sealed partial class SettingsPage : Page
             AppState.Config.UpsertEnvironment(dlg.ToEnvironment());
             BuildEnvList();
         }
+    }
+
+    /// <summary>Detalle del módulo Herramientas externas: abrir el workspace en el navegador (#78).</summary>
+    private async Task OpenToolsModule(FocusEnvironment env)
+    {
+        var urls = EnvironmentWorkspace.Urls(env);
+        var hasLinks = urls.Count > 0;
+
+        var body = new StackPanel { Spacing = 10, Width = 360 };
+        body.Children.Add(new TextBlock
+        {
+            Text = "Abre de golpe todos los enlaces de este entorno en una ventana nueva de tu navegador por defecto.",
+            TextWrapping = TextWrapping.Wrap, Opacity = 0.8, FontSize = 13
+        });
+
+        if (hasLinks)
+        {
+            var list = new StackPanel { Spacing = 2 };
+            foreach (var u in urls)
+                list.Children.Add(new TextBlock { Text = "•  " + u, FontSize = 12, Opacity = 0.7, TextTrimming = TextTrimming.CharacterEllipsis });
+            body.Children.Add(list);
+        }
+        else
+        {
+            body.Children.Add(new TextBlock
+            {
+                Text = "Este entorno aún no tiene enlaces. Añádelos desde el módulo «Enlaces».",
+                TextWrapping = TextWrapping.Wrap, Opacity = 0.6, FontSize = 12
+            });
+        }
+
+        body.Children.Add(new TextBlock
+        {
+            Text = "Próximamente: vincular calendario externo y más herramientas.",
+            TextWrapping = TextWrapping.Wrap, Opacity = 0.5, FontSize = 12
+        });
+
+        var dlg = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot,
+            Title = $"Herramientas externas · {env.Name}",
+            Content = body,
+            PrimaryButtonText = "Abrir workspace",
+            CloseButtonText = "Cerrar",
+            DefaultButton = ContentDialogButton.Primary,
+            IsPrimaryButtonEnabled = hasLinks
+        };
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+            DefaultBrowser.OpenLinksInNewWindow(urls);
     }
 
     private static string Summary(FocusEnvironment env)

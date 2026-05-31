@@ -19,15 +19,14 @@ public class EnvironmentModulesTests
     }
 
     [Fact]
-    public void Concentracion_y_Enlaces_estan_disponibles_Tareas_y_Herramientas_no()
+    public void Concentracion_Enlaces_y_Herramientas_disponibles_Tareas_no()
     {
         var mods = EnvironmentModules.For(Empty()).ToDictionary(m => m.Kind);
         Assert.True(mods[EnvironmentModuleKind.Focus].Available);
         Assert.True(mods[EnvironmentModuleKind.Links].Available);
-        Assert.False(mods[EnvironmentModuleKind.Tasks].Available);
-        Assert.False(mods[EnvironmentModuleKind.Tools].Available);
+        Assert.True(mods[EnvironmentModuleKind.Tools].Available);   // #78: abrir workspace
+        Assert.False(mods[EnvironmentModuleKind.Tasks].Available);  // editor de tareas aún no
         Assert.Equal(EnvironmentModules.ComingSoon, mods[EnvironmentModuleKind.Tasks].Summary);
-        Assert.Equal(EnvironmentModules.ComingSoon, mods[EnvironmentModuleKind.Tools].Summary);
     }
 
     [Fact]

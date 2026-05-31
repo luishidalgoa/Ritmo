@@ -62,16 +62,17 @@ public static class EnvironmentModules
                 Kind = EnvironmentModuleKind.Links, Title = "Enlaces",
                 Summary = LinksSummary(env), Available = true
             },
-            // Tareas y Herramientas: aún sin editor en F1 (#76 reúsa solo #53 y #74).
+            // Tareas: aún sin editor en UI (#77 tiene modelo/facade; el editor llega luego).
             new EnvironmentModuleInfo
             {
                 Kind = EnvironmentModuleKind.Tasks, Title = "Tareas",
                 Summary = ComingSoon, Available = false
             },
+            // Herramientas externas (#78): por ahora «abrir el workspace en el navegador».
             new EnvironmentModuleInfo
             {
                 Kind = EnvironmentModuleKind.Tools, Title = "Herramientas externas",
-                Summary = ComingSoon, Available = false
+                Summary = ToolsSummary(env), Available = true
             },
         ];
     }
@@ -99,5 +100,15 @@ public static class EnvironmentModules
             1 => "1 enlace",
             var n => $"{n} enlaces"
         };
+    }
+
+    /// <summary>Resumen del módulo Herramientas externas (#78).</summary>
+    public static string ToolsSummary(FocusEnvironment env)
+    {
+        ArgumentNullException.ThrowIfNull(env);
+        var n = EnvironmentWorkspace.Urls(env).Count;
+        return n == 0
+            ? "Abrir el workspace en el navegador (añade enlaces)"
+            : $"Abrir el workspace: {n} enlace(s) en el navegador";
     }
 }

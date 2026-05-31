@@ -120,7 +120,10 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
   con nav desplegable, selector fácil del entorno activo (#53, #92, #102, #104).
 - Cada entorno se presenta como **colapsable con sus módulos** (Concentración · Enlaces ·
   Tareas · Herramientas); al pulsar un módulo se abre su **detalle** y se edita solo esa
-  parte. Tareas/Herramientas aún como «Próximamente» (#76).
+  parte (#76).
+- **Herramientas externas → «Abrir workspace en el navegador»**: abre de golpe todos los
+  enlaces del entorno en una ventana nueva del navegador por defecto (#78). Tareas sigue
+  como «Próximamente».
 - **Apps** por categoría con catálogo + detección de instaladas (#94, #97), elegibles desde un modal **«Conectores»** filtrable por categoría (#101).
 - **Enlaces/herramientas** agrupados, **módulo de Tareas** por entorno (#74, #77).
 - **Webs a bloquear** con favicon (#99); apps a cerrar clarificadas (#100).
@@ -175,6 +178,15 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#78 — Herramientas externas: abrir el workspace en el navegador.** El módulo «Herramientas
+  externas» de cada entorno deja de ser «Próximamente»: su detalle ofrece **«Abrir workspace»**,
+  que abre de golpe todos los enlaces del entorno en una **ventana nueva** del navegador por
+  defecto (Edge/Chrome/Firefox…), reutilizando la lógica ya probada de `BrowserLaunch`/
+  `DefaultBrowser` (#109). Núcleo puro nuevo `EnvironmentWorkspace` (URLs del workspace: enlaces
+  del entorno trim+sin vacíos+sin duplicados, 4 tests) + `EnvironmentModules` marca el módulo como
+  accionable. Botón deshabilitado si el entorno no tiene enlaces. Verificado en runtime (lanza Edge
+  con el enlace del entorno). Pendiente/follow-up: lanzar en un **perfil de estudio** dedicado
+  (`--profile-directory`, requiere #11) y vincular calendario externo (#79). F3 del epic #75.
 - **#76 — Entornos: panel colapsable → detalle por módulo.** La lista de entornos en Ajustes deja de
   ser filas planas: cada entorno es ahora un **colapsable** (`Expander`) cuyo cuerpo lista sus
   **módulos** (Concentración · Enlaces · Tareas · Herramientas) con un resumen por módulo; al pulsar
