@@ -1,0 +1,122 @@
+name: release
+
+# Publica una versión: compila + firma el MSIX, genera el .appinstaller (auto-update
+# nativo vía App Installer) y crea la GitHub Release con los assets. Se dispara al
+# empujar un tag "vX.Y.Z" o manualmente indicando la versión.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión (p. ej. 1.0.2). Se completa a 4 partes (1.0.2.0)."
+        required: true
+
+permissions:
+  contents: write   # crear la release y subir assets
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      MANIFEST: src/Ritmo.App/Package.appxmanifest
+      PROJECT: src/Ritmo.App/Ritmo.App.csproj
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Resolver versión (4 partes)
+        id: ver
+        shell: pwsh
+        run: |
+          $raw = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ github.event.inputs.version }}" } else { "${{ github.ref_name }}" }
+          $raw = $raw -replace '^v',''
+          $parts = @($raw.Split('.'))
+          while ($parts.Count -lt 4) { $parts += '0' }
+          $version = ($parts[0..3] -join '.')
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Versión: $version"
+
+      - name: Fijar versión en el manifiesto
+        shell: pwsh
+        run: |
+          [xml]$m = Get-Content $env:MANIFEST
+          $m.Package.Identity.Version = "${{ steps.ver.outputs.version }}"
+          $m.Save((Resolve-Path $env:MANIFEST))
+
+      - name: Restaurar el certificado de firma
+        id: cert
+        shell: pwsh
+        env:
+          SIGNING_PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SIGNING_PFX_BASE64)) {
+            throw "Falta el secret SIGNING_PFX_BASE64. Genéralo con tools/new-signing-cert.ps1."
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_PFX_BASE64))
+          "pfx=$pfx" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Compilar y firmar el MSIX
+        shell: pwsh
+        env:
+          PFX_PWD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+        run: |
+          dotnet build $env:PROJECT -c Release -p:Platform=x64 `
+            -p:AppxBundle=Never -p:UapAppxPackageBuildMode=SideloadOnly -p:GenerateAppxPackageOnBuild=true `
+            -p:AppxPackageDir="$env:GITHUB_WORKSPACE\AppPackages\\" -p:AppxPackageSigningEnabled=true `
+            -p:PackageCertificateKeyFile="${{ steps.cert.outputs.pfx }}" -p:PackageCertificatePassword="$env:PFX_PWD" `
+            -p:PublishTrimmed=false -p:PublishReadyToRun=false --nologo
+          if ($LASTEXITCODE -ne 0) { throw "build falló ($LASTEXITCODE)" }
+
+      - name: Reunir assets de la release
+        id: assets
+        shell: pwsh
+        env:
+          PFX_PWD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+        run: |
+          $out = Join-Path $env:GITHUB_WORKSPACE "release"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $version = "${{ steps.ver.outputs.version }}"
+
+          # Localizar el .msix recién empaquetado y darle un nombre ESTABLE.
+          $msix = Get-ChildItem -Recurse -Path "$env:GITHUB_WORKSPACE\AppPackages" -Filter *.msix | Select-Object -First 1
+          if (-not $msix) { throw "No se encontró ningún .msix en AppPackages." }
+          Copy-Item $msix.FullName (Join-Path $out "Ritmo-x64.msix")
+
+          # Certificado público (.cer) para que el usuario confíe en él una vez.
+          $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2("${{ steps.cert.outputs.pfx }}", $env:PFX_PWD)
+          [IO.File]::WriteAllBytes((Join-Path $out "Ritmo-signing.cer"), $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
+
+          # .appinstaller (auto-update nativo). Identidad leída del manifiesto.
+          [xml]$m = Get-Content $env:MANIFEST
+          $name = $m.Package.Identity.Name
+          $pub  = $m.Package.Identity.Publisher
+          $base = "https://github.com/${{ github.repository }}/releases/latest/download"
+          $xml = @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <AppInstaller xmlns="http://schemas.microsoft.com/appx/appinstaller/2018" Version="$version" Uri="$base/Ritmo.appinstaller">
+            <MainPackage Name="$name" Publisher="$pub" Version="$version" ProcessorArchitecture="x64" Uri="$base/Ritmo-x64.msix" />
+            <UpdateSettings>
+              <OnLaunch HoursBetweenUpdateChecks="0" />
+            </UpdateSettings>
+          </AppInstaller>
+          "@
+          # Quitar la indentación del here-string para que el XML sea válido.
+          ($xml -split "`n" | ForEach-Object { $_.TrimStart() }) -join "`n" | Set-Content -Path (Join-Path $out "Ritmo.appinstaller") -Encoding utf8
+
+      - name: Crear la GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: Ritmo v${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          files: |
+            release/Ritmo-x64.msix
+            release/Ritmo.appinstaller
+            release/Ritmo-signing.cer

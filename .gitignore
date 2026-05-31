@@ -45,3 +45,8 @@ _*.png
 _dumps/
 *.dmp
 *.log
+
+# Certificados de firma (NUNCA subir el privado)
+tools/out/
+*.pfx
+*.pfx.base64.txt
