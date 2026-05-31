@@ -59,6 +59,7 @@ public static class ReleaseNotes
                 "Marca apps como «Silenciar» y Ritmo las silencia al concentrarte (y las restaura al terminar).",
                 "Los avisos del horario llegan al PC y al móvil de forma fiable, también en sesiones provisionales y al editar el horario.",
                 "Opción para que Ritmo arranque solo al iniciar sesión en Windows, en segundo plano: tus avisos suenan sin tener que abrirlo.",
+                "Icono en la bandeja del sistema: al cerrar la ventana Ritmo sigue activo para tus avisos; ábrelo o ciérralo del todo desde ahí.",
                 "Elige el aviso previo por defecto de las sesiones nuevas desde Ajustes.",
                 "Duplica una fase del horario para crear la siguiente a partir de ella, sin rehacerla.",
                 "Copia y pega sesiones con Ctrl+C / Ctrl+V: se pegan donde tengas el ratón, si el hueco está libre.",

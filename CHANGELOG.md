@@ -158,7 +158,8 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Persistencia JSON local (plan, fases, notas, view-config, entornos) (#19, #43, #52).
 - **Exportar/importar** configuración completa como respaldo (#56).
 - **Servicio en segundo plano**: bucle de timers sobre el planificador; al cerrar la ventana
-  la app sigue viva para que los avisos suenen, y se sale del todo con «Salir de Ritmo» (#3, #18, #20).
+  la app sigue viva para que los avisos suenen, con **icono en la bandeja del sistema** (clic =
+  abrir; menú = Abrir / Salir de Ritmo) para verlo y gestionarlo (#3, #18, #20, #133).
 - **Autoarranque al iniciar sesión** (#37, opt-in desde Ajustes): cuando Windows lanza Ritmo al
   iniciar sesión, arranca **en segundo plano** (sin abrir la ventana ni robar el foco), de modo que
   los avisos del horario suenan desde el primer momento. La app gestiona los estados de la tarea de
@@ -193,6 +194,13 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#133 — Icono de bandeja del sistema (segundo plano visible).** Al cerrar la ventana, Ritmo ya
+  seguía vivo en segundo plano (para que los avisos del horario sigan sonando, verificado: el
+  proceso sobrevive y reabrir reactiva la misma instancia), pero **no había forma de verlo** → daba
+  la sensación de que «se cerraba del todo». Ahora hay un **icono en la bandeja del sistema**
+  (H.NotifyIcon.WinUI): clic = abrir; menú contextual = «Abrir Ritmo» / «Salir de Ritmo». Al cerrar
+  por primera vez, un aviso global recuerda que sigue activo. El setup es best-effort (un fallo de la
+  bandeja nunca impide arrancar la app).
 - **#132 — Copiar/pegar sesiones con Ctrl+C / Ctrl+V.** Selecciona una sesión (recurrente o
   provisional), **Ctrl+C** para copiarla y **Ctrl+V** para pegarla en la celda (día/hora) donde
   está el ratón, **solo si el hueco está libre**. La copia es de **un solo día** y, según dónde se

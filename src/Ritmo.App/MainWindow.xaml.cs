@@ -36,6 +36,8 @@ public sealed partial class MainWindow : Window
         if (_exiting) return;          // salida real solicitada: dejar cerrar
         args.Cancel = true;            // cancelar el cierre…
         sender.Hide();                 // …y ocultar a segundo plano
+        ScheduleHost.Instance.Start(); // re-asegura el servicio de avisos vivo en segundo plano
+        TrayIconService.ShowBackgroundHintOnce();   // avisa (1 vez) de que sigue activo en la bandeja
     }
 
     /// <summary>
@@ -62,6 +64,7 @@ public sealed partial class MainWindow : Window
     public void ExitApp()
     {
         _exiting = true;
+        TrayIconService.Dispose();     // quita el icono de la bandeja
         ScheduleHost.Instance.Stop();
         ToastService.Unregister();
         Close();

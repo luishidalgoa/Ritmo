@@ -50,6 +50,10 @@ public partial class App : Application
         AppState.SettingsChanged += () => ScheduleHost.Instance.Start();
 
         _window = new MainWindow();
+
+        // Icono de bandeja: hace visible que Ritmo sigue activo en segundo plano (menú Abrir/Salir).
+        Services.TrayIconService.Setup(_window);
+
         // Autoarranque al iniciar sesión (#37): si nos lanzó la tarea de inicio de Windows,
         // arrancamos EN SEGUNDO PLANO (sin robar foco ni abrir la ventana). Los avisos del
         // horario corren igual porque ScheduleHost es de nivel app. El usuario abre la ventana
