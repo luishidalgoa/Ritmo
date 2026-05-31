@@ -39,6 +39,7 @@ public sealed partial class SettingsPage : Page
         GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
         DayPreviewToggle.IsOn = s.ViewConfig.ShowDayPreviewOnFocusStart;
 
+        BuildKindColors(s);
         RefreshConnections(s);
 
         ThemeBox.SelectedIndex = (this.ActualTheme) switch
@@ -791,5 +792,79 @@ public sealed partial class SettingsPage : Page
         }
         catch { NtfyStatus.Text = "⚠ Error al enviar la prueba."; }
         finally { NtfyTestBtn.IsEnabled = true; }
+    }
+
+    // ---------- Colores del horario por tipo de bloque (#45) ----------
+
+    private static readonly StudyKind[] ColorableKinds =
+    {
+        StudyKind.Tecnico, StudyKind.Legislacion, StudyKind.Ingles, StudyKind.Tests,
+        StudyKind.Simulacro, StudyKind.Descanso, StudyKind.Personal, StudyKind.PorDefinir, StudyKind.Otro
+    };
+
+    /// <summary>Una fila por tipo: etiqueta + muestra de color que abre un ColorPicker.</summary>
+    private void BuildKindColors(Ritmo.Core.Persistence.AppSettings s)
+    {
+        Services.ScheduleColors.SetOverrides(s.ViewConfig.ColorsByKind);   // que las muestras reflejen lo guardado
+        ColorsHost.Children.Clear();
+
+        foreach (var kind in ColorableKinds)
+        {
+            var row = new Grid { ColumnSpacing = 10 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var label = new TextBlock { Text = kind.Label(), VerticalAlignment = VerticalAlignment.Center, FontSize = 14 };
+            Grid.SetColumn(label, 0);
+
+            var current = ((SolidColorBrush)Services.ScheduleColors.For(kind)).Color;
+            bool custom = s.ViewConfig.ColorsByKind.ContainsKey(kind);
+
+            var swatch = new Microsoft.UI.Xaml.Shapes.Rectangle
+            {
+                Width = 28, Height = 22, RadiusX = 4, RadiusY = 4,
+                Fill = new SolidColorBrush(current),
+                Stroke = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"], StrokeThickness = 1
+            };
+            var btn = new Button
+            {
+                Padding = new Thickness(6, 4, 6, 4),
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal, Spacing = 8,
+                    Children = { swatch, new TextBlock { Text = custom ? "Personalizado" : "Por defecto", FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 } }
+                }
+            };
+            Grid.SetColumn(btn, 1);
+
+            var picker = new ColorPicker { IsAlphaEnabled = false, IsMoreButtonVisible = true, Color = current };
+            var resetBtn = new Button { Content = "Usar por defecto" };
+            var applyBtn = new Button { Content = "Aplicar", Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+            var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+            actions.Children.Add(resetBtn); actions.Children.Add(applyBtn);
+            var flyout = new Flyout
+            {
+                Content = new StackPanel { Spacing = 10, Children = { picker, actions } }
+            };
+            btn.Flyout = flyout;
+
+            var thisKind = kind;
+            applyBtn.Click += (_, _) =>
+            {
+                var c = picker.Color;
+                AppState.Config.SetKindColor(thisKind, $"#{c.R:X2}{c.G:X2}{c.B:X2}");
+                flyout.Hide();
+                BuildKindColors(AppState.Load());
+            };
+            resetBtn.Click += (_, _) =>
+            {
+                AppState.Config.SetKindColor(thisKind, null);
+                flyout.Hide();
+                BuildKindColors(AppState.Load());
+            };
+
+            row.Children.Add(label); row.Children.Add(btn);
+            ColorsHost.Children.Add(row);
+        }
     }
 }

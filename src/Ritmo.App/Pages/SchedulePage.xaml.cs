@@ -242,6 +242,9 @@ public sealed partial class SchedulePage : Page
         _slotsPerHour = ScheduleGeometry.SlotsPerHour(_granularity);
         _slotHeight = ScheduleGeometry.SlotHeight(HourHeight, _granularity);
 
+        // Colores personalizados por tipo de bloque (#45): los que falten usan el por defecto.
+        Services.ScheduleColors.SetOverrides(settings.ViewConfig.ColorsByKind);
+
         var today = DateOnly.FromDateTime(DateTime.Now);
         _builtDate = today;
         // La fase mostrada se resuelve por la SEMANA visible, no por "hoy" (#46 fix):

@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 43 herramientas
+### 🤖 La IA (servidor MCP) — 44 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -40,7 +40,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Fases: `add_phase`, `update_phase`, `remove_phase`.
 - Sesiones recurrentes: `add_session`, `update_session`, `remove_session`.
 - Sesiones provisionales (con fecha): `add_one_off_session`, `remove_one_off_session`.
-- Rango horario, granularidad y vista previa del día al iniciar foco: `set_view_hours`, `set_view_granularity`, `set_day_preview`.
+- Rango horario, granularidad, vista previa y colores por tipo de bloque: `set_view_hours`, `set_view_granularity`, `set_day_preview`, `set_kind_color`.
 
 **Pomodoro**
 - Pomodoro por defecto: `set_pomodoro`.
@@ -93,6 +93,8 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - **Granularidad de la rejilla configurable** (60/30/15 min, 60 por defecto): solo cambia las
   líneas-guía de fondo; los bloques se posicionan por su minuto real, así una hora irregular
   (p. ej. 16:40) se ve donde toca sin desalinear los demás días (#61).
+- **Colores del horario configurables**: color de fondo personalizable por tipo de bloque
+  (Técnico, Legislación, Inglés…) desde Ajustes; por defecto, la paleta tipo Excel (#45).
 - **Panel lateral de detalle** de sesión y **resolución de solapamientos** con eventos del
   calendario (elegir qué lado prioriza) (#114).
 - Avisos previos configurables por sesión (1 h / 10 min / 5 min, hasta 2; desplegables con
@@ -166,6 +168,12 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#45 — Color por tipo de bloque configurable** (completa el editor tipo Excel). `ScheduleColors`
+  pasa a honrar `ViewConfig.ColorsByKind` (override estático refrescado antes de cada render); si un
+  tipo no tiene color propio, usa el de por defecto. UI en Ajustes › «Colores del horario» (una fila
+  por tipo con muestra + `ColorPicker` en flyout + «Usar por defecto»). Comando `SetKindColor` (con
+  test, valida #RRGGBB) y herramienta MCP `set_kind_color`. Verificado en la app (Técnico→amarillo,
+  Legislación→morado se reflejan en la rejilla).
 - **#47 — Vista previa del día al iniciar concentración** (configurable). Al pulsar «Iniciar» en el
   temporizador, si está activada (por defecto sí), se muestra `DayPreviewDialog` con los bloques de hoy
   (horario de la fase + provisionales, ordenados, color por tipo, bloque actual resaltado y marca ✦ de

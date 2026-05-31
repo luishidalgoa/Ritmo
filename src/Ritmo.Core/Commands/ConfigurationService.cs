@@ -311,6 +311,39 @@ public sealed class ConfigurationService
     }
 
     /// <summary>
+    /// Fija (hex "#RRGGBB") o quita (hex vacío → vuelve al color por defecto) el color
+    /// de fondo de un tipo de bloque en la rejilla del horario. #45
+    /// </summary>
+    public CommandResult SetKindColor(StudyKind kind, string? hex)
+    {
+        var s = _store.Load();
+        var map = new Dictionary<StudyKind, string>(s.ViewConfig.ColorsByKind);
+        if (string.IsNullOrWhiteSpace(hex))
+        {
+            map.Remove(kind);
+        }
+        else
+        {
+            var norm = NormalizeHexColor(hex);
+            if (norm is null) return CommandResult.Fail("Color inválido. Usa el formato #RRGGBB.");
+            map[kind] = norm;
+        }
+        _store.Save(s with { ViewConfig = s.ViewConfig with { ColorsByKind = map } });
+        return CommandResult.Ok(string.IsNullOrWhiteSpace(hex)
+            ? $"Color de {kind} restablecido al de por defecto."
+            : $"Color de {kind} actualizado.");
+    }
+
+    /// <summary>Normaliza un color a "#RRGGBB" en mayúsculas; null si no es válido.</summary>
+    private static string? NormalizeHexColor(string hex)
+    {
+        var h = hex.Trim().TrimStart('#');
+        if (h.Length != 6) return null;
+        foreach (var c in h) if (!Uri.IsHexDigit(c)) return null;
+        return "#" + h.ToUpperInvariant();
+    }
+
+    /// <summary>
     /// Activa/desactiva la vista previa del día al iniciar concentración (#47): si
     /// está activa, al arrancar el foco se muestra un resumen de los bloques de hoy.
     /// </summary>

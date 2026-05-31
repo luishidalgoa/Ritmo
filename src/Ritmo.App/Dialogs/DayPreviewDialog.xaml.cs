@@ -20,6 +20,8 @@ public sealed partial class DayPreviewDialog : ContentDialog
     {
         InitializeComponent();
 
+        ScheduleColors.SetOverrides(settings.ViewConfig.ColorsByKind);   // colores personalizados (#45)
+
         var day = DateOnly.FromDateTime(now);
         var es = new System.Globalization.CultureInfo("es-ES");
         DateText.Text = Capitalize(day.ToString("dddd d 'de' MMMM", es));

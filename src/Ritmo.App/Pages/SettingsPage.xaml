@@ -87,6 +87,18 @@
                 </StackPanel>
             </Border>
 
+            <!-- Colores del horario por tipo de bloque (#45) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Colores del horario" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Text="Personaliza el color de fondo de cada tipo de bloque en la rejilla del horario."
+                               Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
+                    <StackPanel x:Name="ColorsHost" Spacing="6" />
+                </StackPanel>
+            </Border>
+
             <!-- Conexiones (#123): se DESCUBREN/añaden en el modal; aquí se VEN y GESTIONAN
                  directamente las que ya están creadas (estilo conectores de Claude). -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

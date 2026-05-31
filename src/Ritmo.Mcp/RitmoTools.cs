@@ -245,6 +245,16 @@ public sealed class RitmoTools
         [Description("true = mostrar la vista previa al iniciar foco; false = no mostrarla")] bool enabled)
         => Report(_config.SetShowDayPreviewOnFocusStart(enabled));
 
+    [McpServerTool(Name = "set_kind_color")]
+    [Description("Fija el color de fondo de un tipo de bloque en la rejilla del horario. hex en formato #RRGGBB; deja hex vacío para volver al color por defecto de ese tipo.")]
+    public string SetKindColor(
+        [Description("Tipo: " + KindList)] string kind,
+        [Description("Color #RRGGBB (vacío = restablecer al por defecto)")] string? hex = null)
+    {
+        if (!Enum.TryParse<StudyKind>(kind, ignoreCase: true, out var k)) return Err($"Tipo inválido: '{kind}'.");
+        return Report(_config.SetKindColor(k, hex));
+    }
+
     // ==================== NOTAS ====================
 
     [McpServerTool(Name = "add_note")]
