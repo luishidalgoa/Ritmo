@@ -32,10 +32,11 @@ internal static class TrayIconService
             try { a(); } catch { /* best-effort */ }
         });
 
-        var open = new MenuFlyoutItem { Text = "Abrir Ritmo" };
-        open.Click += (_, _) => OnUi(window.ShowFromBackground);
-        var exit = new MenuFlyoutItem { Text = "Salir de Ritmo" };
-        exit.Click += (_, _) => OnUi(window.ExitApp);
+        // En el menú contextual de la bandeja, H.NotifyIcon lo muestra como menú NATIVO de Windows
+        // (modo PopupMenu): ahí NO se dispara el evento Click de los MenuFlyoutItem, sino su Command.
+        // Usamos Command (funciona en todos los modos del menú).
+        var open = new MenuFlyoutItem { Text = "Abrir Ritmo", Command = new RelayCommand(() => OnUi(window.ShowFromBackground)) };
+        var exit = new MenuFlyoutItem { Text = "Salir de Ritmo", Command = new RelayCommand(() => OnUi(window.ExitApp)) };
         var menu = new MenuFlyout();
         menu.Items.Add(open);
         menu.Items.Add(exit);
