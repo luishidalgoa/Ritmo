@@ -96,6 +96,19 @@ public sealed class RitmoTools
     public string RemovePhase([Description("Nombre de la fase a eliminar")] string name)
         => Report(_config.RemovePhase(name));
 
+    [McpServerTool(Name = "duplicate_phase")]
+    [Description("Duplica una fase existente: crea otra con NUEVO nombre y vigencia copiando su horario semanal completo. Útil para preparar la siguiente fase a partir de la actual. Fechas en yyyy-MM-dd; validTo vacío = indefinida.")]
+    public string DuplicatePhase(
+        [Description("Nombre de la fase a copiar")] string sourceName,
+        [Description("Nombre de la fase nueva")] string newName,
+        [Description("Fecha de inicio de la nueva fase (yyyy-MM-dd)")] string validFrom,
+        [Description("Fecha de fin (yyyy-MM-dd) o vacío si es indefinida")] string? validTo = null)
+    {
+        if (!TryDate(validFrom, out var from)) return Err($"Fecha de inicio inválida: '{validFrom}' (usa yyyy-MM-dd).");
+        if (!TryOptionalDate(validTo, out var to)) return Err($"Fecha de fin inválida: '{validTo}'.");
+        return Report(_config.DuplicatePhase(sourceName, newName, from, to));
+    }
+
     // ==================== SESIONES (en una fase) ====================
 
     [McpServerTool(Name = "add_session")]

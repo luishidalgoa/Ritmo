@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 51 herramientas
+### 🤖 La IA (servidor MCP) — 52 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -37,7 +37,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - `list_known_apps` — catálogo de apps conocidas con sus nombres de proceso válidos.
 
 **Horario y plan**
-- Fases: `add_phase`, `update_phase`, `remove_phase`.
+- Fases: `add_phase`, `update_phase`, `remove_phase`, `duplicate_phase` (copia el horario a una fase nueva).
 - Sesiones recurrentes: `add_session`, `update_session`, `remove_session`.
 - Sesiones provisionales (con fecha): `add_one_off_session`, `remove_one_off_session`.
 - Rango horario, granularidad, vista previa, color por categoría y aviso previo por defecto: `set_view_hours`, `set_view_granularity`, `set_day_preview`, `set_kind_color`, `set_default_prealert`.
@@ -193,6 +193,12 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#38 — Duplicar fase.** Nueva acción «Duplicar» en cada fase (Ajustes → Fases): crea otra fase
+  con nuevo nombre y vigencia copiando su horario semanal completo — para preparar la siguiente
+  fase a partir de la actual y ajustarla, sin rehacer el horario a mano. Núcleo:
+  `ConfigurationService.DuplicatePhase` (valida nombre/colisión/fechas; el horario es inmutable, la
+  copia comparte datos sin aliasing). MCP: tool `duplicate_phase`. UI: botón con `PhaseDialog`
+  pre-rellenado («… (copia)» + fechas). Núcleo 473/473 (4 tests nuevos). Parte de #38.
 - **#48 — Aviso previo por defecto configurable.** Hasta ahora una sesión nueva se pre-rellenaba
   siempre con un aviso de 10 min a fuego. Ahora el valor es un ajuste del usuario:
   `ScheduleViewConfig.DefaultPreAlertMinutes` (0 = sin aviso, rango 0..1440) + comando

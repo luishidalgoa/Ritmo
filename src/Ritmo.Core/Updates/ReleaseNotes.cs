@@ -60,6 +60,7 @@ public static class ReleaseNotes
                 "Los avisos del horario llegan al PC y al móvil de forma fiable, también en sesiones provisionales y al editar el horario.",
                 "Opción para que Ritmo arranque solo al iniciar sesión en Windows, en segundo plano: tus avisos suenan sin tener que abrirlo.",
                 "Elige el aviso previo por defecto de las sesiones nuevas desde Ajustes.",
+                "Duplica una fase del horario para crear la siguiente a partir de ella, sin rehacerla.",
                 "Próximamente: vincular tu calendario externo a cada entorno.",
             ]
         },

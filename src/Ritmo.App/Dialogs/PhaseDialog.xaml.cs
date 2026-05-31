@@ -35,6 +35,24 @@ public sealed partial class PhaseDialog : ContentDialog
         SyncOpenEnded();
     }
 
+    /// <summary>
+    /// Pre-rellena el diálogo para DUPLICAR una fase (#38): nombre sugerido «… (copia)» y las
+    /// fechas de la fuente, pero como fase NUEVA (OriginalName queda null). El usuario ajusta.
+    /// </summary>
+    public void LoadForDuplicate(SchedulePhase source)
+    {
+        Title = "Duplicar fase";
+        NameBox.Text = source.Name + " (copia)";
+        FromPicker.Date = new DateTimeOffset(source.ValidFrom.ToDateTime(TimeOnly.MinValue));
+        if (source.ValidTo is { } end)
+        {
+            OpenEndedSwitch.IsOn = false;
+            ToPicker.Date = new DateTimeOffset(end.ToDateTime(TimeOnly.MinValue));
+        }
+        else OpenEndedSwitch.IsOn = true;
+        SyncOpenEnded();
+    }
+
     private void OpenEndedSwitch_Toggled(object sender, RoutedEventArgs e) => SyncOpenEnded();
 
     private void SyncOpenEnded()

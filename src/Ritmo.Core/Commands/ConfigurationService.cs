@@ -111,6 +111,30 @@ public sealed class ConfigurationService
         return CommandResult.Ok($"Fase «{name}» eliminada.");
     }
 
+    /// <summary>
+    /// Duplica una fase: crea otra con NUEVO nombre y vigencia, copiando su horario semanal
+    /// completo (#38). Útil para preparar la siguiente fase a partir de la actual y ajustarla.
+    /// El horario es inmutable (records), así que la copia comparte datos sin riesgo de aliasing.
+    /// </summary>
+    public CommandResult DuplicatePhase(string sourceName, string newName, DateOnly validFrom, DateOnly? validTo)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+            return CommandResult.Fail("El nombre de la fase no puede estar vacío.");
+        if (validTo is { } end && end < validFrom)
+            return CommandResult.Fail("La fecha de fin no puede ser anterior a la de inicio.");
+
+        var s = _store.Load();
+        var src = s.Plan.Phases.FirstOrDefault(p => p.Name.Equals(sourceName, StringComparison.OrdinalIgnoreCase));
+        if (src is null) return CommandResult.Fail($"No existe la fase «{sourceName}».");
+        if (s.Plan.Phases.Any(p => p.Name.Equals(newName.Trim(), StringComparison.OrdinalIgnoreCase)))
+            return CommandResult.Fail($"Ya existe una fase llamada «{newName.Trim()}».");
+
+        var copy = src with { Name = newName.Trim(), ValidFrom = validFrom, ValidTo = validTo };
+        var updated = s with { Plan = new SchedulePlan { Phases = [.. s.Plan.Phases, copy] } };
+        _store.Save(updated);
+        return CommandResult.Ok($"Fase «{newName.Trim()}» duplicada de «{src.Name}» ({src.Schedule.Sessions.Count} sesiones).");
+    }
+
     /// <summary>Añade una sesión a una fase existente (por nombre).</summary>
     public CommandResult AddSession(string phaseName, StudySession session)
     {

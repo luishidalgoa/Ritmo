@@ -453,16 +453,22 @@ public sealed partial class SettingsPage : Page
         edit.Click += (_, _) => _ = EditPhase(ph);
         Grid.SetColumn(edit, 1);
 
+        var dup = new Button { Content = new SymbolIcon(Symbol.Copy), Margin = new Thickness(6, 0, 0, 0) };
+        ToolTipService.SetToolTip(dup, "Duplicar fase (copia su horario)");
+        dup.Click += (_, _) => _ = DuplicatePhaseUi(ph);
+        Grid.SetColumn(dup, 2);
+
         var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
         ToolTipService.SetToolTip(del, "Eliminar fase");
         del.Click += (_, _) => _ = DeletePhase(ph);
-        Grid.SetColumn(del, 2);
+        Grid.SetColumn(del, 3);
 
         var grid = new Grid { ColumnSpacing = 6 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.Children.Add(info); grid.Children.Add(edit); grid.Children.Add(del);
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(info); grid.Children.Add(edit); grid.Children.Add(dup); grid.Children.Add(del);
 
         return new Border
         {
@@ -490,6 +496,18 @@ public sealed partial class SettingsPage : Page
         if (await dlg.ShowAsync() == ContentDialogResult.Primary)
         {
             var r = AppState.Config.UpdatePhase(ph.Name, dlg.PhaseName, dlg.ValidFrom, dlg.ValidTo);
+            if (!r.Success) await InfoDialog(r.Message);
+            BuildPhases();
+        }
+    }
+
+    private async Task DuplicatePhaseUi(Ritmo.Core.Model.SchedulePhase ph)
+    {
+        var dlg = new PhaseDialog { XamlRoot = this.XamlRoot };
+        dlg.LoadForDuplicate(ph);
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+        {
+            var r = AppState.Config.DuplicatePhase(ph.Name, dlg.PhaseName, dlg.ValidFrom, dlg.ValidTo);
             if (!r.Success) await InfoDialog(r.Message);
             BuildPhases();
         }
