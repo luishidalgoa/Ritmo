@@ -27,8 +27,8 @@ public sealed class RitmoTools
 
     public RitmoTools(ConfigurationService config) => _config = config;
 
-    // Lista de tipos de bloque, reutilizada en las descripciones.
-    private const string KindList = "Tecnico, Legislacion, Ingles, Tests, Simulacro, Descanso, PorDefinir, Personal, Otro";
+    // Pista para el parámetro de categoría, reutilizada en las descripciones (#83).
+    private const string KindList = "id de categoría (usa list_categories para ver las disponibles; p. ej. 'Otro')";
 
     // ==================== LECTURA ====================
 
@@ -430,6 +430,47 @@ public sealed class RitmoTools
     {
         return Report(_config.ClearEnvironmentKind(kind));
     }
+
+    // ==================== CATEGORÍAS DE BLOQUE (#83) ====================
+
+    [McpServerTool(Name = "list_categories")]
+    [Description("Lista las categorías de bloque del usuario: id, nombre, si dispara concentración, si es de sistema y su color.")]
+    public string ListCategories()
+    {
+        var cats = _config.GetSettings().Categories.OrderBy(c => c.Order).ToList();
+        if (cats.Count == 0) return "No hay categorías.";
+        return string.Join("\n", cats.Select(c =>
+            $"- {c.Id}: \"{c.Name}\"{(c.IsFocus ? " [concentración]" : "")}{(c.IsSystem ? " [sistema]" : "")} {c.ColorHex}"));
+    }
+
+    [McpServerTool(Name = "add_category")]
+    [Description("Crea una categoría de bloque. Devuelve su id. color en #RRGGBB; isFocus=true si dispara concentración.")]
+    public string AddCategory(
+        [Description("Nombre visible")] string name,
+        [Description("Color de fondo #RRGGBB")] string colorHex,
+        [Description("true si dispara el modo concentración")] bool isFocus = false)
+        => Report(_config.AddCategory(name, colorHex, isFocus));
+
+    [McpServerTool(Name = "update_category")]
+    [Description("Actualiza nombre, color y focus de una categoría (por id; el id no cambia).")]
+    public string UpdateCategory(
+        [Description("Id de la categoría")] string id,
+        [Description("Nombre visible")] string name,
+        [Description("Color de fondo #RRGGBB")] string colorHex,
+        [Description("true si dispara el modo concentración")] bool isFocus = false)
+        => Report(_config.UpdateCategory(id, name, colorHex, isFocus));
+
+    [McpServerTool(Name = "remove_category")]
+    [Description("Elimina una categoría (no las de sistema «Otro»/«Por definir»). Sus bloques pasan a «Otro».")]
+    public string RemoveCategory([Description("Id de la categoría")] string id)
+        => Report(_config.RemoveCategory(id));
+
+    [McpServerTool(Name = "reorder_category")]
+    [Description("Reordena una categoría una posición arriba (up=true) o abajo (up=false).")]
+    public string ReorderCategory(
+        [Description("Id de la categoría")] string id,
+        [Description("true = subir, false = bajar")] bool up)
+        => Report(_config.ReorderCategory(id, up));
 
     // ==================== MÚSICA (Navidrome global) ====================
 

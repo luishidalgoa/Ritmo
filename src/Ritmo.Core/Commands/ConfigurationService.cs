@@ -758,6 +758,105 @@ public sealed class ConfigurationService
         _store.Save(s with { EnvironmentByKind = map });
         return CommandResult.Ok($"Categoría «{categoryId}» usa el entorno predeterminado.");
     }
+
+    // ---------- Categorías de bloque configurables (#83) ----------
+
+    /// <summary>Crea una categoría. Genera un id (slug). Devuelve su id en el mensaje.</summary>
+    public CommandResult AddCategory(string name, string colorHex, bool isFocus)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return CommandResult.Fail("La categoría necesita un nombre.");
+        var norm = NormalizeHexColor(colorHex);
+        if (norm is null) return CommandResult.Fail("Color inválido. Usa el formato #RRGGBB.");
+        var s = _store.Load();
+        var id = Ritmo.Core.Model.CategorySlug.From(name, s.Categories.Select(c => c.Id));
+        var order = s.Categories.Count == 0 ? 0 : s.Categories.Max(c => c.Order) + 1;
+        var cat = new Ritmo.Core.Model.BlockCategory
+        {
+            Id = id, Name = name.Trim(), ColorHex = norm, IsFocus = isFocus, Order = order
+        };
+        _store.Save(s with { Categories = [.. s.Categories, cat] });
+        return CommandResult.Ok(id);
+    }
+
+    /// <summary>Actualiza nombre/color/focus de una categoría (no cambia su id).</summary>
+    public CommandResult UpdateCategory(string id, string name, string colorHex, bool isFocus)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return CommandResult.Fail("La categoría necesita un nombre.");
+        var norm = NormalizeHexColor(colorHex);
+        if (norm is null) return CommandResult.Fail("Color inválido. Usa el formato #RRGGBB.");
+        var s = _store.Load();
+        if (s.Categories.All(c => c.Id != id)) return CommandResult.Fail($"No existe la categoría «{id}».");
+        var updated = s.Categories
+            .Select(c => c.Id == id ? c with { Name = name.Trim(), ColorHex = norm, IsFocus = isFocus } : c)
+            .ToList();
+        _store.Save(s with { Categories = updated });
+        return CommandResult.Ok("Categoría actualizada.");
+    }
+
+    /// <summary>
+    /// Elimina una categoría (las de sistema no se pueden borrar). Reasigna a «Otro» las
+    /// sesiones, sesiones provisionales y mapeos de entorno que la usaban.
+    /// </summary>
+    public CommandResult RemoveCategory(string id)
+    {
+        var s = _store.Load();
+        var cat = s.Categories.FirstOrDefault(c => c.Id == id);
+        if (cat is null) return CommandResult.Fail($"No existe la categoría «{id}».");
+        if (cat.IsSystem) return CommandResult.Fail("No se puede borrar una categoría de sistema.");
+
+        StudySession Fix(StudySession x) => x.CategoryId == id
+            ? x with { CategoryId = Ritmo.Core.Model.CategoryIds.Other } : x;
+
+        var newSchedule = s.Schedule with { Sessions = s.Schedule.Sessions.Select(Fix).ToList() };
+        var newPhases = s.Plan.Phases
+            .Select(p => p with { Schedule = p.Schedule with { Sessions = p.Schedule.Sessions.Select(Fix).ToList() } })
+            .ToList();
+        var newOneOff = s.OneOffSessions
+            .Select(o => o.CategoryId == id ? o with { CategoryId = Ritmo.Core.Model.CategoryIds.Other } : o)
+            .ToList();
+        var newEnvMap = s.EnvironmentByKind.Where(kv => kv.Key != id).ToDictionary(kv => kv.Key, kv => kv.Value);
+        var newCats = s.Categories.Where(c => c.Id != id)
+            .OrderBy(c => c.Order).Select((c, i) => c with { Order = i }).ToList();
+
+        _store.Save(s with
+        {
+            Schedule = newSchedule,
+            Plan = s.Plan with { Phases = newPhases },
+            OneOffSessions = newOneOff,
+            EnvironmentByKind = newEnvMap,
+            Categories = newCats
+        });
+        return CommandResult.Ok($"Categoría «{cat.Name}» eliminada; sus bloques pasan a «Otro».");
+    }
+
+    /// <summary>Mueve una categoría una posición arriba/abajo. Reasigna Order contiguo (0..n-1).</summary>
+    public CommandResult ReorderCategory(string id, bool up)
+    {
+        var s = _store.Load();
+        var ordered = s.Categories.OrderBy(c => c.Order).ToList();
+        var idx = ordered.FindIndex(c => c.Id == id);
+        if (idx < 0) return CommandResult.Fail($"No existe la categoría «{id}».");
+        var target = up ? idx - 1 : idx + 1;
+        if (target < 0 || target >= ordered.Count) return CommandResult.Ok("Sin cambios.");
+        (ordered[idx], ordered[target]) = (ordered[target], ordered[idx]);
+        _store.Save(s with { Categories = ordered.Select((c, i) => c with { Order = i }).ToList() });
+        return CommandResult.Ok("Categorías reordenadas.");
+    }
+
+    /// <summary>Fija/restablece el color de una categoría (alias claro de SetKindColor). #83</summary>
+    public CommandResult SetCategoryColor(string id, string? hex) => SetKindColor(id, hex);
+
+    /// <summary>
+    /// Siembra el set de categorías de una plantilla del onboarding ("estudio"/"trabajo"/
+    /// "blanco") y marca el onboarding como completado. Reemplaza las categorías actuales.
+    /// </summary>
+    public CommandResult SeedTemplate(string templateId)
+    {
+        var s = _store.Load();
+        var cats = Ritmo.Core.Model.CategoryDefaults.ForTemplate(templateId);
+        _store.Save(s with { Categories = cats, OnboardingCompleted = true });
+        return CommandResult.Ok($"Plantilla «{templateId}» aplicada.");
+    }
 }
 
 /// <summary>Resumen del estado de la app (respuesta para IA / UI).</summary>
