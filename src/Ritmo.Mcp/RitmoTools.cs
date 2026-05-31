@@ -118,7 +118,7 @@ public sealed class RitmoTools
         var session = new StudySession
         {
             Title = title, Day = dow, Start = startTime,
-            Duration = TimeSpan.FromMinutes(durationMinutes), Kind = ParseKind(kind),
+            Duration = TimeSpan.FromMinutes(durationMinutes), CategoryId = ParseKind(kind),
             PreAlerts = ParseAlerts(preAlertsMinutes), IsTentative = tentative
         };
         return Report(_config.AddSession(phaseName, session));
@@ -145,7 +145,7 @@ public sealed class RitmoTools
         var session = new StudySession
         {
             Title = title, Day = dow, Start = startTime,
-            Duration = TimeSpan.FromMinutes(durationMinutes), Kind = ParseKind(kind),
+            Duration = TimeSpan.FromMinutes(durationMinutes), CategoryId = ParseKind(kind),
             PreAlerts = ParseAlerts(preAlertsMinutes), IsTentative = tentative
         };
         return Report(_config.UpdateSession(phaseName, index, session));
@@ -251,8 +251,7 @@ public sealed class RitmoTools
         [Description("Tipo: " + KindList)] string kind,
         [Description("Color #RRGGBB (vacío = restablecer al por defecto)")] string? hex = null)
     {
-        if (!Enum.TryParse<StudyKind>(kind, ignoreCase: true, out var k)) return Err($"Tipo inválido: '{kind}'.");
-        return Report(_config.SetKindColor(k, hex));
+        return Report(_config.SetKindColor(kind, hex));
     }
 
     // ==================== NOTAS ====================
@@ -422,16 +421,14 @@ public sealed class RitmoTools
         [Description("Tipo: " + KindList)] string kind,
         [Description("Id del entorno")] string environmentId)
     {
-        if (!Enum.TryParse<StudyKind>(kind, ignoreCase: true, out var k)) return Err($"Tipo inválido: '{kind}'.");
-        return Report(_config.MapEnvironmentToKind(k, environmentId));
+        return Report(_config.MapEnvironmentToKind(kind, environmentId));
     }
 
     [McpServerTool(Name = "clear_environment_kind")]
     [Description("Quita la asociación tipo→entorno: ese tipo vuelve a usar el entorno por defecto.")]
     public string ClearEnvironmentKind([Description("Tipo: " + KindList)] string kind)
     {
-        if (!Enum.TryParse<StudyKind>(kind, ignoreCase: true, out var k)) return Err($"Tipo inválido: '{kind}'.");
-        return Report(_config.ClearEnvironmentKind(k));
+        return Report(_config.ClearEnvironmentKind(kind));
     }
 
     // ==================== MÚSICA (Navidrome global) ====================
@@ -509,8 +506,8 @@ public sealed class RitmoTools
     private static bool TryTime(string s, out TimeOnly t) =>
         TimeOnly.TryParseExact(s, "HH\\:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out t);
 
-    private static StudyKind ParseKind(string kind) =>
-        Enum.TryParse<StudyKind>(kind, ignoreCase: true, out var k) ? k : StudyKind.Otro;
+    private static string ParseKind(string kind) =>
+        string.IsNullOrWhiteSpace(kind) ? Ritmo.Core.Model.CategoryIds.Other : kind.Trim();
 
     private static List<PreAlert> ParseAlerts(string? csv)
     {

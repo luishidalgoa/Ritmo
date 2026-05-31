@@ -18,7 +18,7 @@ public class ScheduleRunnerTests
                 Day = DayOfWeek.Monday,
                 Start = new TimeOnly(9, 0),
                 Duration = TimeSpan.FromHours(2),
-                Kind = StudyKind.Tecnico,
+                CategoryId = "Tecnico",
                 PreAlerts = [PreAlert.OneHour, PreAlert.TenMinutes]
             }
         ]

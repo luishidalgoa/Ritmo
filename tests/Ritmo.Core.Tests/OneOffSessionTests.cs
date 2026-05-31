@@ -14,12 +14,12 @@ public class OneOffSessionTests
         var one = new OneOffSession
         {
             Id = "x", Date = new DateOnly(2026, 5, 28), Title = "Clase extra",
-            Start = new TimeOnly(15, 0), Duration = TimeSpan.FromHours(1), Kind = StudyKind.Ingles
+            Start = new TimeOnly(15, 0), Duration = TimeSpan.FromHours(1), CategoryId = "Ingles"
         };
         var s = one.AsSession();
         Assert.Equal(DayOfWeek.Thursday, s.Day);
         Assert.Equal("Clase extra", s.Title);
-        Assert.Equal(StudyKind.Ingles, s.Kind);
+        Assert.Equal("Ingles", s.CategoryId);
     }
 
     [Fact]
@@ -29,14 +29,14 @@ public class OneOffSessionTests
         var svc = new ConfigurationService(store);
 
         var r = svc.AddOneOffSession(new DateOnly(2026, 5, 28), "Clase extra",
-            new TimeOnly(15, 0), TimeSpan.FromHours(1), StudyKind.Ingles, [new PreAlert(10)], false);
+            new TimeOnly(15, 0), TimeSpan.FromHours(1), "Ingles", [new PreAlert(10)], false);
         Assert.True(r.Success);
         var one = Assert.Single(store.Load().OneOffSessions);
         Assert.Equal("Clase extra", one.Title);
         Assert.Equal(new DateOnly(2026, 5, 28), one.Date);
 
         Assert.False(svc.AddOneOffSession(new DateOnly(2026, 5, 28), "  ",
-            new TimeOnly(15, 0), TimeSpan.FromHours(1), StudyKind.Otro, [], false).Success);   // sin título
+            new TimeOnly(15, 0), TimeSpan.FromHours(1), "Otro", [], false).Success);   // sin título
 
         Assert.True(svc.RemoveOneOffSession(one.Id).Success);
         Assert.Empty(store.Load().OneOffSessions);
@@ -48,7 +48,7 @@ public class OneOffSessionTests
         var store = new InMemorySettingsStore();
         var svc = new ConfigurationService(store);
         svc.AddOneOffSession(new DateOnly(2026, 5, 28), "Clase extra",
-            new TimeOnly(15, 30), TimeSpan.FromMinutes(90), StudyKind.Tecnico, [], true);
+            new TimeOnly(15, 30), TimeSpan.FromMinutes(90), "Tecnico", [], true);
 
         var json = svc.ExportJson();
         var other = new ConfigurationService(new InMemorySettingsStore());

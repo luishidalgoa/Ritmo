@@ -88,20 +88,20 @@ public sealed partial class TimerPage : Page
         var schedule = phase?.Schedule ?? settings.Schedule;
         // Una sesión provisional que cubre AHORA tiene prioridad sobre el horario (#103).
         var oneOff = OneOffPlanner.ActiveAt(settings.OneOffSessions, now);
-        var active = oneOff?.AsSession() ?? new SchedulePlanner(schedule).GetActiveSession(now);
+        var active = oneOff?.AsSession() ?? new SchedulePlanner(schedule, settings.FocusCategoryIds()).GetActiveSession(now);
         _activeSessionTitle = active?.Title;   // tipo de sesión para resolver qué abrir (#116)
 
         PomodoroConfig config;
         if (active is not null)
         {
-            _activeEnv = settings.ResolveEnvironment(active.Kind);
+            _activeEnv = settings.ResolveEnvironment(active.CategoryId);
             config = PomodoroRhythms.Resolve(_activeEnv?.PomodoroPreset, settings.Rhythms, settings.Pomodoro);
             SubjectText.Text = active.Title;
-            SubjectMeta.Text = $"{active.Kind.Label()} · {active.Start:HH\\:mm}–{active.End:HH\\:mm}";
+            SubjectMeta.Text = $"{settings.CategoryName(active.CategoryId)} · {active.Start:HH\\:mm}–{active.End:HH\\:mm}";
         }
         else
         {
-            _activeEnv = settings.ResolveEnvironment(StudyKind.Otro);   // el entorno seleccionado/por defecto
+            _activeEnv = settings.ResolveEnvironment(Ritmo.Core.Model.CategoryIds.Other);   // el entorno seleccionado/por defecto
             config = _activeEnv is not null
                 ? PomodoroRhythms.Resolve(_activeEnv.PomodoroPreset, settings.Rhythms, settings.Pomodoro)
                 : settings.Pomodoro;

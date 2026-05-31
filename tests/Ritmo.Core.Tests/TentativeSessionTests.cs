@@ -15,7 +15,7 @@ public class TentativeSessionTests
             Sessions = [ new StudySession {
                 Title = "Firme", Day = DayOfWeek.Monday,
                 Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(2),
-                Kind = StudyKind.Tecnico } ]
+                CategoryId = "Tecnico" } ]
         });
         var starts = plan.GetEvents(MondayMidnight, TimeSpan.FromDays(1))
                          .Where(e => e.Type == PlannedEventType.SessionStart);
@@ -77,9 +77,9 @@ public class TentativeSessionTests
             Day = DayOfWeek.Tuesday,
             Start = new TimeOnly(16, 0),
             Duration = TimeSpan.FromHours(2),
-            Kind = StudyKind.PorDefinir
+            CategoryId = "PorDefinir"
         };
-        Assert.Equal(StudyKind.PorDefinir, s.Kind);
+        Assert.Equal("PorDefinir", s.CategoryId);
         Assert.False(s.IsTentative); // "Por definir" no implica tentativo: es un hueco firme sin materia.
     }
 
@@ -95,18 +95,18 @@ public class TentativeSessionTests
     }
 
     [Theory]
-    [InlineData(StudyKind.Tecnico, true)]
-    [InlineData(StudyKind.Legislacion, true)]
-    [InlineData(StudyKind.Ingles, true)]
-    [InlineData(StudyKind.Tests, true)]
-    [InlineData(StudyKind.Simulacro, true)]
-    [InlineData(StudyKind.Descanso, false)]
-    [InlineData(StudyKind.Personal, false)]
-    [InlineData(StudyKind.PorDefinir, false)]
-    [InlineData(StudyKind.Otro, false)]
-    public void IsFocusKind_clasifica_correctamente(StudyKind kind, bool expected)
+    [InlineData("Tecnico", true)]
+    [InlineData("Legislacion", true)]
+    [InlineData("Ingles", true)]
+    [InlineData("Tests", true)]
+    [InlineData("Simulacro", true)]
+    [InlineData("Descanso", false)]
+    [InlineData("Personal", false)]
+    [InlineData("PorDefinir", false)]
+    [InlineData("Otro", false)]
+    public void IsFocusKind_clasifica_correctamente(string id, bool expected)
     {
-        Assert.Equal(expected, kind.IsFocusKind());
+        Assert.Equal(expected, Ritmo.Core.Model.LegacyCategories.ById[id].IsFocus);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class TentativeSessionTests
             Sessions = [ new StudySession {
                 Title = "Comida", Day = DayOfWeek.Monday,
                 Start = new TimeOnly(14,0), Duration = TimeSpan.FromHours(1),
-                Kind = StudyKind.Personal } ]
+                CategoryId = "Personal" } ]
         });
         var events = plan.GetEvents(MondayMidnight, TimeSpan.FromDays(1));
         Assert.DoesNotContain(events, e => e.Type == PlannedEventType.SessionStart);
@@ -131,7 +131,7 @@ public class TentativeSessionTests
             Sessions = [ new StudySession {
                 Title = "Gimnasio", Day = DayOfWeek.Monday,
                 Start = new TimeOnly(18,0), Duration = TimeSpan.FromHours(1),
-                Kind = StudyKind.Personal } ]
+                CategoryId = "Personal" } ]
         });
         Assert.Null(plan.GetActiveSession(new DateTime(2026, 6, 1, 18, 30, 0)));
     }
@@ -144,7 +144,7 @@ public class TentativeSessionTests
             Sessions = [ new StudySession {
                 Title = "Pausa", Day = DayOfWeek.Monday,
                 Start = new TimeOnly(11,0), Duration = TimeSpan.FromHours(1),
-                Kind = StudyKind.Descanso } ]
+                CategoryId = "Descanso" } ]
         });
         Assert.Empty(plan.GetEvents(MondayMidnight, TimeSpan.FromDays(1))
                          .Where(e => e.Type == PlannedEventType.SessionStart));

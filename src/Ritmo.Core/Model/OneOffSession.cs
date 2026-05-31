@@ -14,7 +14,8 @@ public sealed record OneOffSession
     public required string Title { get; init; }
     public required System.TimeOnly Start { get; init; }
     public required System.TimeSpan Duration { get; init; }
-    public StudyKind Kind { get; init; } = StudyKind.Otro;
+    /// <summary>Id de la categoría de bloque (ver <see cref="BlockCategory"/>). #83</summary>
+    public string CategoryId { get; init; } = CategoryIds.Other;
     public IReadOnlyList<PreAlert> PreAlerts { get; init; } = [];
     public bool IsTentative { get; init; }
 
@@ -25,7 +26,7 @@ public sealed record OneOffSession
         Day = Date.DayOfWeek,
         Start = Start,
         Duration = Duration,
-        Kind = Kind,
+        CategoryId = CategoryId,
         PreAlerts = PreAlerts,
         IsTentative = IsTentative
     };

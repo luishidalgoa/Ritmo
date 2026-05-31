@@ -34,7 +34,7 @@ public class SettingsStoreTests : IDisposable
                     Day = DayOfWeek.Monday,
                     Start = new TimeOnly(9, 0),
                     Duration = TimeSpan.FromHours(2),
-                    Kind = StudyKind.Tecnico,
+                    CategoryId = "Tecnico",
                     PreAlerts = [PreAlert.OneHour, PreAlert.TenMinutes]
                 },
                 new StudySession
@@ -43,7 +43,7 @@ public class SettingsStoreTests : IDisposable
                     Day = DayOfWeek.Thursday,
                     Start = new TimeOnly(9, 0),
                     Duration = TimeSpan.FromHours(2),
-                    Kind = StudyKind.Ingles
+                    CategoryId = "Ingles"
                 }
             ]
         },
@@ -73,7 +73,7 @@ public class SettingsStoreTests : IDisposable
         Assert.Equal(DayOfWeek.Monday, tec.Day);
         Assert.Equal(new TimeOnly(9, 0), tec.Start);
         Assert.Equal(TimeSpan.FromHours(2), tec.Duration);
-        Assert.Equal(StudyKind.Tecnico, tec.Kind);
+        Assert.Equal("Tecnico", tec.CategoryId);
         Assert.Equal(new[] { 60, 10 }, tec.PreAlerts.Select(a => a.MinutesBefore).ToArray());
 
         Assert.Equal(DayOfWeek.Thursday, loaded.Schedule.Sessions[1].Day);

@@ -13,7 +13,7 @@ public class OverlapResolverTests
     {
         Title = "Legislación", Day = day,
         Start = new TimeOnly(hour, 0), Duration = TimeSpan.FromHours(durHours),
-        Kind = StudyKind.Legislacion
+        CategoryId = "Legislacion"
     };
 
     private static CalendarEvent Event(DateTime start, double durHours, bool allDay = false, string? cal = "Trabajo")

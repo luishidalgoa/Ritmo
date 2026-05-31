@@ -22,6 +22,9 @@ internal sealed class SettingsDto
     public List<FocusEnvironmentDto> FocusEnvironments { get; set; } = [];
     public string? DefaultFocusEnvironmentId { get; set; }
     public Dictionary<string, string> EnvironmentByKind { get; set; } = [];
+    // Categorías de bloque definibles (#83). Vacío en JSON legacy → la migración las deriva.
+    public List<CategoryDto> Categories { get; set; } = [];
+    public bool OnboardingCompleted { get; set; }
     public string? NavidromeServerUrl { get; set; }
     public string? NavidromeUser { get; set; }
     public bool NtfyEnabled { get; set; }
@@ -37,6 +40,17 @@ internal sealed class CalendarFeedDto
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string Url { get; set; } = "";
+}
+
+internal sealed class CategoryDto
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string ColorHex { get; set; } = "#EDEDED";
+    public string? TextColorHex { get; set; }
+    public bool IsFocus { get; set; }
+    public int Order { get; set; }
+    public bool IsSystem { get; set; }
 }
 
 internal sealed class OverlapPriorityDto
@@ -198,7 +212,7 @@ internal static class SettingsMapper
             Title = o.Title,
             Start = o.Start.ToString(TimeFormat, CultureInfo.InvariantCulture),
             DurationMinutes = (int)o.Duration.TotalMinutes,
-            Kind = o.Kind.ToString(),
+            Kind = o.CategoryId,
             PreAlertsMinutes = o.PreAlerts.Select(a => a.MinutesBefore).ToList(),
             IsTentative = o.IsTentative
         }).ToList(),
@@ -206,7 +220,13 @@ internal static class SettingsMapper
         ViewConfig = ToDto(s.ViewConfig),
         FocusEnvironments = s.FocusEnvironments.Select(ToDto).ToList(),
         DefaultFocusEnvironmentId = s.DefaultFocusEnvironmentId,
-        EnvironmentByKind = s.EnvironmentByKind.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+        EnvironmentByKind = s.EnvironmentByKind.ToDictionary(kv => kv.Key, kv => kv.Value),
+        Categories = s.Categories.Select(c => new CategoryDto
+        {
+            Id = c.Id, Name = c.Name, ColorHex = c.ColorHex, TextColorHex = c.TextColorHex,
+            IsFocus = c.IsFocus, Order = c.Order, IsSystem = c.IsSystem
+        }).ToList(),
+        OnboardingCompleted = s.OnboardingCompleted,
         NavidromeServerUrl = s.NavidromeServerUrl,
         NavidromeUser = s.NavidromeUser,
         NtfyEnabled = s.NtfyEnabled,
@@ -251,7 +271,7 @@ internal static class SettingsMapper
         Day = x.Day.ToString(),
         Start = x.Start.ToString(TimeFormat, CultureInfo.InvariantCulture),
         DurationMinutes = (int)x.Duration.TotalMinutes,
-        Kind = x.Kind.ToString(),
+        Kind = x.CategoryId,
         PreAlertsMinutes = x.PreAlerts.Select(a => a.MinutesBefore).ToList(),
         IsTentative = x.IsTentative
     };
@@ -274,15 +294,18 @@ internal static class SettingsMapper
     {
         DayStart = v.DayStart.ToString(TimeFormat, CultureInfo.InvariantCulture),
         DayEnd = v.DayEnd.ToString(TimeFormat, CultureInfo.InvariantCulture),
-        ColorsByKind = v.ColorsByKind.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+        // ColorsByKind es legacy (#83): el color vive ahora en BlockCategory. No se escribe.
+        ColorsByKind = [],
         Shortcuts = v.Shortcuts.Select(s => new ShortcutDto { Title = s.Title, Url = s.Url }).ToList(),
         ShowDayPreviewOnFocusStart = v.ShowDayPreviewOnFocusStart,
         GranularityMinutes = v.GranularityMinutes
     };
 
     // ---------- DTO -> Dominio ----------
-    public static AppSettings FromDto(SettingsDto d) => new()
+    public static AppSettings FromDto(SettingsDto d)
     {
+        var s = new AppSettings
+        {
         Schedule = new WeeklySchedule { Sessions = d.Sessions.Select(FromDto).ToList() },
         Pomodoro = new PomodoroConfig(
             TimeSpan.FromMinutes(d.Pomodoro.FocusMinutes),
@@ -303,7 +326,7 @@ internal static class SettingsMapper
             Title = o.Title,
             Start = TimeOnly.ParseExact(o.Start, TimeFormat, CultureInfo.InvariantCulture),
             Duration = TimeSpan.FromMinutes(o.DurationMinutes),
-            Kind = Enum.TryParse<StudyKind>(o.Kind, ignoreCase: true, out var k) ? k : StudyKind.Otro,
+            CategoryId = string.IsNullOrWhiteSpace(o.Kind) ? CategoryIds.Other : o.Kind,
             PreAlerts = o.PreAlertsMinutes.Select(m => new PreAlert(m)).ToList(),
             IsTentative = o.IsTentative
         }).ToList(),
@@ -312,8 +335,17 @@ internal static class SettingsMapper
         FocusEnvironments = d.FocusEnvironments.Select(FromDto).ToList(),
         DefaultFocusEnvironmentId = d.DefaultFocusEnvironmentId,
         EnvironmentByKind = d.EnvironmentByKind
-            .Where(kv => Enum.TryParse<StudyKind>(kv.Key, ignoreCase: true, out _))
-            .ToDictionary(kv => Enum.Parse<StudyKind>(kv.Key, ignoreCase: true), kv => kv.Value),
+            .Where(kv => !string.IsNullOrWhiteSpace(kv.Key) && !string.IsNullOrWhiteSpace(kv.Value))
+            .ToDictionary(kv => kv.Key, kv => kv.Value),
+        Categories = d.Categories
+            .Where(c => !string.IsNullOrWhiteSpace(c.Id))
+            .Select(c => new BlockCategory
+            {
+                Id = c.Id, Name = string.IsNullOrWhiteSpace(c.Name) ? c.Id : c.Name,
+                ColorHex = c.ColorHex, TextColorHex = c.TextColorHex,
+                IsFocus = c.IsFocus, Order = c.Order, IsSystem = c.IsSystem
+            }).ToList(),
+        OnboardingCompleted = d.OnboardingCompleted,
         NavidromeServerUrl = d.NavidromeServerUrl,
         NavidromeUser = d.NavidromeUser,
         NtfyEnabled = d.NtfyEnabled,
@@ -324,7 +356,9 @@ internal static class SettingsMapper
         OverlapPriorities = d.OverlapPriorities
             .Where(p => !string.IsNullOrWhiteSpace(p.EventKey))
             .Select(p => new OverlapPriority { EventKey = p.EventKey, PreferCalendar = p.PreferCalendar }).ToList()
-    };
+        };
+        return CategoryMigration.Apply(s, d.ViewConfig?.ColorsByKind);
+    }
 
     private static FocusEnvironment FromDto(FocusEnvironmentDto e) => new()
     {
@@ -361,7 +395,7 @@ internal static class SettingsMapper
         Day = Enum.Parse<DayOfWeek>(x.Day, ignoreCase: true),
         Start = TimeOnly.ParseExact(x.Start, TimeFormat, CultureInfo.InvariantCulture),
         Duration = TimeSpan.FromMinutes(x.DurationMinutes),
-        Kind = Enum.TryParse<StudyKind>(x.Kind, ignoreCase: true, out var k) ? k : StudyKind.Otro,
+        CategoryId = string.IsNullOrWhiteSpace(x.Kind) ? CategoryIds.Other : x.Kind,
         PreAlerts = x.PreAlertsMinutes.Select(m => new PreAlert(m)).ToList(),
         IsTentative = x.IsTentative
     };
@@ -387,9 +421,6 @@ internal static class SettingsMapper
     {
         DayStart = TimeOnly.ParseExact(v.DayStart, TimeFormat, CultureInfo.InvariantCulture),
         DayEnd = TimeOnly.ParseExact(v.DayEnd, TimeFormat, CultureInfo.InvariantCulture),
-        ColorsByKind = v.ColorsByKind
-            .Where(kv => Enum.TryParse<StudyKind>(kv.Key, ignoreCase: true, out _))
-            .ToDictionary(kv => Enum.Parse<StudyKind>(kv.Key, ignoreCase: true), kv => kv.Value),
         Shortcuts = v.Shortcuts.Select(s => new ShortcutLink { Title = s.Title, Url = s.Url }).ToList(),
         ShowDayPreviewOnFocusStart = v.ShowDayPreviewOnFocusStart,
         GranularityMinutes = ScheduleGeometry.NormalizeGranularity(v.GranularityMinutes)

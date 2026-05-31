@@ -11,13 +11,13 @@ public class NextSessionTodayTests
         Sessions =
         [
             new StudySession { Title = "Mañana técnico", Day = DayOfWeek.Monday, Start = new TimeOnly(9, 0),
-                Duration = TimeSpan.FromHours(2), Kind = StudyKind.Tecnico },
+                Duration = TimeSpan.FromHours(2), CategoryId = "Tecnico" },
             new StudySession { Title = "Comida", Day = DayOfWeek.Monday, Start = new TimeOnly(14, 0),
-                Duration = TimeSpan.FromHours(1), Kind = StudyKind.Personal },
+                Duration = TimeSpan.FromHours(1), CategoryId = "Personal" },
             new StudySession { Title = "Tarde legislación", Day = DayOfWeek.Monday, Start = new TimeOnly(17, 0),
-                Duration = TimeSpan.FromHours(2), Kind = StudyKind.Legislacion },
+                Duration = TimeSpan.FromHours(2), CategoryId = "Legislacion" },
             new StudySession { Title = "Inglés (otro día)", Day = DayOfWeek.Thursday, Start = new TimeOnly(9, 0),
-                Duration = TimeSpan.FromHours(2), Kind = StudyKind.Ingles },
+                Duration = TimeSpan.FromHours(2), CategoryId = "Ingles" },
         ]
     };
 

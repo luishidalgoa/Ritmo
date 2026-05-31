@@ -68,7 +68,7 @@ public class EnvironmentManagementTests
     {
         var (svc, store) = New();
         svc.UpsertEnvironment(Env("e1", "A"));
-        svc.MapEnvironmentToKind(StudyKind.Simulacro, "e1");
+        svc.MapEnvironmentToKind("Simulacro", "e1");
         Assert.Contains("e1", store.Load().EnvironmentByKind.Values);
 
         svc.RemoveEnvironment("e1");

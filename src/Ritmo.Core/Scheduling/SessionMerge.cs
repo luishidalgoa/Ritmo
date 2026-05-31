@@ -21,8 +21,8 @@ public sealed record SessionGroup(
 /// </summary>
 public static class SessionMerge
 {
-    private static (string, StudyKind, TimeOnly, TimeSpan, bool) Signature(StudySession s)
-        => (s.Title.Trim(), s.Kind, s.Start, s.Duration, s.IsTentative);
+    private static (string, string, TimeOnly, TimeSpan, bool) Signature(StudySession s)
+        => (s.Title.Trim(), s.CategoryId, s.Start, s.Duration, s.IsTentative);
 
     public static IReadOnlyList<SessionGroup> Merge(
         IReadOnlyList<StudySession> sessions, IReadOnlyList<DayOfWeek> dayOrder)

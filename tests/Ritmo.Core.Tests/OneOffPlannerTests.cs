@@ -10,7 +10,7 @@ public class OneOffPlannerTests
     private static OneOffSession One(DateOnly date, int h, double durH = 1, string title = "Extra") => new()
     {
         Id = Guid.NewGuid().ToString("N")[..8], Date = date, Title = title,
-        Start = new TimeOnly(h, 0), Duration = TimeSpan.FromHours(durH), Kind = StudyKind.Ingles
+        Start = new TimeOnly(h, 0), Duration = TimeSpan.FromHours(durH), CategoryId = "Ingles"
     };
 
     private static readonly DateOnly Today = new(2026, 5, 30);

@@ -7,13 +7,13 @@ namespace Ritmo.Core.Tests;
 
 public class NotificationBuilderTests
 {
-    private static StudySession Session(string title = "Bloque B.II", StudyKind kind = StudyKind.Tecnico) => new()
+    private static StudySession Session(string title = "Bloque B.II", string kind = "Tecnico") => new()
     {
         Title = title,
         Day = DayOfWeek.Monday,
         Start = new TimeOnly(9, 0),
         Duration = TimeSpan.FromHours(2),
-        Kind = kind
+        CategoryId = kind
     };
 
     private static PlannedEvent PreAlert(int minutesBefore, StudySession? s = null)
@@ -56,7 +56,7 @@ public class NotificationBuilderTests
     [Fact]
     public void Aviso_previo_incluye_tipo_titulo_y_hora()
     {
-        var msg = NotificationBuilder.ForEvent(PreAlert(10));
+        var msg = NotificationBuilder.ForEvent(PreAlert(10), "Técnico");
 
         Assert.Equal("Tu sesión empieza en 10 minutos", msg.Title);
         Assert.Contains("Técnico", msg.Body);
@@ -67,7 +67,7 @@ public class NotificationBuilderTests
     [Fact]
     public void Inicio_de_sesion_invita_a_concentrarse()
     {
-        var msg = NotificationBuilder.ForEvent(Start());
+        var msg = NotificationBuilder.ForEvent(Start(), "Técnico");
 
         Assert.Equal("Es la hora de concentrarte", msg.Title);
         Assert.Contains("Técnico", msg.Body);
@@ -77,14 +77,14 @@ public class NotificationBuilderTests
     [Fact]
     public void Usa_la_etiqueta_legible_del_tipo()
     {
-        var msg = NotificationBuilder.ForEvent(Start(Session(kind: StudyKind.Legislacion)));
+        var msg = NotificationBuilder.ForEvent(Start(Session(kind: "Legislacion")), "Legislación");
         Assert.Contains("Legislación", msg.Body);
     }
 
     [Fact]
     public void Sin_titulo_cae_en_la_etiqueta_del_tipo()
     {
-        var msg = NotificationBuilder.ForEvent(Start(Session(title: "   ", kind: StudyKind.Simulacro)));
+        var msg = NotificationBuilder.ForEvent(Start(Session(title: "   ", kind: "Simulacro")));
         Assert.Contains("Simulacro", msg.Body);
     }
 
@@ -111,12 +111,12 @@ public class NotificationBuilderTests
     }
 
     [Theory]
-    [InlineData(StudyKind.Tecnico, "Técnico")]
-    [InlineData(StudyKind.Legislacion, "Legislación")]
-    [InlineData(StudyKind.Ingles, "Inglés")]
-    [InlineData(StudyKind.Descanso, "Descanso")]
-    [InlineData(StudyKind.PorDefinir, "Por definir")]
-    [InlineData(StudyKind.Personal, "Personal")]
-    public void Label_traduce_el_tipo(StudyKind kind, string expected)
-        => Assert.Equal(expected, kind.Label());
+    [InlineData("Tecnico", "Técnico")]
+    [InlineData("Legislacion", "Legislación")]
+    [InlineData("Ingles", "Inglés")]
+    [InlineData("Descanso", "Descanso")]
+    [InlineData("PorDefinir", "Por definir")]
+    [InlineData("Personal", "Personal")]
+    public void Label_traduce_el_tipo(string id, string expected)
+        => Assert.Equal(expected, Ritmo.Core.Model.LegacyCategories.ById[id].Name);
 }

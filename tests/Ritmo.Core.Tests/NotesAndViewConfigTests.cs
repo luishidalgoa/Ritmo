@@ -70,22 +70,6 @@ public class ScheduleViewConfigTests
     }
 
     [Fact]
-    public void ColorFor_devuelve_el_configurado_o_null()
-    {
-        var c = new ScheduleViewConfig
-        {
-            ColorsByKind = new Dictionary<StudyKind, string>
-            {
-                [StudyKind.Tecnico] = "#E2EFDA",
-                [StudyKind.Legislacion] = "#DCE6F1"
-            }
-        };
-        Assert.Equal("#E2EFDA", c.ColorFor(StudyKind.Tecnico));
-        Assert.Equal("#DCE6F1", c.ColorFor(StudyKind.Legislacion));
-        Assert.Null(c.ColorFor(StudyKind.Ingles)); // no configurado
-    }
-
-    [Fact]
     public void Shortcuts_guarda_enlaces_atajo()
     {
         var c = new ScheduleViewConfig

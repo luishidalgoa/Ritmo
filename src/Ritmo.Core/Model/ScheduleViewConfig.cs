@@ -26,13 +26,6 @@ public sealed record ScheduleViewConfig
     /// </summary>
     public int GranularityMinutes { get; init; } = 60;
 
-    /// <summary>
-    /// Color (hex "#RRGGBB") por tipo de bloque. Si un tipo no está aquí, la UI
-    /// usa su color por defecto. Permite que el usuario personalice las franjas.
-    /// </summary>
-    public IReadOnlyDictionary<StudyKind, string> ColorsByKind { get; init; }
-        = new Dictionary<StudyKind, string>();
-
     /// <summary>Enlaces-atajo a recursos (clicables desde el horario).</summary>
     public IReadOnlyList<ShortcutLink> Shortcuts { get; init; } = [];
 
@@ -48,8 +41,4 @@ public sealed record ScheduleViewConfig
             return minutes <= 0 ? 0 : (int)Math.Ceiling(minutes / 60.0);
         }
     }
-
-    /// <summary>Color configurado para un tipo, o null si usa el de por defecto.</summary>
-    public string? ColorFor(StudyKind kind) =>
-        ColorsByKind.TryGetValue(kind, out var c) ? c : null;
 }

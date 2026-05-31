@@ -20,7 +20,7 @@ public sealed partial class DayPreviewDialog : ContentDialog
     {
         InitializeComponent();
 
-        ScheduleColors.SetOverrides(settings.ViewConfig.ColorsByKind);   // colores personalizados (#45)
+        ScheduleColors.SetCategories(settings.Categories);   // colores por categoría (#83)
 
         var day = DateOnly.FromDateTime(now);
         var es = new System.Globalization.CultureInfo("es-ES");
@@ -31,10 +31,10 @@ public sealed partial class DayPreviewDialog : ContentDialog
 
         var rows = schedule.Sessions
             .Where(s => s.Day == day.DayOfWeek)
-            .Select(s => new Row(s.Start, s.End, s.Title, s.Kind, s.IsTentative, false))
+            .Select(s => new Row(s.Start, s.End, s.Title, s.CategoryId, settings.CategoryName(s.CategoryId), s.IsTentative, false))
             .Concat(settings.OneOffSessions
                 .Where(o => o.Date == day)
-                .Select(o => new Row(o.Start, o.Start.Add(o.Duration), o.Title, o.Kind, o.IsTentative, true)))
+                .Select(o => new Row(o.Start, o.Start.Add(o.Duration), o.Title, o.CategoryId, settings.CategoryName(o.CategoryId), o.IsTentative, true)))
             .OrderBy(r => r.Start)
             .ToList();
 
@@ -56,16 +56,16 @@ public sealed partial class DayPreviewDialog : ContentDialog
         }
     }
 
-    private sealed record Row(TimeOnly Start, TimeOnly End, string Title, StudyKind Kind, bool Tentative, bool OneOff);
+    private sealed record Row(TimeOnly Start, TimeOnly End, string Title, string CategoryId, string KindName, bool Tentative, bool OneOff);
 
     private static UIElement BuildRow(Row r, bool isNow)
     {
         var accent = ((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color;
 
-        var bar = new Border { Width = 4, CornerRadius = new CornerRadius(2), Background = ScheduleColors.For(r.Kind) };
+        var bar = new Border { Width = 4, CornerRadius = new CornerRadius(2), Background = ScheduleColors.For(r.CategoryId) };
 
         var title = (r.Tentative ? "◇ " : "") + r.Title + (r.OneOff ? "  ✦" : "");
-        var meta = $"{r.Start:HH\\:mm}–{r.End:HH\\:mm} · {r.Kind.Label()}" + (isNow ? "  ·  ahora" : "");
+        var meta = $"{r.Start:HH\\:mm}–{r.End:HH\\:mm} · {r.KindName}" + (isNow ? "  ·  ahora" : "");
         var texts = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
         texts.Children.Add(new TextBlock { Text = title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 14, Opacity = r.Tentative ? 0.7 : 1.0 });
         texts.Children.Add(new TextBlock { Text = meta, Opacity = 0.7, FontSize = 12 });

@@ -33,8 +33,8 @@ public sealed partial class SessionBehaviorDialog : ContentDialog
         var s = AppState.Load();
         var session = s.Plan.Phases.SelectMany(p => p.Schedule.Sessions).Concat(s.Schedule.Sessions)
             .FirstOrDefault(x => string.Equals(x.Title.Trim(), _title, StringComparison.OrdinalIgnoreCase));
-        var kind = session?.Kind ?? StudyKind.Otro;
-        var env = s.ResolveEnvironment(kind);
+        var categoryId = session?.CategoryId ?? Ritmo.Core.Model.CategoryIds.Other;
+        var env = s.ResolveEnvironment(categoryId);
 
         if (env is null)
         {

@@ -546,11 +546,9 @@ public sealed partial class SettingsPage : Page
         }
         KindEnvHint.Visibility = Visibility.Collapsed;
 
-        foreach (var kind in Enum.GetValues<StudyKind>())
+        foreach (var category in s.Categories.Where(c => c.IsFocus).OrderBy(c => c.Order))
         {
-            if (!kind.IsFocusKind()) continue;   // solo los tipos que disparan concentración
-
-            var label = new TextBlock { Text = kind.Label(), VerticalAlignment = VerticalAlignment.Center };
+            var label = new TextBlock { Text = category.Name, VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(label, 0);
 
             var combo = new ComboBox { MinWidth = 240, HorizontalAlignment = HorizontalAlignment.Right };
@@ -558,18 +556,18 @@ public sealed partial class SettingsPage : Page
             foreach (var env in s.FocusEnvironments)
                 combo.Items.Add(new ComboBoxItem { Content = env.Name, Tag = env.Id });
 
-            var current = s.EnvironmentByKind.TryGetValue(kind, out var id) ? id : "";
+            var current = s.EnvironmentByKind.TryGetValue(category.Id, out var id) ? id : "";
             combo.SelectedIndex = 0;
             for (int i = 0; i < combo.Items.Count; i++)
                 if (combo.Items[i] is ComboBoxItem it && (string)it.Tag == current) { combo.SelectedIndex = i; break; }
 
-            var thisKind = kind;
+            var thisCategoryId = category.Id;
             combo.SelectionChanged += (_, _) =>
             {
                 if (_loadingKindMap) return;
                 var sel = (combo.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
-                if (string.IsNullOrEmpty(sel)) AppState.Config.ClearEnvironmentKind(thisKind);
-                else AppState.Config.MapEnvironmentToKind(thisKind, sel);
+                if (string.IsNullOrEmpty(sel)) AppState.Config.ClearEnvironmentKind(thisCategoryId);
+                else AppState.Config.MapEnvironmentToKind(thisCategoryId, sel);
             };
             Grid.SetColumn(combo, 1);
 
@@ -1027,13 +1025,7 @@ public sealed partial class SettingsPage : Page
         finally { NtfyTestBtn.IsEnabled = true; }
     }
 
-    // ---------- Colores del horario por tipo de bloque (#45) ----------
-
-    private static readonly StudyKind[] ColorableKinds =
-    {
-        StudyKind.Tecnico, StudyKind.Legislacion, StudyKind.Ingles, StudyKind.Tests,
-        StudyKind.Simulacro, StudyKind.Descanso, StudyKind.Personal, StudyKind.PorDefinir, StudyKind.Otro
-    };
+    // ---------- Colores del horario por categoría de bloque (#45/#83) ----------
 
     private static Windows.UI.Color ParseHex(string hex)
     {
@@ -1044,23 +1036,22 @@ public sealed partial class SettingsPage : Page
             Convert.ToByte(h.Substring(4, 2), 16));
     }
 
-    /// <summary>Una fila por tipo: etiqueta + muestra que abre nuestra paleta curada.</summary>
+    /// <summary>Una fila por categoría: etiqueta + muestra que abre nuestra paleta curada.</summary>
     private void BuildKindColors(Ritmo.Core.Persistence.AppSettings s)
     {
-        Services.ScheduleColors.SetOverrides(s.ViewConfig.ColorsByKind);   // que las muestras reflejen lo guardado
+        Services.ScheduleColors.SetCategories(s.Categories);   // que las muestras reflejen lo guardado
         ColorsHost.Children.Clear();
 
-        foreach (var kind in ColorableKinds)
+        foreach (var category in s.Categories.OrderBy(c => c.Order))
         {
             var row = new Grid { ColumnSpacing = 10 };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var label = new TextBlock { Text = kind.Label(), VerticalAlignment = VerticalAlignment.Center, FontSize = 14 };
+            var label = new TextBlock { Text = category.Name, VerticalAlignment = VerticalAlignment.Center, FontSize = 14 };
             Grid.SetColumn(label, 0);
 
-            var current = ((SolidColorBrush)Services.ScheduleColors.For(kind)).Color;
-            bool custom = s.ViewConfig.ColorsByKind.ContainsKey(kind);
+            var current = ((SolidColorBrush)Services.ScheduleColors.For(category.Id)).Color;
 
             var swatch = new Microsoft.UI.Xaml.Shapes.Rectangle
             {
@@ -1074,12 +1065,12 @@ public sealed partial class SettingsPage : Page
                 Content = new StackPanel
                 {
                     Orientation = Orientation.Horizontal, Spacing = 8,
-                    Children = { swatch, new TextBlock { Text = custom ? "Personalizado" : "Por defecto", FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 } }
+                    Children = { swatch, new TextBlock { Text = "Cambiar", FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 } }
                 }
             };
             Grid.SetColumn(btn, 1);
 
-            var thisKind = kind;
+            var thisCategoryId = category.Id;
             var flyout = new Flyout();
             string currentHex = $"#{current.R:X2}{current.G:X2}{current.B:X2}";
 
@@ -1109,12 +1100,12 @@ public sealed partial class SettingsPage : Page
                     ToolTipService.SetToolTip(sw, hex);
                     Grid.SetColumn(sw, c); Grid.SetRow(sw, rr);
                     var thisHex = hex;
-                    sw.Click += (_, _) => { AppState.Config.SetKindColor(thisKind, thisHex); flyout.Hide(); BuildKindColors(AppState.Load()); };
+                    sw.Click += (_, _) => { AppState.Config.SetKindColor(thisCategoryId, thisHex); flyout.Hide(); BuildKindColors(AppState.Load()); };
                     swatches.Children.Add(sw);
                 }
 
             var resetBtn = new Button { Content = "Usar por defecto", HorizontalAlignment = HorizontalAlignment.Stretch };
-            resetBtn.Click += (_, _) => { AppState.Config.SetKindColor(thisKind, null); flyout.Hide(); BuildKindColors(AppState.Load()); };
+            resetBtn.Click += (_, _) => { AppState.Config.SetKindColor(thisCategoryId, null); flyout.Hide(); BuildKindColors(AppState.Load()); };
 
             flyout.Content = new StackPanel { Spacing = 10, Children = { swatches, resetBtn } };
             btn.Flyout = flyout;

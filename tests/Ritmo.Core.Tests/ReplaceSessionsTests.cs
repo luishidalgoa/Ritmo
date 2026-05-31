@@ -16,7 +16,7 @@ public class ReplaceSessionsTests
     }
 
     private static StudySession S(string t, DayOfWeek d) =>
-        new() { Title = t, Day = d, Start = new TimeOnly(9, 0), Duration = TimeSpan.FromHours(1), Kind = StudyKind.Descanso };
+        new() { Title = t, Day = d, Start = new TimeOnly(9, 0), Duration = TimeSpan.FromHours(1), CategoryId = "Descanso" };
 
     [Fact]
     public void Reemplaza_la_lista_completa()

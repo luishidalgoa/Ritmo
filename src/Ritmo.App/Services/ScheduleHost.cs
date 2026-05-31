@@ -36,7 +36,8 @@ public sealed class ScheduleHost : IDisposable
             if (schedule.Sessions.Count == 0) return;   // nada que vigilar todavía
 
             ToastService.EnsureRegistered();
-            _runner = new ScheduleRunner(schedule, _clock, _scheduler);
+            var planner = new SchedulePlanner(schedule, AppState.Load().FocusCategoryIds());   // #83
+            _runner = new ScheduleRunner(planner, _clock, _scheduler);
             _runner.EventDue += OnEventDue;
             _runner.Start();
         }
@@ -59,14 +60,14 @@ public sealed class ScheduleHost : IDisposable
 
     private static void OnEventDue(PlannedEvent ev)
     {
-        var msg = NotificationBuilder.ForEvent(ev);
+        var s = AppState.Load();
+        var msg = NotificationBuilder.ForEvent(ev, s.CategoryName(ev.Session.CategoryId));
         ToastService.Show(msg);
 
         // Push al móvil vía ntfy (opt-in, #122). Fire-and-forget best-effort: si está
         // activo y hay topic, publicamos en paralelo al toast; nunca bloquea ni rompe.
         try
         {
-            var s = AppState.Load();
             if (s.NtfyEnabled && !string.IsNullOrWhiteSpace(s.NtfyTopic))
                 _ = NtfyPublisher.PublishAsync(NtfyPublish.For(s.NtfyServerUrl, s.NtfyTopic!, msg, ev.Type));
         }

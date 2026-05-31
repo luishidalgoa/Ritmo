@@ -242,8 +242,8 @@ public sealed partial class SchedulePage : Page
         _slotsPerHour = ScheduleGeometry.SlotsPerHour(_granularity);
         _slotHeight = ScheduleGeometry.SlotHeight(HourHeight, _granularity);
 
-        // Colores personalizados por tipo de bloque (#45): los que falten usan el por defecto.
-        Services.ScheduleColors.SetOverrides(settings.ViewConfig.ColorsByKind);
+        // Colores por categoría de bloque (#45/#83).
+        Services.ScheduleColors.SetCategories(settings.Categories);
 
         var today = DateOnly.FromDateTime(DateTime.Now);
         _builtDate = today;
@@ -415,7 +415,7 @@ public sealed partial class SchedulePage : Page
             int startSlotIdx = (int)Math.Round(ScheduleGeometry.MinutesFromStart(s.Start, startH) / (double)_granularity);
             int spanSlots = Math.Max(1, (int)Math.Round(s.Duration.TotalMinutes / (double)_granularity));
 
-            var baseColor = ScheduleColors.For(s.Kind);
+            var baseColor = ScheduleColors.For(s.CategoryId);
             bool isActive = activeSession is not null && group.Members.Any(m => ReferenceEquals(m, activeSession));
             bool isSelected = _selectedSessionKey is not null && SessionKey(s) == _selectedSessionKey;
             bool ring = isActive || isSelected;   // borde de acento: bloque activo o seleccionado en el panel
@@ -434,10 +434,10 @@ public sealed partial class SchedulePage : Page
                     {
                         new TextBlock {
                             Text = s.Title, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                            Foreground = ScheduleColors.TextFor(s.Kind), TextTrimming = TextTrimming.CharacterEllipsis },
+                            Foreground = ScheduleColors.TextFor(s.CategoryId), TextTrimming = TextTrimming.CharacterEllipsis },
                         new TextBlock {
                             Text = $"{s.Start:HH\\:mm}–{s.End:HH\\:mm}{(s.IsTentative ? "  (?)" : "")}",
-                            FontSize = 10, Opacity = 0.75, Foreground = ScheduleColors.TextFor(s.Kind) }
+                            FontSize = 10, Opacity = 0.75, Foreground = ScheduleColors.TextFor(s.CategoryId) }
                     }
                 }
             };
@@ -457,7 +457,7 @@ public sealed partial class SchedulePage : Page
             var thisGroup = group;
             card.PointerEntered += (_, _) => {
                 visual.BorderThickness = new Thickness(1.5);
-                visual.BorderBrush = ScheduleColors.TextFor(s.Kind);
+                visual.BorderBrush = ScheduleColors.TextFor(s.CategoryId);
             };
             card.PointerExited += (_, _) => {
                 visual.BorderThickness = new Thickness(restThickness);
@@ -819,15 +819,15 @@ public sealed partial class SchedulePage : Page
             var end = one.Start.Add(one.Duration);
             var content = new StackPanel { Spacing = 0 };
             content.Children.Add(new TextBlock { Text = one.Title, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                Foreground = ScheduleColors.TextFor(one.Kind), TextTrimming = TextTrimming.CharacterEllipsis });
+                Foreground = ScheduleColors.TextFor(one.CategoryId), TextTrimming = TextTrimming.CharacterEllipsis });
             content.Children.Add(new TextBlock { Text = $"{one.Start:HH\\:mm}–{end:HH\\:mm}", FontSize = 10, Opacity = 0.75,
-                Foreground = ScheduleColors.TextFor(one.Kind) });
+                Foreground = ScheduleColors.TextFor(one.CategoryId) });
             content.Children.Add(new TextBlock { Text = "✦ solo esta semana", FontSize = 9,
                 FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = accentBrush });
 
             var card = new Border
             {
-                Background = ScheduleColors.For(one.Kind),
+                Background = ScheduleColors.For(one.CategoryId),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(6, 3, 6, 3),
                 VerticalAlignment = VerticalAlignment.Top,
@@ -857,10 +857,10 @@ public sealed partial class SchedulePage : Page
         var content = DetailContent;
         content.Children.Clear();
         content.Children.Add(DetailHeader("Sesión provisional"));
-        content.Children.Add(TitleRow(ScheduleColors.For(one.Kind), one.Title));
+        content.Children.Add(TitleRow(ScheduleColors.For(one.CategoryId), one.Title));
 
         var meta = new StackPanel { Spacing = 4 };
-        meta.Children.Add(MetaLine(one.Kind.Label() + (one.IsTentative ? "  ·  provisional" : "")));
+        meta.Children.Add(MetaLine(AppState.Load().CategoryName(one.CategoryId) + (one.IsTentative ? "  ·  provisional" : "")));
         meta.Children.Add(MetaLine(Capitalize(one.Date.ToString("dddd d 'de' MMMM", es))));
         meta.Children.Add(MetaLine($"{one.Start:HH\\:mm} – {one.Start.Add(one.Duration):HH\\:mm}  ·  {FormatDuration(one.Duration)}"));
         meta.Children.Add(MetaLine("Solo esta semana · no se repite"));
@@ -1049,7 +1049,7 @@ public sealed partial class SchedulePage : Page
                     int di = Array.IndexOf(Days, d);
                     if (di < 0) continue;
                     var ss = dlg.ToSession(d);
-                    AppState.Config.AddOneOffSession(_weekStart.AddDays(di), ss.Title, ss.Start, ss.Duration, ss.Kind, ss.PreAlerts, ss.IsTentative);
+                    AppState.Config.AddOneOffSession(_weekStart.AddDays(di), ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative);
                 }
                 else AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));
             }
@@ -1059,7 +1059,7 @@ public sealed partial class SchedulePage : Page
 
     /// <summary>¿Comparten título/tipo/horario/provisional? (para identificar el grupo fusionado).</summary>
     private static bool SameBlock(StudySession a, StudySession b)
-        => a.Title.Trim() == b.Title.Trim() && a.Kind == b.Kind
+        => a.Title.Trim() == b.Title.Trim() && a.CategoryId == b.CategoryId
            && a.Start == b.Start && a.Duration == b.Duration && a.IsTentative == b.IsTentative;
 
     /// <summary>
@@ -1118,7 +1118,7 @@ public sealed partial class SchedulePage : Page
 
     /// <summary>Identidad estable de una sesión, para resaltarla tras repintar la rejilla.</summary>
     private static string SessionKey(StudySession s)
-        => $"{s.Title.Trim()}|{s.Kind}|{s.Start}|{s.Duration}|{s.IsTentative}";
+        => $"{s.Title.Trim()}|{s.CategoryId}|{s.Start}|{s.Duration}|{s.IsTentative}";
 
     /// <summary>Muestra el detalle completo de una sesión (y sus solapamientos) en el panel.</summary>
     private void ShowSessionDetail(SessionGroup group)
@@ -1131,10 +1131,10 @@ public sealed partial class SchedulePage : Page
         var content = DetailContent;
         content.Children.Clear();
         content.Children.Add(DetailHeader("Detalle de la sesión"));
-        content.Children.Add(TitleRow(ScheduleColors.For(rep.Kind), rep.Title));
+        content.Children.Add(TitleRow(ScheduleColors.For(rep.CategoryId), rep.Title));
 
         var meta = new StackPanel { Spacing = 4 };
-        meta.Children.Add(MetaLine(rep.Kind.Label() + (rep.IsTentative ? "  ·  provisional" : "")));
+        meta.Children.Add(MetaLine(AppState.Load().CategoryName(rep.CategoryId) + (rep.IsTentative ? "  ·  provisional" : "")));
         meta.Children.Add(MetaLine($"{rep.Start:HH\\:mm} – {rep.End:HH\\:mm}  ·  {FormatDuration(rep.Duration)}"));
         var days = group.Members.Select(m => m.Day).Distinct()
                         .OrderBy(d => Array.IndexOf(Days, d)).Select(ShortDay);
@@ -1227,7 +1227,7 @@ public sealed partial class SchedulePage : Page
 
         var sess = sessions.FirstOrDefault();
         if (sess is not null)
-            box.Children.Add(ConflictRow(ScheduleColors.For(sess.Kind), $"Sesión · {sess.Title}",
+            box.Children.Add(ConflictRow(ScheduleColors.For(sess.CategoryId), $"Sesión · {sess.Title}",
                 $"{sess.Start:HH\\:mm}–{sess.End:HH\\:mm}", winner: prefer == false));
 
         var cal = string.IsNullOrEmpty(ev.Calendar) ? "Calendario" : ev.Calendar!;

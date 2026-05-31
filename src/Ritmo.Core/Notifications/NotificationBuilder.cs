@@ -25,10 +25,14 @@ public sealed record NotificationMessage
 /// </summary>
 public static class NotificationBuilder
 {
-    /// <summary>Construye el mensaje para un evento planificado.</summary>
-    public static NotificationMessage ForEvent(PlannedEvent ev)
+    /// <summary>
+    /// Construye el mensaje para un evento planificado. <paramref name="categoryName"/> es
+    /// el nombre visible de la categoría del bloque (el host lo resuelve desde
+    /// <c>AppSettings.Categories</c>); si es null se usa el id de la categoría. #83
+    /// </summary>
+    public static NotificationMessage ForEvent(PlannedEvent ev, string? categoryName = null)
     {
-        var kind = ev.Session.Kind.Label();
+        var kind = string.IsNullOrWhiteSpace(categoryName) ? ev.Session.CategoryId : categoryName!;
         var title = string.IsNullOrWhiteSpace(ev.Session.Title) ? kind : ev.Session.Title.Trim();
         var hhmm = ev.SessionStartAt.ToString("HH:mm");
 

@@ -35,7 +35,7 @@ public sealed partial class HomePage : Page
 
         var phase = settings.Plan.GetActivePhase(today) ?? settings.Plan.OrderedPhases.FirstOrDefault();
         var schedule = phase?.Schedule ?? settings.Schedule;
-        var planner = new SchedulePlanner(schedule);
+        var planner = new SchedulePlanner(schedule, settings.FocusCategoryIds());
 
         // AHORA — una sesión provisional que cubre ahora tiene prioridad (#103).
         var active = OneOffPlanner.ActiveAt(settings.OneOffSessions, now)?.AsSession()
@@ -43,7 +43,7 @@ public sealed partial class HomePage : Page
         if (active is not null)
         {
             NowTitle.Text = active.Title;
-            NowMeta.Text = $"{active.Kind.Label()} · {active.Start:HH\\:mm}–{active.End:HH\\:mm}";
+            NowMeta.Text = $"{settings.CategoryName(active.CategoryId)} · {active.Start:HH\\:mm}–{active.End:HH\\:mm}";
             StartBtnText.Text = "Empezar concentración";
         }
         else
@@ -62,7 +62,7 @@ public sealed partial class HomePage : Page
         if (next is not null)
         {
             NextTitle.Text = next.Title;
-            NextMeta.Text = $"{next.Start:HH\\:mm} · {next.Kind.Label()}";
+            NextMeta.Text = $"{next.Start:HH\\:mm} · {settings.CategoryName(next.CategoryId)}";
         }
         else
         {
@@ -74,7 +74,7 @@ public sealed partial class HomePage : Page
         var ev = planner.GetNextEvent(now);
         if (ev is not null)
         {
-            var msg = NotificationBuilder.ForEvent(ev);
+            var msg = NotificationBuilder.ForEvent(ev, settings.CategoryName(ev.Session.CategoryId));
             AlertTitle.Text = msg.Title;
             AlertMeta.Text = $"{ev.At:HH\\:mm} · {ev.Session.Title}";
         }

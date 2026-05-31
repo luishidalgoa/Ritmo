@@ -22,7 +22,7 @@ public class ExportImportTests
         svc.AddSession("Fase 1", new StudySession
         {
             Title = "Técnico", Day = DayOfWeek.Monday, Start = new TimeOnly(9, 0),
-            Duration = TimeSpan.FromHours(2), Kind = StudyKind.Tecnico, PreAlerts = [new PreAlert(10)]
+            Duration = TimeSpan.FromHours(2), CategoryId = "Tecnico", PreAlerts = [new PreAlert(10)]
         });
         svc.UpsertEnvironment(new FocusEnvironment { Id = "e1", Name = "Estudio", PomodoroPreset = "DeepWork" });
         svc.SetDefaultEnvironment("e1");

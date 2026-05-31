@@ -39,11 +39,11 @@ public class SettingsStoreAdvancedTests : IDisposable
                             new StudySession {
                                 Title = "Técnico", Day = DayOfWeek.Monday,
                                 Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(2),
-                                Kind = StudyKind.Tecnico, PreAlerts = [PreAlert.TenMinutes] },
+                                CategoryId = "Tecnico", PreAlerts = [PreAlert.TenMinutes] },
                             new StudySession {
                                 Title = "Hueco libre", Day = DayOfWeek.Tuesday,
                                 Start = new TimeOnly(16,0), Duration = TimeSpan.FromHours(2),
-                                Kind = StudyKind.PorDefinir, IsTentative = true }
+                                CategoryId = "PorDefinir", IsTentative = true }
                         ]
                     }
                 },
@@ -65,7 +65,6 @@ public class SettingsStoreAdvancedTests : IDisposable
         {
             DayStart = new TimeOnly(8, 0),
             DayEnd = new TimeOnly(20, 0),
-            ColorsByKind = new Dictionary<StudyKind, string> { [StudyKind.Tecnico] = "#E2EFDA" },
             Shortcuts = [ new ShortcutLink { Title = "Campus", Url = "https://campus.zbrain.es" } ],
             ShowDayPreviewOnFocusStart = false
         },
@@ -89,7 +88,7 @@ public class SettingsStoreAdvancedTests : IDisposable
         // El bloque tentativo "Por definir" se conserva.
         var hueco = f1.Schedule.Sessions.Single(s => s.Title == "Hueco libre");
         Assert.True(hueco.IsTentative);
-        Assert.Equal(StudyKind.PorDefinir, hueco.Kind);
+        Assert.Equal("PorDefinir", hueco.CategoryId);
         // Fase indefinida
         Assert.Null(loaded.Plan.OrderedPhases[1].ValidTo);
     }
@@ -106,7 +105,8 @@ public class SettingsStoreAdvancedTests : IDisposable
         Assert.Equal("#C0392B", loaded.Notes.First(n => n.Id == "ojo").AccentColor);
 
         Assert.Equal(new TimeOnly(8, 0), loaded.ViewConfig.DayStart);
-        Assert.Equal("#E2EFDA", loaded.ViewConfig.ColorFor(StudyKind.Tecnico));
+        // El color de "Tecnico" lo aporta la migración de categorías (#83), no ViewConfig.
+        Assert.Equal("#E2EFDA", loaded.Category("Tecnico")!.ColorHex);
         Assert.Single(loaded.ViewConfig.Shortcuts);
         Assert.False(loaded.ViewConfig.ShowDayPreviewOnFocusStart);
     }

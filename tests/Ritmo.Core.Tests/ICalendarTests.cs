@@ -11,10 +11,10 @@ public class ICalendarTests
         [
             new StudySession {
                 Title = "Técnico ▸ siguiente tema", Day = DayOfWeek.Monday,
-                Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(2), Kind = StudyKind.Tecnico },
+                Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(2), CategoryId = "Tecnico" },
             new StudySession {
                 Title = "Inglés", Day = DayOfWeek.Thursday,
-                Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(2), Kind = StudyKind.Ingles }
+                Start = new TimeOnly(9,0), Duration = TimeSpan.FromHours(2), CategoryId = "Ingles" }
         ]
     };
 
@@ -48,10 +48,10 @@ public class ICalendarTests
         var lunes = back.Sessions.Single(s => s.Day == DayOfWeek.Monday);
         Assert.Equal(new TimeOnly(9, 0), lunes.Start);
         Assert.Equal(TimeSpan.FromHours(2), lunes.Duration);
-        Assert.Equal(StudyKind.Tecnico, lunes.Kind);
+        Assert.Equal("Tecnico", lunes.CategoryId);
         Assert.Equal("Técnico ▸ siguiente tema", lunes.Title);
 
-        Assert.Contains(back.Sessions, s => s.Day == DayOfWeek.Thursday && s.Kind == StudyKind.Ingles);
+        Assert.Contains(back.Sessions, s => s.Day == DayOfWeek.Thursday && s.CategoryId == "Ingles");
     }
 
     [Fact]

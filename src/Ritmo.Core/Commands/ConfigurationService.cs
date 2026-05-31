@@ -199,7 +199,7 @@ public sealed class ConfigurationService
 
     /// <summary>Añade una sesión provisional (extraordinaria) en una fecha concreta. Devuelve su Id.</summary>
     public CommandResult AddOneOffSession(DateOnly date, string title, TimeOnly start, TimeSpan duration,
-        StudyKind kind, IReadOnlyList<PreAlert> preAlerts, bool isTentative)
+        string categoryId, IReadOnlyList<PreAlert> preAlerts, bool isTentative)
     {
         if (duration <= TimeSpan.Zero) return CommandResult.Fail("La duración debe ser mayor que cero.");
         if (string.IsNullOrWhiteSpace(title)) return CommandResult.Fail("La sesión necesita un título.");
@@ -208,7 +208,8 @@ public sealed class ConfigurationService
         {
             Id = $"oneoff-{Guid.NewGuid():N}"[..14],
             Date = date, Title = title.Trim(), Start = start, Duration = duration,
-            Kind = kind, PreAlerts = preAlerts.ToList(), IsTentative = isTentative
+            CategoryId = string.IsNullOrWhiteSpace(categoryId) ? CategoryIds.Other : categoryId,
+            PreAlerts = preAlerts.ToList(), IsTentative = isTentative
         };
         _store.Save(s with { OneOffSessions = [.. s.OneOffSessions, one] });
         return CommandResult.Ok(one.Id);
@@ -314,24 +315,27 @@ public sealed class ConfigurationService
     /// Fija (hex "#RRGGBB") o quita (hex vacío → vuelve al color por defecto) el color
     /// de fondo de un tipo de bloque en la rejilla del horario. #45
     /// </summary>
-    public CommandResult SetKindColor(StudyKind kind, string? hex)
+    public CommandResult SetKindColor(string categoryId, string? hex)
     {
         var s = _store.Load();
-        var map = new Dictionary<StudyKind, string>(s.ViewConfig.ColorsByKind);
+        var cat = s.Categories.FirstOrDefault(c => c.Id == categoryId);
+        if (cat is null) return CommandResult.Fail($"No existe la categoría «{categoryId}».");
+
+        string newColor;
         if (string.IsNullOrWhiteSpace(hex))
-        {
-            map.Remove(kind);
-        }
+            newColor = Ritmo.Core.Model.LegacyCategories.ById.TryGetValue(categoryId, out var legacy)
+                ? legacy.ColorHex : "#EDEDED";   // sin hex → color base (legacy si lo hubiera, o gris)
         else
         {
             var norm = NormalizeHexColor(hex);
             if (norm is null) return CommandResult.Fail("Color inválido. Usa el formato #RRGGBB.");
-            map[kind] = norm;
+            newColor = norm;
         }
-        _store.Save(s with { ViewConfig = s.ViewConfig with { ColorsByKind = map } });
+        var updated = s.Categories.Select(c => c.Id == categoryId ? c with { ColorHex = newColor } : c).ToList();
+        _store.Save(s with { Categories = updated });
         return CommandResult.Ok(string.IsNullOrWhiteSpace(hex)
-            ? $"Color de {kind} restablecido al de por defecto."
-            : $"Color de {kind} actualizado.");
+            ? $"Color de «{cat.Name}» restablecido."
+            : $"Color de «{cat.Name}» actualizado.");
     }
 
     /// <summary>Normaliza un color a "#RRGGBB" en mayúsculas; null si no es válido.</summary>
@@ -732,26 +736,27 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Prioridad eliminada.");
     }
 
-    /// <summary>Asocia un tipo de bloque a un entorno (debe existir).</summary>
-    public CommandResult MapEnvironmentToKind(StudyKind kind, string environmentId)
+    /// <summary>Asocia una categoría de bloque a un entorno (debe existir).</summary>
+    public CommandResult MapEnvironmentToKind(string categoryId, string environmentId)
     {
         var s = _store.Load();
+        if (string.IsNullOrWhiteSpace(categoryId)) return CommandResult.Fail("Categoría inválida.");
         if (s.FocusEnvironments.All(e => e.Id != environmentId))
             return CommandResult.Fail($"No existe el entorno con id «{environmentId}».");
 
-        var map = new Dictionary<StudyKind, string>(s.EnvironmentByKind) { [kind] = environmentId };
+        var map = new Dictionary<string, string>(s.EnvironmentByKind) { [categoryId] = environmentId };
         _store.Save(s with { EnvironmentByKind = map });
-        return CommandResult.Ok($"Tipo {kind} asociado al entorno «{environmentId}».");
+        return CommandResult.Ok($"Categoría «{categoryId}» asociada al entorno «{environmentId}».");
     }
 
-    /// <summary>Quita la asociación tipo→entorno: ese tipo vuelve a usar el predeterminado. #70</summary>
-    public CommandResult ClearEnvironmentKind(StudyKind kind)
+    /// <summary>Quita la asociación categoría→entorno: esa categoría vuelve a usar el predeterminado. #70</summary>
+    public CommandResult ClearEnvironmentKind(string categoryId)
     {
         var s = _store.Load();
-        if (!s.EnvironmentByKind.ContainsKey(kind)) return CommandResult.Ok("Sin cambios.");
-        var map = s.EnvironmentByKind.Where(kv => kv.Key != kind).ToDictionary(kv => kv.Key, kv => kv.Value);
+        if (!s.EnvironmentByKind.ContainsKey(categoryId)) return CommandResult.Ok("Sin cambios.");
+        var map = s.EnvironmentByKind.Where(kv => kv.Key != categoryId).ToDictionary(kv => kv.Key, kv => kv.Value);
         _store.Save(s with { EnvironmentByKind = map });
-        return CommandResult.Ok($"Tipo {kind} usa el entorno predeterminado.");
+        return CommandResult.Ok($"Categoría «{categoryId}» usa el entorno predeterminado.");
     }
 }
 

@@ -55,7 +55,7 @@ public class ConfigurationServiceTests
         var session = new StudySession
         {
             Title = "Técnico", Day = DayOfWeek.Monday,
-            Start = new TimeOnly(9, 0), Duration = TimeSpan.FromHours(2), Kind = StudyKind.Tecnico
+            Start = new TimeOnly(9, 0), Duration = TimeSpan.FromHours(2), CategoryId = "Tecnico"
         };
         var r = svc.AddSession("Fase 1", session);
         Assert.True(r.Success);
@@ -154,9 +154,9 @@ public class ConfigurationServiceTests
     {
         var (svc, store) = New();
         svc.UpsertEnvironment(new FocusEnvironment { Id = "sim", Name = "Simulacro" });
-        var r = svc.MapEnvironmentToKind(StudyKind.Simulacro, "sim");
+        var r = svc.MapEnvironmentToKind("Simulacro", "sim");
         Assert.True(r.Success);
-        Assert.Equal("sim", store.Load().ResolveEnvironment(StudyKind.Simulacro)!.Id);
+        Assert.Equal("sim", store.Load().ResolveEnvironment("Simulacro")!.Id);
     }
 
     [Fact]

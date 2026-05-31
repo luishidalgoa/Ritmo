@@ -7,11 +7,11 @@ internal static class SampleData
 {
     public static SchedulePlan TaiPlan()
     {
-        StudySession S(string title, DayOfWeek day, int h, double hours, StudyKind kind,
+        StudySession S(string title, DayOfWeek day, int h, double hours, string categoryId,
                        params int[] alerts) => new()
         {
             Title = title, Day = day, Start = new TimeOnly(h, 0),
-            Duration = TimeSpan.FromHours(hours), Kind = kind,
+            Duration = TimeSpan.FromHours(hours), CategoryId = categoryId,
             PreAlerts = alerts.Select(a => new PreAlert(a)).ToList()
         };
 
@@ -21,15 +21,15 @@ internal static class SampleData
         {
             // Mañana: 9-11 (jueves = inglés), 12-14 técnico
             if (d == DayOfWeek.Thursday)
-                sessions.Add(S("Inglés — clase", d, 9, 2, StudyKind.Ingles, 60, 10));
+                sessions.Add(S("Inglés — clase", d, 9, 2, "Ingles", 60, 10));
             else if (d is DayOfWeek.Monday or DayOfWeek.Wednesday or DayOfWeek.Friday)
-                sessions.Add(S("Legislación (B.I)", d, 9, 2, StudyKind.Legislacion));
+                sessions.Add(S("Legislación (B.I)", d, 9, 2, "Legislacion"));
             else
-                sessions.Add(S("Técnico", d, 9, 2, StudyKind.Tecnico));
+                sessions.Add(S("Técnico", d, 9, 2, "Tecnico"));
 
-            sessions.Add(S("Técnico", d, 12, 2, StudyKind.Tecnico));
+            sessions.Add(S("Técnico", d, 12, 2, "Tecnico"));
             // Tarde: tests / ofimática
-            sessions.Add(S(d == DayOfWeek.Thursday ? "Práctica" : "Tests del tema", d, 16, 2, StudyKind.Tests));
+            sessions.Add(S(d == DayOfWeek.Thursday ? "Práctica" : "Tests del tema", d, 16, 2, "Tests"));
         }
 
         return new SchedulePlan

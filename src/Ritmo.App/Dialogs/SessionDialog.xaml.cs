@@ -99,7 +99,7 @@ public sealed partial class SessionDialog : ContentDialog
         EndPicker.Time = s.End.ToTimeSpan();
         TentativeSwitch.IsOn = s.IsTentative;
         for (int i = 0; i < KindBox.Items.Count; i++)
-            if (KindBox.Items[i] is ComboBoxItem it && (string)it.Tag == s.Kind.ToString())
+            if (KindBox.Items[i] is ComboBoxItem it && (string)it.Tag == s.CategoryId)
             { KindBox.SelectedIndex = i; break; }
 
         // Hasta 2 avisos en los dos desplegables (ordenados de mayor a menor).
@@ -127,9 +127,8 @@ public sealed partial class SessionDialog : ContentDialog
         var end = TimeOnly.FromTimeSpan(EndPicker.Time);
         var duration = ScheduleMath.DurationBetween(start, end);
 
-        var kind = StudyKind.Otro;
-        if (KindBox.SelectedItem is ComboBoxItem it && Enum.TryParse<StudyKind>((string)it.Tag, out var k))
-            kind = k;
+        var categoryId = (KindBox.SelectedItem as ComboBoxItem)?.Tag as string;
+        if (string.IsNullOrWhiteSpace(categoryId)) categoryId = Ritmo.Core.Model.CategoryIds.Other;
 
         var selected = new[] { AlertMinutes(Alert1Box, Alert1Custom), AlertMinutes(Alert2Box, Alert2Custom) };
         var alerts = PreAlertPresets.Compose(selected);
@@ -140,7 +139,7 @@ public sealed partial class SessionDialog : ContentDialog
             Day = day,
             Start = start,
             Duration = duration,
-            Kind = kind,
+            CategoryId = categoryId,
             PreAlerts = alerts,
             IsTentative = TentativeSwitch.IsOn
         };

@@ -1,23 +1,29 @@
+using System;
 using System.Collections.Generic;
-using Microsoft.UI;
+using System.Linq;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 using Ritmo.Core.Model;
 
 namespace Ritmo_App.Services;
 
-/// <summary>Color de fondo por tipo de bloque (coherente con el Excel del horario).</summary>
+/// <summary>
+/// Color de fondo/texto por categoría de bloque (#83). Lee del registro de categorías
+/// del usuario (<see cref="BlockCategory"/>), que se refresca antes de cada render con
+/// <see cref="SetCategories"/>. Estado estático = presentación global, hilo de UI único.
+/// </summary>
 internal static class ScheduleColors
 {
-    // Overrides elegidos por el usuario (ViewConfig.ColorsByKind). Se refrescan antes de
-    // cada render (SchedulePage.Build / DayPreviewDialog); si un tipo no está, se usa su
-    // color por defecto. Estado estático = presentación global, hilo de UI único. #45
-    private static IReadOnlyDictionary<StudyKind, string> _overrides =
-        new Dictionary<StudyKind, string>();
+    private static IReadOnlyDictionary<string, BlockCategory> _byId =
+        new Dictionary<string, BlockCategory>(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Aplica los colores personalizados por tipo (los que falten usan el por defecto).</summary>
-    public static void SetOverrides(IReadOnlyDictionary<StudyKind, string>? overrides)
-        => _overrides = overrides ?? new Dictionary<StudyKind, string>();
+    private const string FallbackBg = "#EDEDED";
+    private const string FallbackText = "#595959";
+
+    /// <summary>Refresca el registro de categorías (llamar antes de pintar el horario).</summary>
+    public static void SetCategories(IReadOnlyList<BlockCategory>? categories)
+        => _byId = (categories ?? new List<BlockCategory>())
+            .ToDictionary(c => c.Id, c => c, StringComparer.OrdinalIgnoreCase);
 
     private static Color Hex(string hex)
     {
@@ -28,35 +34,18 @@ internal static class ScheduleColors
             Convert.ToByte(hex.Substring(4, 2), 16));
     }
 
-    public static Brush For(StudyKind kind)
+    private static Brush Brush(string? hex, string fallback)
     {
-        if (_overrides.TryGetValue(kind, out var custom) && custom.TrimStart('#').Length == 6)
-        {
-            try { return new SolidColorBrush(Hex(custom)); }
-            catch { /* color guardado corrupto: cae al de por defecto */ }
-        }
-        return new SolidColorBrush(kind switch
-        {
-            StudyKind.Tecnico => Hex("#E2EFDA"),
-            StudyKind.Legislacion => Hex("#DCE6F1"),
-            StudyKind.Ingles => Hex("#FDE2C8"),
-            StudyKind.Tests => Hex("#E4DFEC"),
-            StudyKind.Simulacro => Hex("#F8CBAD"),
-            StudyKind.Descanso => Hex("#FCE9D6"),
-            StudyKind.Personal => Hex("#FCE4EC"),
-            StudyKind.PorDefinir => Hex("#F2F2F2"),
-            _ => Hex("#EDEDED")
-        });
+        var value = !string.IsNullOrWhiteSpace(hex) && hex!.TrimStart('#').Length == 6 ? hex : fallback;
+        try { return new SolidColorBrush(Hex(value)); }
+        catch { return new SolidColorBrush(Hex(fallback)); }
     }
 
-    public static Brush TextFor(StudyKind kind) => new SolidColorBrush(kind switch
-    {
-        StudyKind.Tecnico => Hex("#548235"),
-        StudyKind.Legislacion => Hex("#1F4E79"),
-        StudyKind.Ingles => Hex("#C55A11"),
-        StudyKind.Tests => Hex("#7030A0"),
-        StudyKind.Simulacro => Hex("#C0392B"),
-        StudyKind.Personal => Hex("#AD1457"),
-        _ => Hex("#595959")
-    });
+    /// <summary>Color de fondo de una categoría (gris si no existe).</summary>
+    public static Brush For(string? categoryId)
+        => Brush(_byId.TryGetValue(categoryId ?? "", out var c) ? c.ColorHex : null, FallbackBg);
+
+    /// <summary>Color de texto de una categoría (gris si no existe o no define texto).</summary>
+    public static Brush TextFor(string? categoryId)
+        => Brush(_byId.TryGetValue(categoryId ?? "", out var c) ? c.TextColorHex : null, FallbackText);
 }

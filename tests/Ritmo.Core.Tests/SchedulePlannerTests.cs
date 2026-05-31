@@ -17,7 +17,7 @@ public class SchedulePlannerTests
                 Day = DayOfWeek.Monday,
                 Start = new TimeOnly(9, 0),
                 Duration = TimeSpan.FromHours(2),
-                Kind = StudyKind.Tecnico,
+                CategoryId = "Tecnico",
                 PreAlerts = [PreAlert.OneHour, PreAlert.TenMinutes]
             },
             new StudySession
@@ -26,7 +26,7 @@ public class SchedulePlannerTests
                 Day = DayOfWeek.Thursday,
                 Start = new TimeOnly(9, 0),
                 Duration = TimeSpan.FromHours(2),
-                Kind = StudyKind.Ingles,
+                CategoryId = "Ingles",
                 PreAlerts = []
             }
         ]
@@ -42,7 +42,7 @@ public class SchedulePlannerTests
         var events = planner.GetEvents(MondayMidnight, TimeSpan.FromDays(1));
 
         var start = events.Single(e => e.Type == PlannedEventType.SessionStart
-                                       && e.Session.Kind == StudyKind.Tecnico);
+                                       && e.Session.CategoryId == "Tecnico");
         Assert.Equal(new DateTime(2026, 6, 1, 9, 0, 0), start.At);
     }
 
@@ -86,7 +86,7 @@ public class SchedulePlannerTests
                     Day = DayOfWeek.Monday,
                     Start = new TimeOnly(9, 0),
                     Duration = TimeSpan.FromHours(1),
-                    Kind = StudyKind.Tecnico,
+                    CategoryId = "Tecnico",
                     PreAlerts = [new PreAlert(0)]
                 }
             ]
@@ -121,7 +121,7 @@ public class SchedulePlannerTests
         var next = planner.GetNextEvent(tuesday);
 
         Assert.NotNull(next);
-        Assert.Equal(StudyKind.Ingles, next!.Session.Kind);
+        Assert.Equal("Ingles", next!.Session.CategoryId);
         Assert.Equal(new DateTime(2026, 6, 4, 9, 0, 0), next.At); // jueves
     }
 
@@ -132,7 +132,7 @@ public class SchedulePlannerTests
         // Lunes 10:00 está dentro de 09:00–11:00.
         var active = planner.GetActiveSession(new DateTime(2026, 6, 1, 10, 0, 0));
         Assert.NotNull(active);
-        Assert.Equal(StudyKind.Tecnico, active!.Kind);
+        Assert.Equal("Tecnico", active!.CategoryId);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class SchedulePlannerTests
                     Day = DayOfWeek.Monday,
                     Start = new TimeOnly(23, 0),
                     Duration = TimeSpan.FromHours(2), // 23:00 -> 01:00
-                    Kind = StudyKind.Tecnico
+                    CategoryId = "Tecnico"
                 }
             ]
         };

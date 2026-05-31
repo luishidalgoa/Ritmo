@@ -32,7 +32,7 @@ public static class ICalendar
         var sb = new StringBuilder();
         sb.Append("BEGIN:VCALENDAR\r\n");
         sb.Append("VERSION:2.0\r\n");
-        sb.Append("PRODID:-//Ritmo//Horario de estudio//ES\r\n");
+        sb.Append("PRODID:-//Ritmo//ES\r\n");
         sb.Append("CALSCALE:GREGORIAN\r\n");
 
         // Semana de referencia: la del 'from' o un lunes fijo (2024-01-01 es lunes).
@@ -55,7 +55,8 @@ public static class ICalendar
             if (to is { } end)
                 rrule += $";UNTIL={Stamp(end.ToDateTime(new TimeOnly(23, 59)))}";
             sb.Append(rrule + "\r\n");
-            sb.Append($"CATEGORIES:{s.Kind}\r\n");
+            if (!string.IsNullOrEmpty(s.CategoryId))
+                sb.Append($"CATEGORIES:{s.CategoryId}\r\n");
             if (s.IsTentative)
                 sb.Append("STATUS:TENTATIVE\r\n");
             sb.Append("END:VEVENT\r\n");
@@ -92,8 +93,8 @@ public static class ICalendar
                 duration = dtEnd - dtStart;
 
             var title = props.TryGetValue("SUMMARY", out var sum) ? Unescape(sum) : "(sin título)";
-            var kind = props.TryGetValue("CATEGORIES", out var cat)
-                && Enum.TryParse<StudyKind>(cat.Trim(), ignoreCase: true, out var k) ? k : StudyKind.Otro;
+            var categoryId = props.TryGetValue("CATEGORIES", out var cat) && !string.IsNullOrWhiteSpace(cat)
+                ? cat.Trim() : CategoryIds.Other;
             var tentative = props.TryGetValue("STATUS", out var st)
                 && st.Trim().Equals("TENTATIVE", StringComparison.OrdinalIgnoreCase);
 
@@ -103,7 +104,7 @@ public static class ICalendar
                 Day = day,
                 Start = TimeOnly.FromDateTime(dtStart),
                 Duration = duration,
-                Kind = kind,
+                CategoryId = categoryId,
                 IsTentative = tentative
             });
         }

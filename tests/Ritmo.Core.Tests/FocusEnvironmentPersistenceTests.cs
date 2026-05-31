@@ -37,9 +37,9 @@ public class FocusEnvironmentPersistenceTests : IDisposable
             new FocusEnvironment { Id = "ligero", Name = "Repaso ligero", EnableDoNotDisturb = false }
         ],
         DefaultFocusEnvironmentId = "deep",
-        EnvironmentByKind = new Dictionary<StudyKind, string>
+        EnvironmentByKind = new Dictionary<string, string>
         {
-            [StudyKind.Simulacro] = "ligero"
+            ["Simulacro"] = "ligero"
         }
     };
 
@@ -123,9 +123,9 @@ public class FocusEnvironmentPersistenceTests : IDisposable
         var loaded = store.Load();
 
         // Simulacro está mapeado a "ligero".
-        Assert.Equal("ligero", loaded.ResolveEnvironment(StudyKind.Simulacro)!.Id);
+        Assert.Equal("ligero", loaded.ResolveEnvironment("Simulacro")!.Id);
         // Técnico no está mapeado -> cae al por defecto "deep".
-        Assert.Equal("deep", loaded.ResolveEnvironment(StudyKind.Tecnico)!.Id);
+        Assert.Equal("deep", loaded.ResolveEnvironment("Tecnico")!.Id);
     }
 
     [Fact]
@@ -133,6 +133,6 @@ public class FocusEnvironmentPersistenceTests : IDisposable
     {
         var loaded = new JsonSettingsStore(_file).Load(); // archivo inexistente -> Default
         Assert.Empty(loaded.FocusEnvironments);
-        Assert.Null(loaded.ResolveEnvironment(StudyKind.Tecnico));
+        Assert.Null(loaded.ResolveEnvironment("Tecnico"));
     }
 }

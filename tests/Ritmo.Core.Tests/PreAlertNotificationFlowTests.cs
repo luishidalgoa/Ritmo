@@ -31,7 +31,7 @@ public class PreAlertNotificationFlowTests
             Day = DayOfWeek.Monday,
             Start = new TimeOnly(9, 0),
             Duration = TimeSpan.FromHours(2),
-            Kind = StudyKind.Tecnico,
+            CategoryId = "Tecnico",
             PreAlerts = [new PreAlert(10), new PreAlert(5)]
         };
         var schedule = new WeeklySchedule { Sessions = [session] };
@@ -40,10 +40,12 @@ public class PreAlertNotificationFlowTests
         var monday8 = new DateTime(2026, 6, 1, 8, 0, 0); // 2026-06-01 es lunes
         var (clock, sched) = Doubles(monday8);
 
-        // Esto es exactamente lo que hace ScheduleHost: EventDue -> NotificationBuilder.
+        // Esto es exactamente lo que hace ScheduleHost: EventDue -> NotificationBuilder
+        // con el nombre legible de la categoría (#83).
         var toasts = new List<(DateTime At, NotificationMessage Msg)>();
         using var runner = new ScheduleRunner(schedule, clock, sched);
-        runner.EventDue += ev => toasts.Add((clock.Now, NotificationBuilder.ForEvent(ev)));
+        runner.EventDue += ev => toasts.Add((clock.Now,
+            NotificationBuilder.ForEvent(ev, Ritmo.Core.Model.LegacyCategories.ById[ev.Session.CategoryId].Name)));
         runner.Start();
 
         // Avanzamos hasta pasado el inicio.
@@ -74,7 +76,7 @@ public class PreAlertNotificationFlowTests
             Day = DayOfWeek.Monday,
             Start = new TimeOnly(9, 0),
             Duration = TimeSpan.FromHours(1),
-            Kind = StudyKind.PorDefinir,
+            CategoryId = "PorDefinir",
             IsTentative = true,
             PreAlerts = [new PreAlert(10)]
         };

@@ -11,8 +11,22 @@ namespace Ritmo.Core.Scheduling;
 public sealed class SchedulePlanner
 {
     private readonly WeeklySchedule _schedule;
+    private readonly IReadOnlySet<string> _focus;
 
-    public SchedulePlanner(WeeklySchedule schedule) => _schedule = schedule;
+    /// <summary>
+    /// Ids de categoría que disparan concentración por defecto (fallback para tests y
+    /// llamadas sin contexto). En producción se pasan los ids reales de
+    /// <c>AppSettings.Categories</c> con <c>IsFocus</c>. #83
+    /// </summary>
+    public static readonly IReadOnlySet<string> DefaultFocusCategoryIds =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        { "Tecnico", "Legislacion", "Ingles", "Tests", "Simulacro" };
+
+    public SchedulePlanner(WeeklySchedule schedule, IReadOnlySet<string>? focusCategoryIds = null)
+    {
+        _schedule = schedule;
+        _focus = focusCategoryIds ?? DefaultFocusCategoryIds;
+    }
 
     /// <summary>
     /// Expande cada sesión semanal a sus ocurrencias absolutas dentro de
@@ -40,7 +54,7 @@ public sealed class SchedulePlanner
                 // No disparan inicio automático de concentración: los bloques tentativos
                 // ni los tipos que no son de estudio (Descanso, Personal, PorDefinir…).
                 // Solo se ven en el calendario; sus avisos, si los tienen, suenan igual.
-                if (!s.IsTentative && s.Kind.IsFocusKind() && start >= from && start < until)
+                if (!s.IsTentative && _focus.Contains(s.CategoryId) && start >= from && start < until)
                 {
                     events.Add(new PlannedEvent
                     {
@@ -115,7 +129,7 @@ public sealed class SchedulePlanner
                 continue;
             // No cuentan como sesión activa (no disparan concentración) los tentativos
             // ni los tipos que no son de estudio (Descanso, Personal…).
-            if (s.IsTentative || !s.Kind.IsFocusKind())
+            if (s.IsTentative || !_focus.Contains(s.CategoryId))
                 continue;
             // Sesión que no cruza medianoche (caso normal del horario 08–20).
             if (s.Start <= s.End)

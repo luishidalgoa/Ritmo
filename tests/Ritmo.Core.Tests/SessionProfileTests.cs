@@ -119,10 +119,10 @@ public class SessionProfileTests
         var svc = new ConfigurationService(store);
         svc.UpsertEnvironment(Env());
 
-        Assert.True(svc.MapEnvironmentToKind(StudyKind.Tecnico, "env-1").Success);
-        Assert.Equal("env-1", store.Load().EnvironmentByKind[StudyKind.Tecnico]);
+        Assert.True(svc.MapEnvironmentToKind("Tecnico", "env-1").Success);
+        Assert.Equal("env-1", store.Load().EnvironmentByKind["Tecnico"]);
 
-        Assert.True(svc.ClearEnvironmentKind(StudyKind.Tecnico).Success);
-        Assert.False(store.Load().EnvironmentByKind.ContainsKey(StudyKind.Tecnico));
+        Assert.True(svc.ClearEnvironmentKind("Tecnico").Success);
+        Assert.False(store.Load().EnvironmentByKind.ContainsKey("Tecnico"));
     }
 }

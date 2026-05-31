@@ -34,6 +34,16 @@ public sealed record AppSettings
     /// <summary>Preferencias de visualización del horario.</summary>
     public ScheduleViewConfig ViewConfig { get; init; } = new();
 
+    /// <summary>
+    /// Categorías de bloque definibles por el usuario (#83). Reemplazan al antiguo enum
+    /// <c>StudyKind</c>. De fábrica = set neutral; los usuarios existentes las reciben por
+    /// migración (ver <c>CategoryMigration</c>). Siempre incluye «Otro» y «Por definir».
+    /// </summary>
+    public IReadOnlyList<BlockCategory> Categories { get; init; } = CategoryDefaults.Neutral();
+
+    /// <summary>Si el usuario ya pasó el onboarding (selector de plantillas). #83</summary>
+    public bool OnboardingCompleted { get; init; }
+
     /// <summary>Entornos de concentración definidos por el usuario.</summary>
     public IReadOnlyList<FocusEnvironment> FocusEnvironments { get; init; } = [];
 
@@ -72,25 +82,45 @@ public sealed record AppSettings
     public IReadOnlyList<OverlapPriority> OverlapPriorities { get; init; } = [];
 
     /// <summary>
-    /// Mapeo opcional tipo de bloque → id de entorno, para asociar automáticamente
-    /// (p. ej. un bloque "Simulacro" usa el entorno "Simulacro").
+    /// Mapeo opcional categoría de bloque (id) → id de entorno, para asociar automáticamente
+    /// (p. ej. un bloque "Simulacro" usa el entorno "Simulacro"). #70
     /// </summary>
-    public IReadOnlyDictionary<StudyKind, string> EnvironmentByKind { get; init; }
-        = new Dictionary<StudyKind, string>();
+    public IReadOnlyDictionary<string, string> EnvironmentByKind { get; init; }
+        = new Dictionary<string, string>();
 
     public static AppSettings Default => new();
 
     /// <summary>
-    /// Resuelve qué entorno usar para un tipo de bloque: primero el mapeo por tipo,
+    /// Resuelve qué entorno usar para una categoría de bloque: primero el mapeo por categoría,
     /// luego el por defecto, y si nada aplica, null.
     /// </summary>
-    public FocusEnvironment? ResolveEnvironment(StudyKind kind)
+    public FocusEnvironment? ResolveEnvironment(string categoryId)
     {
-        if (EnvironmentByKind.TryGetValue(kind, out var id))
+        if (!string.IsNullOrEmpty(categoryId) && EnvironmentByKind.TryGetValue(categoryId, out var id))
         {
             var byKind = FocusEnvironments.FirstOrDefault(e => e.Id == id);
             if (byKind is not null) return byKind;
         }
         return FocusEnvironments.FirstOrDefault(e => e.Id == DefaultFocusEnvironmentId);
     }
+
+    /// <summary>La categoría con ese id, o null si no existe. #83</summary>
+    public BlockCategory? Category(string? id)
+        => id is null ? null : Categories.FirstOrDefault(c => string.Equals(c.Id, id, System.StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>La categoría con ese id; si no existe, cae a «Otro» (o una gris si faltara). #83</summary>
+    public BlockCategory CategoryOrFallback(string? id)
+        => Category(id)
+           ?? Category(CategoryIds.Other)
+           ?? new BlockCategory { Id = CategoryIds.Other, Name = "Otro", ColorHex = LegacyCategories.UnknownColor, TextColorHex = LegacyCategories.UnknownTextColor, IsSystem = true };
+
+    /// <summary>Nombre visible de la categoría (o «Otro» si no existe). #83</summary>
+    public string CategoryName(string? id) => CategoryOrFallback(id).Name;
+
+    /// <summary>¿La categoría dispara concentración? (false si no existe). #83</summary>
+    public bool IsFocusCategory(string? id) => Category(id)?.IsFocus ?? false;
+
+    /// <summary>Ids de las categorías que disparan concentración (para el planificador). #83</summary>
+    public IReadOnlySet<string> FocusCategoryIds()
+        => Categories.Where(c => c.IsFocus).Select(c => c.Id).ToHashSet(System.StringComparer.OrdinalIgnoreCase);
 }

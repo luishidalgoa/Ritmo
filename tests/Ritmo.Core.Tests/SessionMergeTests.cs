@@ -11,8 +11,8 @@ public class SessionMergeTests
         { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
           DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
 
-    private static StudySession S(string title, DayOfWeek day, int hour = 9, double hours = 1, StudyKind kind = StudyKind.Descanso)
-        => new() { Title = title, Day = day, Start = new TimeOnly(hour, 0), Duration = TimeSpan.FromHours(hours), Kind = kind };
+    private static StudySession S(string title, DayOfWeek day, int hour = 9, double hours = 1, string kind = "Descanso")
+        => new() { Title = title, Day = day, Start = new TimeOnly(hour, 0), Duration = TimeSpan.FromHours(hours), CategoryId = kind };
 
     [Fact]
     public void Dias_contiguos_identicos_se_fusionan()
@@ -50,7 +50,7 @@ public class SessionMergeTests
     [Fact]
     public void Distinto_titulo_no_fusiona()
     {
-        var sessions = new[] { S("Técnico", DayOfWeek.Monday, kind: StudyKind.Tecnico), S("Legislación", DayOfWeek.Tuesday, kind: StudyKind.Legislacion) };
+        var sessions = new[] { S("Técnico", DayOfWeek.Monday, kind: "Tecnico"), S("Legislación", DayOfWeek.Tuesday, kind: "Legislacion") };
         var groups = SessionMerge.Merge(sessions, Days);
         Assert.Equal(2, groups.Count);
     }
