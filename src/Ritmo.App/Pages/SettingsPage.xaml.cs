@@ -802,7 +802,16 @@ public sealed partial class SettingsPage : Page
         StudyKind.Simulacro, StudyKind.Descanso, StudyKind.Personal, StudyKind.PorDefinir, StudyKind.Otro
     };
 
-    /// <summary>Una fila por tipo: etiqueta + muestra de color que abre un ColorPicker.</summary>
+    private static Windows.UI.Color ParseHex(string hex)
+    {
+        var h = hex.TrimStart('#');
+        return Windows.UI.Color.FromArgb(255,
+            Convert.ToByte(h.Substring(0, 2), 16),
+            Convert.ToByte(h.Substring(2, 2), 16),
+            Convert.ToByte(h.Substring(4, 2), 16));
+    }
+
+    /// <summary>Una fila por tipo: etiqueta + muestra que abre nuestra paleta curada.</summary>
     private void BuildKindColors(Ritmo.Core.Persistence.AppSettings s)
     {
         Services.ScheduleColors.SetOverrides(s.ViewConfig.ColorsByKind);   // que las muestras reflejen lo guardado
@@ -837,31 +846,45 @@ public sealed partial class SettingsPage : Page
             };
             Grid.SetColumn(btn, 1);
 
-            var picker = new ColorPicker { IsAlphaEnabled = false, IsMoreButtonVisible = true, Color = current };
-            var resetBtn = new Button { Content = "Usar por defecto" };
-            var applyBtn = new Button { Content = "Aplicar", Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
-            var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
-            actions.Children.Add(resetBtn); actions.Children.Add(applyBtn);
-            var flyout = new Flyout
-            {
-                Content = new StackPanel { Spacing = 10, Children = { picker, actions } }
-            };
-            btn.Flyout = flyout;
-
             var thisKind = kind;
-            applyBtn.Click += (_, _) =>
-            {
-                var c = picker.Color;
-                AppState.Config.SetKindColor(thisKind, $"#{c.R:X2}{c.G:X2}{c.B:X2}");
-                flyout.Hide();
-                BuildKindColors(AppState.Load());
-            };
-            resetBtn.Click += (_, _) =>
-            {
-                AppState.Config.SetKindColor(thisKind, null);
-                flyout.Hide();
-                BuildKindColors(AppState.Load());
-            };
+            var flyout = new Flyout();
+            string currentHex = $"#{current.R:X2}{current.G:X2}{current.B:X2}";
+
+            // Nuestra paleta curada: columnas por color, filas de mayor a menor intensidad (#45).
+            var swatches = new Grid { ColumnSpacing = 3, RowSpacing = 3 };
+            var cols = Services.SchedulePalette.Columns();
+            int nRows = cols.Count > 0 ? cols[0].Count : 0;
+            for (int c = 0; c < cols.Count; c++) swatches.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            for (int rr = 0; rr < nRows; rr++) swatches.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var strokeBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"];
+            var accentBrush = new SolidColorBrush(((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color);
+
+            for (int c = 0; c < cols.Count; c++)
+                for (int rr = 0; rr < cols[c].Count; rr++)
+                {
+                    var hex = cols[c][rr];
+                    bool isSel = string.Equals(hex, currentHex, StringComparison.OrdinalIgnoreCase);
+                    var sw = new Button
+                    {
+                        Width = 26, Height = 22, MinWidth = 0, Padding = new Thickness(0),
+                        Background = new SolidColorBrush(ParseHex(hex)),
+                        CornerRadius = new CornerRadius(4),
+                        BorderThickness = new Thickness(isSel ? 2 : 1),
+                        BorderBrush = isSel ? accentBrush : strokeBrush
+                    };
+                    ToolTipService.SetToolTip(sw, hex);
+                    Grid.SetColumn(sw, c); Grid.SetRow(sw, rr);
+                    var thisHex = hex;
+                    sw.Click += (_, _) => { AppState.Config.SetKindColor(thisKind, thisHex); flyout.Hide(); BuildKindColors(AppState.Load()); };
+                    swatches.Children.Add(sw);
+                }
+
+            var resetBtn = new Button { Content = "Usar por defecto", HorizontalAlignment = HorizontalAlignment.Stretch };
+            resetBtn.Click += (_, _) => { AppState.Config.SetKindColor(thisKind, null); flyout.Hide(); BuildKindColors(AppState.Load()); };
+
+            flyout.Content = new StackPanel { Spacing = 10, Children = { swatches, resetBtn } };
+            btn.Flyout = flyout;
 
             row.Children.Add(label); row.Children.Add(btn);
             ColorsHost.Children.Add(row);

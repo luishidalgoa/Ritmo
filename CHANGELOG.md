@@ -172,8 +172,10 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
   pasa a honrar `ViewConfig.ColorsByKind` (override estático refrescado antes de cada render); si un
   tipo no tiene color propio, usa el de por defecto. UI en Ajustes › «Colores del horario» (una fila
   por tipo con muestra + `ColorPicker` en flyout + «Usar por defecto»). Comando `SetKindColor` (con
-  test, valida #RRGGBB) y herramienta MCP `set_kind_color`. Verificado en la app (Técnico→amarillo,
-  Legislación→morado se reflejan en la rejilla).
+  test, valida #RRGGBB) y herramienta MCP `set_kind_color`. La UI usa una **paleta curada propia**
+  (`SchedulePalette`): rejilla de muestras en columnas por color y filas de mayor a menor intensidad
+  (tintes derivados hacia blanco) + «Usar por defecto», en vez del ColorPicker genérico. Verificado en
+  la app (Técnico→amarillo, Legislación→morado se reflejan en la rejilla; paleta visible al abrir).
 - **#47 — Vista previa del día al iniciar concentración** (configurable). Al pulsar «Iniciar» en el
   temporizador, si está activada (por defecto sí), se muestra `DayPreviewDialog` con los bloques de hoy
   (horario de la fase + provisionales, ordenados, color por tipo, bloque actual resaltado y marca ✦ de
