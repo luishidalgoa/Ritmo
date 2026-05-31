@@ -118,6 +118,9 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Modelo `FocusEnvironment` + persistencia + entorno por defecto (#51, #52).
 - Gestor de entornos (crear/editar/elegir), creación y edición **desde el panel derecho**
   con nav desplegable, selector fácil del entorno activo (#53, #92, #102, #104).
+- Cada entorno se presenta como **colapsable con sus módulos** (Concentración · Enlaces ·
+  Tareas · Herramientas); al pulsar un módulo se abre su **detalle** y se edita solo esa
+  parte. Tareas/Herramientas aún como «Próximamente» (#76).
 - **Apps** por categoría con catálogo + detección de instaladas (#94, #97), elegibles desde un modal **«Conectores»** filtrable por categoría (#101).
 - **Enlaces/herramientas** agrupados, **módulo de Tareas** por entorno (#74, #77).
 - **Webs a bloquear** con favicon (#99); apps a cerrar clarificadas (#100).
@@ -172,6 +175,13 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#76 — Entornos: panel colapsable → detalle por módulo.** La lista de entornos en Ajustes deja de
+  ser filas planas: cada entorno es ahora un **colapsable** (`Expander`) cuyo cuerpo lista sus
+  **módulos** (Concentración · Enlaces · Tareas · Herramientas) con un resumen por módulo; al pulsar
+  uno se abre su **vista de detalle** (el editor restringido a esa sección vía `EnvironmentDialog.
+  ScopeToModule`, reutilizando el editor que ya funciona, sin reescribir lógica). Concentración (#53)
+  y Enlaces (#74) son accionables; Tareas y Herramientas se muestran como «Próximamente». Núcleo puro
+  nuevo `EnvironmentModules` (deriva los módulos + resúmenes, 7 tests). F1 del epic #75.
 - **#101 — Conectores: catálogo de apps por categoría en un modal.** El editor de entornos deja de
   mostrar el catálogo de apps inline (lo hacía muy largo): ahora hay un botón **«Conectores…»** que
   abre un popover **filtrable por categoría** (Productividad, Navegadores, Mensajería…) para elegir

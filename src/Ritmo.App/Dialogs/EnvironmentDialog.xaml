@@ -18,7 +18,7 @@
 
             <ComboBox x:Name="PresetBox" Header="Ritmo Pomodoro" HorizontalAlignment="Stretch" />
 
-            <StackPanel Spacing="6">
+            <StackPanel x:Name="FocusBehaviorSection" Spacing="6">
                 <TextBlock Text="Al concentrarte" FontWeight="SemiBold" />
                 <CheckBox x:Name="DndCheck" Content="Activar No molestar" />
                 <CheckBox x:Name="BadgesCheck" Content="Ocultar avisos de la barra de tareas" />
@@ -26,7 +26,7 @@
                 <CheckBox x:Name="NewDesktopCheck" Content="Crear un escritorio virtual nuevo (Windows)" />
             </StackPanel>
 
-            <StackPanel Spacing="6">
+            <StackPanel x:Name="MusicSection" Spacing="6">
                 <TextBlock Text="Música" FontWeight="SemiBold" />
                 <ComboBox x:Name="MusicAppBox" Header="App de música" HorizontalAlignment="Stretch"
                           SelectionChanged="MusicAppBox_SelectionChanged" />
@@ -38,7 +38,7 @@
                 <CheckBox x:Name="AutoPlayCheck" Content="Intentar reproducir automáticamente al concentrarte" />
             </StackPanel>
 
-            <StackPanel Spacing="6">
+            <StackPanel x:Name="ConnectorsSection" Spacing="6">
                 <TextBlock Text="Conectores (apps al concentrarte)" FontWeight="SemiBold" />
                 <TextBlock Text="Qué hace Ritmo con cada app al concentrarte (abrir / cerrar / silenciar). Las apps «Abrir» se abren en TODAS las sesiones salvo que abajo, en «Por tipo de sesión», elijas un subconjunto."
                            Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
@@ -49,7 +49,7 @@
                 <StackPanel x:Name="OtherAppsPanel" Spacing="4" />
             </StackPanel>
 
-            <StackPanel Spacing="6">
+            <StackPanel x:Name="BlockedWebsSection" Spacing="6">
                 <TextBlock Text="Webs a bloquear" FontWeight="SemiBold" />
                 <Grid ColumnSpacing="6">
                     <Grid.ColumnDefinitions>
@@ -64,7 +64,7 @@
                 <StackPanel x:Name="WebsList" Spacing="2" />
             </StackPanel>
 
-            <StackPanel Spacing="6">
+            <StackPanel x:Name="LinksSection" Spacing="6">
                 <TextBlock Text="Enlaces y herramientas del entorno (por defecto)" FontWeight="SemiBold" />
                 <TextBlock Text="Por defecto se abren todos al concentrarte. Abajo, en «Por tipo de sesión», puedes abrir solo algunos según la sesión."
                            Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
@@ -82,7 +82,7 @@
             </StackPanel>
 
             <!-- Comportamiento por tipo de sesión (#116) -->
-            <StackPanel Spacing="6">
+            <StackPanel x:Name="SessionProfilesSection" Spacing="6">
                 <TextBlock Text="Por tipo de sesión" FontWeight="SemiBold" />
                 <TextBlock Text="Para cada tipo de sesión del horario (agrupado por título) puedes elegir qué subconjunto de las apps y enlaces de arriba se abre. Si no lo personalizas, se abre todo."
                            Opacity="0.6" FontSize="12" TextWrapping="Wrap" />

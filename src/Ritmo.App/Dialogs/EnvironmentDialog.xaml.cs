@@ -52,6 +52,37 @@ public sealed partial class EnvironmentDialog : ContentDialog
         BuildSessionProfilesSection();
     }
 
+    /// <summary>
+    /// Restringe el editor a un módulo del entorno (#76): muestra solo las secciones
+    /// de ese módulo y ajusta el título. Llamar DESPUÉS de <see cref="LoadFrom"/>.
+    /// Sin llamarla, el diálogo muestra todo (alta / edición completa).
+    /// </summary>
+    public void ScopeToModule(EnvironmentModuleKind kind)
+    {
+        bool focus = kind == EnvironmentModuleKind.Focus;
+        bool links = kind == EnvironmentModuleKind.Links;
+
+        // Concentración (#53): nombre, preset, comportamiento, música, conectores, webs.
+        NameBox.Visibility = focus ? Visibility.Visible : Visibility.Collapsed;
+        PresetBox.Visibility = focus ? Visibility.Visible : Visibility.Collapsed;
+        FocusBehaviorSection.Visibility = focus ? Visibility.Visible : Visibility.Collapsed;
+        MusicSection.Visibility = focus ? Visibility.Visible : Visibility.Collapsed;
+        ConnectorsSection.Visibility = focus ? Visibility.Visible : Visibility.Collapsed;
+        BlockedWebsSection.Visibility = focus ? Visibility.Visible : Visibility.Collapsed;
+
+        // Enlaces (#74): accesos del entorno + perfiles por tipo de sesión.
+        LinksSection.Visibility = links ? Visibility.Visible : Visibility.Collapsed;
+        SessionProfilesSection.Visibility = links ? Visibility.Visible : Visibility.Collapsed;
+
+        var name = string.IsNullOrWhiteSpace(NameBox.Text) ? "Entorno" : NameBox.Text.Trim();
+        Title = kind switch
+        {
+            EnvironmentModuleKind.Focus => $"Concentración · {name}",
+            EnvironmentModuleKind.Links => $"Enlaces · {name}",
+            _ => name
+        };
+    }
+
     private IEnumerable<string> CurrentOpenApps()
         => _appActions.Where(kv => kv.Value == "open").Select(kv => kv.Key);
 

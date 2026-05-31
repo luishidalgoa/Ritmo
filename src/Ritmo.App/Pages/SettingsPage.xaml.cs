@@ -522,7 +522,7 @@ public sealed partial class SettingsPage : Page
         EnvEmpty.Visibility = s.FocusEnvironments.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         foreach (var env in s.FocusEnvironments)
-            EnvList.Children.Add(EnvRow(env, env.Id == s.DefaultFocusEnvironmentId));
+            EnvList.Children.Add(EnvExpander(env, env.Id == s.DefaultFocusEnvironmentId));
 
         BuildKindEnvMap();   // la asignación tipo→entorno depende de la lista de entornos (#70)
     }
@@ -582,8 +582,11 @@ public sealed partial class SettingsPage : Page
         _loadingKindMap = false;
     }
 
-    private FrameworkElement EnvRow(FocusEnvironment env, bool isDefault)
+    // Cada entorno es un colapsable (#76) cuyo cuerpo lista sus módulos; al pulsar un
+    // módulo se abre su vista de detalle (el editor en modo módulo). Reúsa #53 y #74.
+    private FrameworkElement EnvExpander(FocusEnvironment env, bool isDefault)
     {
+        // ---- Cabecera: nombre + resumen + ★ predeterminado + eliminar ----
         var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         info.Children.Add(new TextBlock { Text = env.Name, FontWeight = FontWeights.SemiBold });
         info.Children.Add(new TextBlock
@@ -593,7 +596,6 @@ public sealed partial class SettingsPage : Page
         });
         Grid.SetColumn(info, 0);
 
-        // Estrella: en acento si es el predeterminado; atenuada si no.
         var starIcon = new SymbolIcon(Symbol.Favorite);
         if (isDefault)
             starIcon.Foreground = (Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
@@ -605,33 +607,103 @@ public sealed partial class SettingsPage : Page
             Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
             BorderThickness = new Thickness(0)
         };
-        ToolTipService.SetToolTip(star, isDefault ? "Predeterminado" : "Marcar como predeterminado");
+        var starTip = isDefault ? "Predeterminado" : "Marcar como predeterminado";
+        ToolTipService.SetToolTip(star, starTip);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(star, $"{env.Name}: {starTip}");
         star.Click += (_, _) => { AppState.Config.SetDefaultEnvironment(env.Id); BuildEnvList(); };
         Grid.SetColumn(star, 1);
 
-        var edit = new Button { Content = new SymbolIcon(Symbol.Edit) };
-        ToolTipService.SetToolTip(edit, "Editar");
-        edit.Click += (_, _) => _ = EditEnv(env);
-        Grid.SetColumn(edit, 2);
-
-        var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
-        ToolTipService.SetToolTip(del, "Eliminar");
-        del.Click += (_, _) => _ = DeleteEnv(env);
-        Grid.SetColumn(del, 3);
-
-        var grid = new Grid { ColumnSpacing = 6 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        for (int i = 0; i < 3; i++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.Children.Add(info); grid.Children.Add(star); grid.Children.Add(edit); grid.Children.Add(del);
-
-        return new Border
+        var del = new Button
         {
-            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(12, 8, 8, 8),
-            Child = grid
+            Content = new SymbolIcon(Symbol.Delete),
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(0),
+            Margin = new Thickness(2, 0, 0, 0)
         };
+        ToolTipService.SetToolTip(del, "Eliminar entorno");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(del, $"Eliminar entorno {env.Name}");
+        del.Click += (_, _) => _ = DeleteEnv(env);
+        Grid.SetColumn(del, 2);
+
+        var header = new Grid { ColumnSpacing = 4, HorizontalAlignment = HorizontalAlignment.Stretch };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.Children.Add(info); header.Children.Add(star); header.Children.Add(del);
+
+        // ---- Cuerpo: una fila por módulo ----
+        var body = new StackPanel { Spacing = 6 };
+        foreach (var mod in EnvironmentModules.For(env))
+            body.Children.Add(ModuleRow(env, mod));
+
+        return new Expander
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Header = header,
+            Content = body
+        };
+    }
+
+    // Glifo (Segoe Fluent) por módulo.
+    private static string ModuleGlyph(EnvironmentModuleKind kind) => kind switch
+    {
+        EnvironmentModuleKind.Focus => "",   // cronómetro
+        EnvironmentModuleKind.Links => "",   // enlace
+        EnvironmentModuleKind.Tasks => "",   // lista
+        EnvironmentModuleKind.Tools => "",   // herramienta
+        _ => ""
+    };
+
+    // Fila clicable de un módulo: glifo + título + resumen + chevron (o «Próximamente»).
+    private FrameworkElement ModuleRow(FocusEnvironment env, EnvironmentModuleInfo mod)
+    {
+        var icon = new FontIcon { Glyph = ModuleGlyph(mod.Kind), FontSize = 16, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(icon, 0);
+
+        var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        texts.Children.Add(new TextBlock { Text = mod.Title, FontWeight = FontWeights.SemiBold, FontSize = 13 });
+        texts.Children.Add(new TextBlock { Text = mod.Summary, Opacity = 0.65, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis });
+        Grid.SetColumn(texts, 1);
+
+        // Pista a la derecha: chevron si es accionable, badge «Próximamente» si no.
+        FrameworkElement hint = mod.Available
+            ? new FontIcon { Glyph = "", FontSize = 12, Opacity = 0.55, VerticalAlignment = VerticalAlignment.Center }
+            : new TextBlock { Text = "Próximamente", FontSize = 11, Opacity = 0.55, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(hint, 2);
+
+        var grid = new Grid { ColumnSpacing = 12, Padding = new Thickness(4, 2, 4, 2) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(icon); grid.Children.Add(texts); grid.Children.Add(hint);
+
+        var btn = new Button
+        {
+            Content = grid,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            IsEnabled = mod.Available
+        };
+        // Nombre accesible (lectores de pantalla / automatización): el contenido es un
+        // Grid, así que sin esto el botón quedaría sin Name.
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(btn, $"{mod.Title}. {mod.Summary}");
+        if (mod.Available)
+            btn.Click += (_, _) => _ = EditEnvModule(env, mod.Kind);
+        return btn;
+    }
+
+    /// <summary>Abre el editor restringido a un módulo del entorno (#76).</summary>
+    private async Task EditEnvModule(FocusEnvironment env, EnvironmentModuleKind kind)
+    {
+        var dlg = new EnvironmentDialog { XamlRoot = this.XamlRoot };
+        dlg.LoadFrom(env);
+        dlg.ScopeToModule(kind);
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+        {
+            AppState.Config.UpsertEnvironment(dlg.ToEnvironment());
+            BuildEnvList();
+        }
     }
 
     private static string Summary(FocusEnvironment env)
@@ -649,17 +721,6 @@ public sealed partial class SettingsPage : Page
     private async void AddEnvBtn_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new EnvironmentDialog { XamlRoot = this.XamlRoot };
-        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
-        {
-            AppState.Config.UpsertEnvironment(dlg.ToEnvironment());
-            BuildEnvList();
-        }
-    }
-
-    private async Task EditEnv(FocusEnvironment env)
-    {
-        var dlg = new EnvironmentDialog { XamlRoot = this.XamlRoot };
-        dlg.LoadFrom(env);
         if (await dlg.ShowAsync() == ContentDialogResult.Primary)
         {
             AppState.Config.UpsertEnvironment(dlg.ToEnvironment());
