@@ -32,11 +32,15 @@ public sealed class ScheduleHost : IDisposable
         Stop();
         try
         {
-            var schedule = ResolveActiveSchedule();
-            if (schedule.Sessions.Count == 0) return;   // nada que vigilar todavía
+            AppState.EnsureSeeded();
+            var settings = AppState.Load();
+            var schedule = ResolveActiveSchedule(settings);
+            // Vigilamos si hay recurrentes O sesiones provisionales (#128: antes las one-off
+            // no se planificaban nunca, así que sus avisos jamás sonaban).
+            if (schedule.Sessions.Count == 0 && settings.OneOffSessions.Count == 0) return;
 
             ToastService.EnsureRegistered();
-            var planner = new SchedulePlanner(schedule, AppState.Load().FocusCategoryIds());   // #83
+            var planner = new SchedulePlanner(schedule, settings.FocusCategoryIds(), settings.OneOffSessions);   // #83/#128
             _runner = new ScheduleRunner(planner, _clock, _scheduler);
             _runner.EventDue += OnEventDue;
             _runner.Start();
@@ -48,10 +52,8 @@ public sealed class ScheduleHost : IDisposable
     /// Mismo criterio que la pantalla de horario: fase activa hoy, si no la
     /// primera fase del plan, y como último recurso el horario suelto.
     /// </summary>
-    private static WeeklySchedule ResolveActiveSchedule()
+    private static WeeklySchedule ResolveActiveSchedule(Ritmo.Core.Persistence.AppSettings settings)
     {
-        AppState.EnsureSeeded();
-        var settings = AppState.Load();
         var today = DateOnly.FromDateTime(DateTime.Now);
         var phase = settings.Plan.GetActivePhase(today)
                     ?? settings.Plan.OrderedPhases.FirstOrDefault();
@@ -62,16 +64,9 @@ public sealed class ScheduleHost : IDisposable
     {
         var s = AppState.Load();
         var msg = NotificationBuilder.ForEvent(ev, s.CategoryName(ev.Session.CategoryId));
-        ToastService.Show(msg);
-
-        // Push al móvil vía ntfy (opt-in, #122). Fire-and-forget best-effort: si está
-        // activo y hay topic, publicamos en paralelo al toast; nunca bloquea ni rompe.
-        try
-        {
-            if (s.NtfyEnabled && !string.IsNullOrWhiteSpace(s.NtfyTopic))
-                _ = NtfyPublisher.PublishAsync(NtfyPublish.For(s.NtfyServerUrl, s.NtfyTopic!, msg, ev.Type));
-        }
-        catch { /* tolerar: el aviso local ya se mostró */ }
+        // Núcleo CENTRALIZADO (#128): el host solo EMITE; el hub reparte a sus canales
+        // (toast del SO + ntfy al móvil + futuros) de forma aislada y best-effort.
+        NotificationHub.Instance.Notify(msg, ev.Type);
     }
 
     public void Stop()

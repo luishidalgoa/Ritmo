@@ -154,6 +154,10 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - **Exportar/importar** configuración completa como respaldo (#56).
 - **Servicio en segundo plano**: bucle de timers sobre el planificador, arranque con
   Windows y bandeja del sistema (#3, #18, #20).
+- **Núcleo central de notificaciones** (`NotificationHub`, #128): todo aviso pasa por un único
+  punto que lo reparte a los canales registrados (toast del SO + ntfy al móvil + futuros), aislados
+  y best-effort. Los avisos del horario se re-planifican en cada cambio (UI o IA), e incluyen las
+  sesiones provisionales (one-off). Avisos previos configurables (1 min / 5 / 10 / 15 / 30 / 1 h / 2 h / personalizado).
 - **Toasts** de Windows conectados a los avisos previos (#28, #29).
 - **Notificaciones push al móvil vía ntfy** (opt-in, #122): cada aviso del horario se publica
   además en un topic de ntfy, y la app ntfy (Android/iOS) suscrita al topic lo recibe en el
@@ -179,6 +183,17 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#128 — Núcleo central de notificaciones + avisos del horario arreglados.** Los avisos previos
+  no llegaban (ni PC ni móvil) por dos causas: (1) el planificador solo se re-armaba al arrancar/
+  importar, no al **editar** el horario → una sesión nueva no avisaba hasta reiniciar; (2) las
+  sesiones **provisionales (one-off) no se planificaban nunca**. Arreglado: re-planificación
+  automática en cada guardado de ajustes (UI o IA) vía un store decorador que emite
+  `AppState.SettingsChanged`, y `SchedulePlanner` ahora también genera los eventos de las one-off.
+  Además, **núcleo centralizado de notificaciones** (`NotificationHub`): todo aviso pasa por un único
+  punto que lo reparte a canales registrados (`ToastChannel` del SO + `NtfyChannel` al móvil +
+  futuros), aislados y best-effort; añadir un canal = registrar otro `INotificationChannel` sin tocar
+  a los emisores. Nuevo preset de aviso **«1 minuto antes»**. Verificado en runtime (one-off con aviso
+  de 1 min → evento dispara → hub reparte → toast OK + ntfy OK). Tests de one-off planning (3).
 - **#9 — Silenciar apps de ruido al concentrarte (antes no se aplicaba).** La opción **«Silenciar»**
   del catálogo de apps de un entorno ya **hace algo**: al concentrarte, Ritmo silencia (mute) la sesión
   de audio de esas apps y la **restaura** al parar. Nuevo `AppMuter` (host) sobre la API **Core Audio**

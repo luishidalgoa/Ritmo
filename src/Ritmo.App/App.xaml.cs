@@ -35,9 +35,19 @@ public partial class App : Application
         // Soy la instancia principal: atiendo futuras (re)activaciones.
         main.Activated += OnReactivated;
 
+        // Núcleo centralizado de notificaciones (#128): registra los canales una vez.
+        // Cualquier emisor (horario, etc.) llama a NotificationHub.Notify y el hub reparte.
+        NotificationHub.Instance.Register(new ToastChannel());
+        NotificationHub.Instance.Register(new NtfyChannel());
+
         // Servicio de fondo: vigila el horario y lanza toasts (#28/#29). Sigue vivo
         // aunque se oculte la ventana; solo se para al salir de verdad.
         ScheduleHost.Instance.Start();
+
+        // Re-planifica los avisos cada vez que cambian los ajustes (añadir/editar sesión,
+        // edición por la IA vía MCP, importar…). Antes solo se planificaba al arrancar, así
+        // que una sesión nueva no avisaba hasta reiniciar. #128
+        AppState.SettingsChanged += () => ScheduleHost.Instance.Start();
 
         _window = new MainWindow();
         _window.Activate();

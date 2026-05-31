@@ -55,6 +55,7 @@ public static class ReleaseNotes
                 "«Abrir workspace» lanza de golpe todos los enlaces del entorno en una ventana nueva del navegador.",
                 "Cada entorno tiene su lista de Tareas: añade, marca como hecha y reordena.",
                 "Marca apps como «Silenciar» y Ritmo las silencia al concentrarte (y las restaura al terminar).",
+                "Los avisos del horario llegan al PC y al móvil de forma fiable, también en sesiones provisionales y al editar el horario.",
                 "Próximamente: vincular tu calendario externo a cada entorno.",
             ]
         },

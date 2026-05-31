@@ -12,6 +12,7 @@ public sealed class SchedulePlanner
 {
     private readonly WeeklySchedule _schedule;
     private readonly IReadOnlySet<string> _focus;
+    private readonly IReadOnlyList<OneOffSession> _oneOffs;
 
     /// <summary>
     /// Ids de categoría que disparan concentración por defecto (fallback para tests y
@@ -22,10 +23,12 @@ public sealed class SchedulePlanner
         new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         { "Tecnico", "Legislacion", "Ingles", "Tests", "Simulacro" };
 
-    public SchedulePlanner(WeeklySchedule schedule, IReadOnlySet<string>? focusCategoryIds = null)
+    public SchedulePlanner(WeeklySchedule schedule, IReadOnlySet<string>? focusCategoryIds = null,
+                           IReadOnlyList<OneOffSession>? oneOffs = null)
     {
         _schedule = schedule;
         _focus = focusCategoryIds ?? DefaultFocusCategoryIds;
+        _oneOffs = oneOffs ?? [];
     }
 
     /// <summary>
@@ -83,6 +86,37 @@ public sealed class SchedulePlanner
                 }
             }
             dayCursor = dayCursor.AddDays(1);
+        }
+
+        // Sesiones provisionales (one-off): ocurren en una FECHA concreta (#103/#128). Se
+        // generan igual que las recurrentes — inicio (solo focus, no tentativo) + un evento
+        // por aviso previo (los avisos suenan aunque no disparen concentración).
+        foreach (var o in _oneOffs)
+        {
+            var oneStart = o.Date.ToDateTime(o.Start);
+
+            if (!o.IsTentative && _focus.Contains(o.CategoryId) && oneStart >= from && oneStart < until)
+                events.Add(new PlannedEvent
+                {
+                    At = oneStart,
+                    Type = PlannedEventType.SessionStart,
+                    Session = o.AsSession(),
+                    SessionStartAt = oneStart
+                });
+
+            foreach (var alert in o.PreAlerts)
+            {
+                var alertAt = oneStart - TimeSpan.FromMinutes(alert.MinutesBefore);
+                if (alertAt >= from && alertAt < until)
+                    events.Add(new PlannedEvent
+                    {
+                        At = alertAt,
+                        Type = PlannedEventType.PreAlert,
+                        Session = o.AsSession(),
+                        MinutesBefore = alert.MinutesBefore,
+                        SessionStartAt = oneStart
+                    });
+            }
         }
 
         // Orden estable: por fecha, y a igualdad, el aviso antes que el inicio.
