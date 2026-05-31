@@ -24,7 +24,10 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         Current = this;
-        AppWindow.SetIcon("Assets/AppIcon.ico");
+        // Ruta ABSOLUTA: en apps empaquetadas el cwd no es la carpeta de la app, y una ruta
+        // relativa puede no resolver (el icono de la ventana caería al logo por defecto). #icono
+        try { AppWindow.SetIcon(System.IO.Path.Combine(System.AppContext.BaseDirectory, "Assets", "AppIcon.ico")); }
+        catch { AppWindow.SetIcon("Assets/AppIcon.ico"); }
         AppWindow.Closing += AppWindow_Closing;
     }
 
