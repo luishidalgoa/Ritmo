@@ -24,10 +24,18 @@ internal static class TrayIconService
 
     private static void SetupCore(MainWindow window)
     {
+        // El icono de bandeja atiende sus clics/menú en SU hilo, no en el de la ventana. Tocar
+        // AppWindow/Application desde ahí falla en silencio → marshalamos al DispatcherQueue de la
+        // ventana (mismo patrón que OnReactivated). Sin esto, "Abrir"/"Salir" no hacían nada.
+        void OnUi(Action a) => window.DispatcherQueue.TryEnqueue(() =>
+        {
+            try { a(); } catch { /* best-effort */ }
+        });
+
         var open = new MenuFlyoutItem { Text = "Abrir Ritmo" };
-        open.Click += (_, _) => window.ShowFromBackground();
+        open.Click += (_, _) => OnUi(window.ShowFromBackground);
         var exit = new MenuFlyoutItem { Text = "Salir de Ritmo" };
-        exit.Click += (_, _) => window.ExitApp();
+        exit.Click += (_, _) => OnUi(window.ExitApp);
         var menu = new MenuFlyout();
         menu.Items.Add(open);
         menu.Items.Add(exit);
@@ -39,7 +47,7 @@ internal static class TrayIconService
         };
         try { _icon.Icon = new System.Drawing.Icon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico")); }
         catch { /* sin icono: la bandeja muestra uno por defecto */ }
-        _icon.LeftClickCommand = new RelayCommand(window.ShowFromBackground);   // clic en el icono = abrir
+        _icon.LeftClickCommand = new RelayCommand(() => OnUi(window.ShowFromBackground));   // clic en el icono = abrir
         _icon.ForceCreate();
     }
 
