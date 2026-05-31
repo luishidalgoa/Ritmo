@@ -79,6 +79,14 @@ public sealed partial class SchedulePage : Page
     private string? _selectedEventKey;                         // evento resaltado en la rejilla
     private SessionGroup? _selectedGroup;                      // grupo mostrado en el panel
     private CalendarEvent? _selectedEvent;                     // evento mostrado en el panel
+    private OneOffSession? _selectedOneOff;                    // sesión provisional mostrada en el panel (#132)
+
+    // Copiar/pegar (#132): portapapeles en memoria + última celda bajo el ratón.
+    private StudySession? _clipSession;                        // datos de la sesión copiada
+    private bool _clipWasOneOff;                               // ¿la copiada era provisional?
+    private int _hoverCol = -1;                                // columna de día bajo el ratón (0..6) o -1
+    private TimeOnly _hoverStart;                              // hora (ajustada a la rejilla) bajo el ratón
+    private bool _hoverValid;                                  // ¿hay una celda válida bajo el ratón?
 
     public SchedulePage()
     {
@@ -88,6 +96,15 @@ public sealed partial class SchedulePage : Page
         GridRoot.PointerMoved += GridRoot_PointerMoved;
         GridRoot.PointerReleased += GridRoot_PointerReleased;
         GridRoot.PointerCaptureLost += (_, _) => FinishDrag();   // confirma el movimiento al perder la captura (#127)
+
+        // Copiar/pegar sesiones con Ctrl+C / Ctrl+V (#132): copia la seleccionada, pega en la
+        // celda del ratón si está libre (tamaño de un día), reusando la geometría del arrastre.
+        var copyAcc = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = Windows.System.VirtualKey.C, Modifiers = Windows.System.VirtualKeyModifiers.Control };
+        copyAcc.Invoked += (_, a) => { a.Handled = true; CopySelectedSession(); };
+        var pasteAcc = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = Windows.System.VirtualKey.V, Modifiers = Windows.System.VirtualKeyModifiers.Control };
+        pasteAcc.Invoked += (_, a) => { a.Handled = true; PasteSessionAtHover(); };
+        KeyboardAccelerators.Add(copyAcc);
+        KeyboardAccelerators.Add(pasteAcc);
 
         // Indicador de "ahora" reactivo: se recoloca cada 30 s mientras la página vive. #115
         _nowTimer = DispatcherQueue.CreateTimer();
@@ -141,6 +158,9 @@ public sealed partial class SchedulePage : Page
             return;
         }
 
+        // Sin arrastre: recuerda la celda (día/hora) bajo el ratón para pegar con Ctrl+V (#132).
+        if (_mode == DragMode.None) UpdateHoverCell(e.GetCurrentPoint(GridRoot).Position);
+
         if (_mode == DragMode.None || _card is null || _group is null) return;
         var pt = e.GetCurrentPoint(GridRoot).Position;
 
@@ -189,6 +209,58 @@ public sealed partial class SchedulePage : Page
         var cand = _group.Members.Select(m =>
             rep with { Day = Days[Math.Clamp(Array.IndexOf(Days, m.Day) + (dayIndex - _c0), 0, 6)], Start = start });
         return Collides(cand, _keptForDrag);
+    }
+
+    // ---------- Copiar / pegar sesiones con Ctrl+C / Ctrl+V (#132) ----------
+
+    /// <summary>Convierte una posición en GridRoot en (día, hora) de la rejilla, ajustada a la granularidad.</summary>
+    private void UpdateHoverCell(Windows.Foundation.Point p)
+    {
+        int col = (int)Math.Floor((p.X - HourColWidth) / _dayColWidth);
+        double yRel = p.Y - 32;   // 32 = fila de cabecera
+        if (col < 0 || col > 6 || yRel < 0) { _hoverValid = false; _hoverCol = -1; return; }
+        int slot = (int)Math.Floor(yRel / _slotHeight);
+        int mins = _startHour * 60 + slot * _granularity;
+        if (mins < 0 || mins >= 24 * 60) { _hoverValid = false; _hoverCol = -1; return; }
+        _hoverCol = col;
+        _hoverStart = new TimeOnly(mins / 60, mins % 60);
+        _hoverValid = true;
+    }
+
+    /// <summary>Ctrl+C: copia la sesión seleccionada (recurrente o provisional) al portapapeles interno.</summary>
+    private void CopySelectedSession()
+    {
+        if (_selectedGroup is not null) { _clipSession = _selectedGroup.Representative; _clipWasOneOff = false; }
+        else if (_selectedOneOff is not null) { _clipSession = _selectedOneOff.AsSession(); _clipWasOneOff = true; }
+        // Sin nada seleccionado: no hace nada.
+    }
+
+    /// <summary>
+    /// Ctrl+V: pega la sesión copiada en la celda (día/hora) bajo el ratón, SOLO si está libre.
+    /// La copia es de UN solo día; según dónde se pegue cambia su día/fecha y su hora (reusa la
+    /// misma geometría que el arrastre). Conserva tipo: recurrente→recurrente, provisional→provisional.
+    /// </summary>
+    private void PasteSessionAtHover()
+    {
+        if (_clipSession is null || !_hoverValid || _hoverCol < 0) return;
+        var src = _clipSession;
+        int col = _hoverCol;
+        var start = _hoverStart;
+        var targetDate = _weekStart.AddDays(col);
+
+        var candidate = src with { Day = Days[col], Start = start };
+
+        // Hueco libre: recurrentes de la fase visible (mismo día) + provisionales de esa fecha.
+        var sameDayRecurring = _sessions.Where(s => s.Day == Days[col]).ToList();
+        var sameDayOneOffs = _oneOffs.Where(o => o.Date == targetDate).Select(o => o.AsSession()).ToList();
+        if (Collides([candidate], [.. sameDayRecurring, .. sameDayOneOffs])) return;   // ocupado → no pega
+
+        if (!_clipWasOneOff && _activePhaseName is not null)
+            AppState.Config.AddSession(_activePhaseName, candidate);
+        else
+            AppState.Config.AddOneOffSession(targetDate, src.Title, start, src.Duration, src.CategoryId, src.PreAlerts, src.IsTentative);
+
+        Build();
     }
 
     private void GridRoot_PointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
@@ -943,6 +1015,7 @@ public sealed partial class SchedulePage : Page
     {
         _selectedGroup = null; _selectedEvent = null;
         _selectedSessionKey = null; _selectedEventKey = null;
+        _selectedOneOff = one;   // para copiar con Ctrl+C (#132)
         Build();
 
         var es = new System.Globalization.CultureInfo("es-ES");
@@ -985,25 +1058,19 @@ public sealed partial class SchedulePage : Page
         dlg.SetCategories(AppState.Load().Categories);   // categorías dinámicas (#83)
         dlg.SetKnownTitles(AllTitles());
         dlg.LoadFrom(one.AsSession());
-        dlg.PreselectDays([one.Date.DayOfWeek]);
+        dlg.PreselectDays([one.Date.DayOfWeek]);   // por si se reconvierte a recurrente
         dlg.SetOneOff(true);
+        dlg.SetOneOffDates(one.Date, one.Date);    // rango de fechas pre-rellenado (#131)
 
         var result = await dlg.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {
             AppState.Config.RemoveOneOffSession(one.Id);   // se reemplaza por lo editado
-            foreach (var d in dlg.SelectedDays)
-            {
-                int di = Array.IndexOf(Days, d);
-                if (di < 0) continue;
-                var ss = dlg.ToSession(d);
-                if (dlg.IsOneOff)
-                    AppState.Config.AddOneOffSession(_weekStart.AddDays(di), ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative);
-                else if (_activePhaseName is not null)
-                    AppState.Config.AddSession(_activePhaseName, ss);   // reconvertida a recurrente
-                else
-                    AppState.Config.AddOneOffSession(_weekStart.AddDays(di), ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative);
-            }
+            if (dlg.IsOneOff || _activePhaseName is null)
+                AddOneOffsForRange(dlg);   // provisional: una por cada día del rango (#131)
+            else
+                foreach (var d in dlg.SelectedDays)
+                    AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));   // reconvertida a recurrente
         }
         else if (result == ContentDialogResult.None)   // Eliminar
             AppState.Config.RemoveOneOffSession(one.Id);
@@ -1179,22 +1246,28 @@ public sealed partial class SchedulePage : Page
         dlg.SetCategories(settings.Categories);   // categorías dinámicas (#83)
         dlg.SetKnownTitles(AllTitles());
         dlg.LoadDefaults(day, start, settings.ViewConfig.DefaultPreAlertMinutes);   // aviso por defecto configurable (#48)
+        // Fecha por defecto del rango provisional: el día pulsado (o el lunes visible). #131
+        var defDate = day is { } dd ? _weekStart.AddDays(Math.Max(0, Array.IndexOf(Days, dd))) : _weekStart;
+        dlg.SetOneOffDates(defDate, defDate);
         var result = await dlg.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {
-            // Crea el bloque en CADA día marcado (#81). Si no se marcó ninguno, no hace nada.
-            foreach (var d in dlg.SelectedDays)
-            {
-                if (dlg.IsOneOff)   // sesión provisional: solo esta semana, con fecha concreta (#103)
-                {
-                    int di = Array.IndexOf(Days, d);
-                    if (di < 0) continue;
-                    var ss = dlg.ToSession(d);
-                    AppState.Config.AddOneOffSession(_weekStart.AddDays(di), ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative);
-                }
-                else AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));
-            }
+            if (dlg.IsOneOff)
+                AddOneOffsForRange(dlg);   // provisional: una por cada día del rango de fechas (#131)
+            else
+                foreach (var d in dlg.SelectedDays)   // recurrente: en cada día marcado (#81)
+                    AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));
             Build();
+        }
+    }
+
+    /// <summary>Crea una sesión provisional por cada día del rango de fechas del diálogo (#131).</summary>
+    private void AddOneOffsForRange(SessionDialog dlg)
+    {
+        for (var date = dlg.StartDate; date <= dlg.EndDate; date = date.AddDays(1))
+        {
+            var ss = dlg.ToSession(date.DayOfWeek);
+            AppState.Config.AddOneOffSession(date, ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative);
         }
     }
 
@@ -1230,6 +1303,7 @@ public sealed partial class SchedulePage : Page
         dlg.SetKnownTitles(AllTitles());
         dlg.LoadFrom(rep);
         dlg.PreselectDays(groupDays);   // todos los días del grupo marcados
+        dlg.SetOneOffDates(_weekStart, _weekStart);   // por si se convierte a provisional (#131)
 
         var result = await dlg.ShowAsync();
 
@@ -1240,16 +1314,10 @@ public sealed partial class SchedulePage : Page
         {
             if (dlg.IsOneOff)
             {
-                // Convertir a «solo esta semana» (#103): quitar el grupo recurrente y crear una
-                // sesión provisional por cada día marcado, en la semana mostrada.
+                // Convertir a extraordinaria (#103/#131): quitar el grupo recurrente y crear una
+                // sesión provisional por cada día del rango de fechas elegido.
                 AppState.Config.ReplaceSessions(_activePhaseName, kept);
-                foreach (var d in dlg.SelectedDays)
-                {
-                    int di = Array.IndexOf(Days, d);
-                    if (di < 0) continue;
-                    var ss = dlg.ToSession(d);
-                    AppState.Config.AddOneOffSession(_weekStart.AddDays(di), ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative);
-                }
+                AddOneOffsForRange(dlg);
             }
             else
             {
@@ -1282,7 +1350,7 @@ public sealed partial class SchedulePage : Page
     private void ShowSessionDetail(SessionGroup group)
     {
         var rep = group.Representative;
-        _selectedGroup = group; _selectedEvent = null;
+        _selectedGroup = group; _selectedEvent = null; _selectedOneOff = null;
         _selectedSessionKey = SessionKey(rep); _selectedEventKey = null;
         Build();   // repinta la rejilla con el resaltado
 
@@ -1338,7 +1406,7 @@ public sealed partial class SchedulePage : Page
     /// <summary>Muestra el detalle de un evento del calendario (y su resolución si pisa una sesión).</summary>
     private void ShowEventDetail(CalendarEvent ev)
     {
-        _selectedEvent = ev; _selectedGroup = null;
+        _selectedEvent = ev; _selectedGroup = null; _selectedOneOff = null;
         _selectedEventKey = OverlapResolver.EventKey(ev); _selectedSessionKey = null;
         Build();
 
@@ -1520,7 +1588,7 @@ public sealed partial class SchedulePage : Page
     /// <summary>Lista agrupada de tipos de sesión (por título) en el panel, para configurar cada uno (#116).</summary>
     private void ShowTaskBehaviorList()
     {
-        _selectedGroup = null; _selectedEvent = null;
+        _selectedGroup = null; _selectedEvent = null; _selectedOneOff = null;
         _selectedSessionKey = null; _selectedEventKey = null;
         Build();   // quita resaltado de la rejilla
 
@@ -1568,7 +1636,7 @@ public sealed partial class SchedulePage : Page
         DetailPanel.Visibility = Visibility.Collapsed;
         DetailContent.Children.Clear();
         _selectedSessionKey = null; _selectedEventKey = null;
-        _selectedGroup = null; _selectedEvent = null;
+        _selectedGroup = null; _selectedEvent = null; _selectedOneOff = null;
         if (!internalRefresh) Build();   // repinta sin resaltado (RefreshWeek ya repinta por su cuenta)
     }
 

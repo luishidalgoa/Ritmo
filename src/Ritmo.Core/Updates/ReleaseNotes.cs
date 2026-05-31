@@ -61,6 +61,8 @@ public static class ReleaseNotes
                 "Opción para que Ritmo arranque solo al iniciar sesión en Windows, en segundo plano: tus avisos suenan sin tener que abrirlo.",
                 "Elige el aviso previo por defecto de las sesiones nuevas desde Ajustes.",
                 "Duplica una fase del horario para crear la siguiente a partir de ella, sin rehacerla.",
+                "Copia y pega sesiones con Ctrl+C / Ctrl+V: se pegan donde tengas el ratón, si el hueco está libre.",
+                "Las sesiones extraordinarias se ponen en fechas concretas (un día o un rango), con calendario.",
                 "Próximamente: vincular tu calendario externo a cada entorno.",
             ]
         },

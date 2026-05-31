@@ -17,7 +17,8 @@
         <ComboBox x:Name="TitleBox" Header="Título" IsEditable="True" HorizontalAlignment="Stretch"
                   PlaceholderText="p. ej. Concentración (elige uno existente o escribe)" />
 
-        <StackPanel Spacing="6">
+        <!-- Recurrente: días de la semana. Provisional: rango de fechas (ver OneOffDatesPanel). -->
+        <StackPanel x:Name="DaysPanel" Spacing="6">
             <TextBlock Text="Días" FontWeight="SemiBold" />
             <StackPanel x:Name="DayToggles" Orientation="Horizontal" Spacing="6">
                 <ToggleButton x:Name="DayMon" Content="L" MinWidth="40" />
@@ -30,6 +31,17 @@
             </StackPanel>
             <TextBlock x:Name="DayHint" Text="Marca varios para crearlo en todos a la vez."
                        Opacity="0.6" FontSize="12" />
+        </StackPanel>
+
+        <!-- Fechas de la sesión provisional (#131): rango inicio→fin; misma fecha = un solo día. -->
+        <StackPanel x:Name="OneOffDatesPanel" Spacing="6" Visibility="Collapsed">
+            <TextBlock Text="Fechas" FontWeight="SemiBold" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <CalendarDatePicker x:Name="StartDatePicker" Header="Desde" MinWidth="150" DateChanged="StartDatePicker_DateChanged" />
+                <CalendarDatePicker x:Name="EndDatePicker" Header="Hasta" MinWidth="150" />
+            </StackPanel>
+            <TextBlock Text="Pon la misma fecha en ambas para un solo día, o un rango para repetirla cada día a la misma hora."
+                       Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
         </StackPanel>
 
         <!-- Inicio/Fin apilados y a ancho completo: en 2 columnas el TimePicker se quedaba
@@ -83,10 +95,8 @@
 
         <ToggleSwitch x:Name="TentativeSwitch" Header="Provisional (no dispara concentración)" OffContent="No" OnContent="Sí" />
 
-        <!-- Sesión extraordinaria solo para la semana mostrada (#103) -->
-        <ToggleSwitch x:Name="OneOffSwitch" Header="Solo esta semana (sesión extraordinaria)"
-                      OffContent="No, recurrente" OnContent="Sí, solo esta semana" Toggled="OneOffSwitch_Toggled" />
-        <TextBlock x:Name="OneOffHint" Opacity="0.6" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"
-                   Text="Se añadirá solo en el/los día(s) marcado(s) de la semana que estás viendo, sin repetirse." />
+        <!-- Sesión extraordinaria con fecha(s) concreta(s) (#103/#131) -->
+        <ToggleSwitch x:Name="OneOffSwitch" Header="Sesión extraordinaria (en fechas concretas)"
+                      OffContent="No, recurrente" OnContent="Sí, en fechas" Toggled="OneOffSwitch_Toggled" />
     </StackPanel>
 </ContentDialog>

@@ -52,18 +52,59 @@ public sealed partial class SessionDialog : ContentDialog
     public IReadOnlyList<DayOfWeek> SelectedDays =>
         _dayToggles.Where(t => t.btn.IsChecked == true).Select(t => t.day).ToList();
 
-    /// <summary>¿Es una sesión extraordinaria solo para la semana mostrada? (#103)</summary>
+    /// <summary>¿Es una sesión extraordinaria con fecha(s) concreta(s)? (#103/#131)</summary>
     public bool IsOneOff => OneOffSwitch.IsOn;
 
-    /// <summary>Pre-marca/desmarca «solo esta semana» (al editar una sesión provisional). #103</summary>
+    /// <summary>Fecha de inicio del rango provisional (#131).</summary>
+    public DateOnly StartDate =>
+        StartDatePicker.Date is { } d ? DateOnly.FromDateTime(d.Date) : DateOnly.FromDateTime(DateTime.Today);
+
+    /// <summary>Fecha de fin INCLUSIVE; si está vacía o es anterior al inicio, = inicio (#131).</summary>
+    public DateOnly EndDate
+    {
+        get
+        {
+            var start = StartDate;
+            if (EndDatePicker.Date is { } d) { var e = DateOnly.FromDateTime(d.Date); return e < start ? start : e; }
+            return start;
+        }
+    }
+
+    /// <summary>Pre-marca/desmarca «extraordinaria» (al editar una sesión provisional). #103</summary>
     public void SetOneOff(bool on)
     {
         OneOffSwitch.IsOn = on;
-        OneOffHint.Visibility = on ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        UpdateOneOffVisibility();
     }
 
-    private void OneOffSwitch_Toggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-        => OneOffHint.Visibility = OneOffSwitch.IsOn ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+    /// <summary>Pre-rellena el rango de fechas de la sesión provisional. #131</summary>
+    public void SetOneOffDates(DateOnly start, DateOnly end)
+    {
+        StartDatePicker.Date = new DateTimeOffset(start.ToDateTime(TimeOnly.MinValue));
+        EndDatePicker.Date = new DateTimeOffset((end < start ? start : end).ToDateTime(TimeOnly.MinValue));
+    }
+
+    private void OneOffSwitch_Toggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) => UpdateOneOffVisibility();
+
+    private void UpdateOneOffVisibility()
+    {
+        bool on = OneOffSwitch.IsOn;
+        DaysPanel.Visibility = on ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
+        OneOffDatesPanel.Visibility = on ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        if (on && StartDatePicker.Date is null)   // al activar sin fechas, por defecto hoy
+        {
+            var today = new DateTimeOffset(DateTime.Today);
+            StartDatePicker.Date = today;
+            EndDatePicker.Date = today;
+        }
+    }
+
+    /// <summary>Mantén «Hasta» ≥ «Desde»: si queda antes o vacía, la igualamos al inicio.</summary>
+    private void StartDatePicker_DateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs args)
+    {
+        if (StartDatePicker.Date is { } s && (EndDatePicker.Date is null || EndDatePicker.Date < s))
+            EndDatePicker.Date = s;
+    }
 
     // ---------- Avisos previos: dos desplegables con presets + personalizado (#87) ----------
 

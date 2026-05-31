@@ -193,6 +193,16 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-05-31
 
+- **#132 — Copiar/pegar sesiones con Ctrl+C / Ctrl+V.** Selecciona una sesión (recurrente o
+  provisional), **Ctrl+C** para copiarla y **Ctrl+V** para pegarla en la celda (día/hora) donde
+  está el ratón, **solo si el hueco está libre**. La copia es de **un solo día** y, según dónde se
+  pegue, ajusta su día/fecha y su hora (reutiliza la geometría del arrastre). Conserva el tipo:
+  recurrente→recurrente (en la fase visible), provisional→provisional (en esa fecha).
+- **#131 — Sesión provisional: fecha de inicio y fin.** Al crear una sesión extraordinaria, ahora
+  se eligen sus fechas con un calendario **«Desde»/«Hasta»** (en vez de los toggles de la semana
+  actual). Misma fecha en ambas = un solo día; un rango = la sesión aparece en cada día del rango a
+  la misma hora (se crea una `OneOffSession` por día). El selector de días se reserva para las
+  recurrentes.
 - **Bug — Diálogo de sesión: los TimePicker de Inicio/Fin recortaban los minutos.** Estaban en una
   rejilla de 2 columnas dentro de un diálogo estrecho (~154px cada uno) y el `TimePicker` clipaba la
   parte de los minutos (solo se veía la hora). Ahora van apilados a ancho completo (Inicio sobre Fin),
