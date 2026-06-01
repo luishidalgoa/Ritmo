@@ -684,7 +684,21 @@ public sealed partial class SchedulePage : Page
             bool isSelected = _selectedSessionKey is not null && SessionKey(s) == _selectedSessionKey;
             bool ring = isActive || isSelected;   // borde de acento: bloque activo o seleccionado en el panel
 
+            // Excepciones (#137/#137b) en la semana visible: NO realizada → atenuar + tachar;
+            // PARCIAL → atenuar un poco (sí se hizo, en parte). Se calcula ANTES de pintar para
+            // que el contenido (tachado del título) se construya ya correcto.
+            var exc = group.Members
+                .Select(m => { int mi = Array.IndexOf(Days, m.Day); return mi >= 0 ? Ritmo.Core.Model.WorkAutoCompute.ExceptionFor(m, _weekStart.AddDays(mi), _sessionExceptions) : null; })
+                .FirstOrDefault(e => e is not null);
+            bool notDone = exc is { IsNotDone: true };
+            bool partial = exc is { IsNotDone: false };
+
+            // Altura final clicable (#139): mínimo cómodo aunque la sesión sea muy corta.
+            double cardHeight = Math.Max(MinCardHeight, heightPx - 3);
+
             // Border visual de la tarjeta (dentro de un SessionCard para poder cambiar el cursor).
+            // El contenido se adapta a la altura (#139/#140): muy corta = solo título centrado;
+            // alta = título multilínea sin invadir nunca la fila de horas.
             var visual = new Border
             {
                 Background = baseColor,
@@ -692,34 +706,14 @@ public sealed partial class SchedulePage : Page
                 Padding = new Thickness(6, 3, 6, 3),
                 BorderBrush = ring ? new SolidColorBrush(accentColor) : null,
                 BorderThickness = ring ? new Thickness(2) : new Thickness(0),
-                Child = new StackPanel
-                {
-                    Children =
-                    {
-                        new TextBlock {
-                            Text = s.Title, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                            Foreground = ScheduleColors.TextFor(s.CategoryId), TextTrimming = TextTrimming.CharacterEllipsis },
-                        new TextBlock {
-                            Text = $"{s.Start:HH\\:mm}–{s.End:HH\\:mm}{(s.IsTentative ? "  (?)" : "")}",
-                            FontSize = 10, Opacity = 0.75, Foreground = ScheduleColors.TextFor(s.CategoryId) }
-                    }
-                }
+                Child = BuildCardContent(s, cardHeight, notDone)
             };
-            // Excepciones (#137/#137b) en la semana visible: NO realizada → atenuar + tachar;
-            // PARCIAL → atenuar un poco (sí se hizo, en parte).
-            var exc = group.Members
-                .Select(m => { int mi = Array.IndexOf(Days, m.Day); return mi >= 0 ? Ritmo.Core.Model.WorkAutoCompute.ExceptionFor(m, _weekStart.AddDays(mi), _sessionExceptions) : null; })
-                .FirstOrDefault(e => e is not null);
-            bool notDone = exc is { IsNotDone: true };
-            bool partial = exc is { IsNotDone: false };
-            if (notDone && visual.Child is StackPanel sp && sp.Children.Count > 0 && sp.Children[0] is TextBlock tb)
-                tb.TextDecorations = Windows.UI.Text.TextDecorations.Strikethrough;
 
             var card = new SessionCard
             {
                 Content = visual,
                 VerticalAlignment = VerticalAlignment.Top,           // flota por su minuto real (#61)
-                Height = Math.Max(14, heightPx - 3),
+                Height = cardHeight,
                 Margin = new Thickness(2, topPx + 1.5, 2, 0),
                 Opacity = notDone ? 0.4 : (partial ? 0.7 : (s.IsTentative ? 0.6 : 1.0)),
                 Tag = group
@@ -792,7 +786,7 @@ public sealed partial class SchedulePage : Page
                     BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
                     Padding = new Thickness(5, 0, 5, 1),
                     HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(0, topPx + Math.Max(14, heightPx - 3) - 20, 5, 0), IsHitTestVisible = false,
+                    Margin = new Thickness(0, topPx + cardHeight - 20, 5, 0), IsHitTestVisible = false,
                     Child = new TextBlock { Text = $"📝 {noteCount}", FontSize = 10 }
                 };
                 Grid.SetRow(badge, 1); Grid.SetRowSpan(badge, totalRows);
@@ -835,6 +829,68 @@ public sealed partial class SchedulePage : Page
             GridRoot.ColumnDefinitions[c].Width = new GridLength(dw);
         // Las tarjetas en carril (solape, #130) tienen ancho FIJO en px -> recalcúlalo al cambiar la columna.
         foreach (var lc in _laneCards) ApplyLaneLayout(lc.card, lc.lane, lc.count, lc.topPx);
+    }
+
+    // Layout adaptativo del contenido de la tarjeta según su altura (#139/#140).
+    private const double MinCardHeight = 20;     // altura mínima clicable aunque la sesión sea muy corta
+    private const double TitleLineHeight = 15;   // alto aproximado de una línea del título (12px SemiBold)
+    private const double HoursRowHeight = 14;    // alto reservado para la fila de horas (10px)
+    private const double CompactThreshold = 30;  // espacio interior por debajo del cual solo cabe el título
+
+    /// <summary>
+    /// Construye el contenido de una tarjeta de sesión adaptándose a su altura (#139/#140):
+    /// muy corta → solo el título en una línea centrado (fácil de clicar, sin overflow visible);
+    /// con espacio → título (multilínea si cabe) ARRIBA y las horas SIEMPRE visibles abajo, sin que
+    /// el título empuje ni tape la fila de horas.
+    /// </summary>
+    private FrameworkElement BuildCardContent(StudySession s, double cardHeight, bool notDone)
+    {
+        var fg = ScheduleColors.TextFor(s.CategoryId);
+        var title = new TextBlock
+        {
+            Text = s.Title,
+            FontSize = 12,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            Foreground = fg,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        if (notDone) title.TextDecorations = Windows.UI.Text.TextDecorations.Strikethrough;
+
+        // Espacio interior real (la tarjeta resta el padding vertical del Border: 3+3).
+        double inner = cardHeight - 6;
+
+        // Muy corta (#139): solo el título, una línea, centrado verticalmente.
+        if (inner < CompactThreshold)
+        {
+            title.MaxLines = 1;
+            title.VerticalAlignment = VerticalAlignment.Center;
+            return title;
+        }
+
+        var hours = new TextBlock
+        {
+            Text = $"{s.Start:HH\\:mm}–{s.End:HH\\:mm}{(s.IsTentative ? "  (?)" : "")}",
+            FontSize = 10, Opacity = 0.75, Foreground = fg,
+            VerticalAlignment = VerticalAlignment.Bottom
+        };
+
+        // Líneas que caben para el título sin invadir la fila de horas (#140). MaxLines + ellipsis
+        // garantiza que nunca desborde: si el texto no cabe, se trunca con «…».
+        double availForTitle = inner - HoursRowHeight;
+        int maxLines = Math.Max(1, (int)(availForTitle / TitleLineHeight));
+        title.TextWrapping = maxLines > 1 ? TextWrapping.Wrap : TextWrapping.NoWrap;
+        title.MaxLines = maxLines;
+        title.VerticalAlignment = VerticalAlignment.Top;
+
+        // Grid: título (resto del alto) arriba; horas (auto) ancladas abajo, siempre visibles.
+        var grid = new Grid();
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Grid.SetRow(title, 0);
+        Grid.SetRow(hours, 1);
+        grid.Children.Add(title);
+        grid.Children.Add(hours);
+        return grid;
     }
 
     /// <summary>Coloca una tarjeta solapada en su carril: 1/n del ancho de la columna, desplazada. #130</summary>
