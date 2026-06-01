@@ -36,8 +36,8 @@ public sealed partial class WorkPage : Page
         if (!p.AutoFromSchedule) return s.WorkLog;
         var schedule = s.Plan.Phases.SelectMany(ph => ph.Schedule.Sessions)
             .Concat(s.Schedule.Sessions).ToList();
-        var virt = WorkAutoCompute.VirtualEntriesForMonth(schedule, s.SessionExceptions, p.Id, today.Year, today.Month);
-        var oneOff = WorkAutoCompute.OneOffEntriesForMonth(s.OneOffSessions, p.Id, today.Year, today.Month);
+        var virt = WorkAutoCompute.VirtualEntriesForMonth(schedule, s.SessionExceptions, p.Id, today.Year, today.Month, today);
+        var oneOff = WorkAutoCompute.OneOffEntriesForMonth(s.OneOffSessions, p.Id, today.Year, today.Month, today);
         if (virt.Count == 0 && oneOff.Count == 0) return s.WorkLog;
         return s.WorkLog.Concat(virt).Concat(oneOff).ToList();
     }

@@ -15,11 +15,13 @@ public static class WorkAutoCompute
     /// <summary>
     /// Horas automáticas por DÍA del mes para un proyecto, a partir de las sesiones del
     /// <paramref name="schedule"/> vinculadas a él. <paramref name="exceptions"/> cancela días.
+    /// IMPORTANTE (#137c): solo cuenta hasta <paramref name="today"/> inclusive — las sesiones de
+    /// días FUTUROS aún no se han trabajado y no deben sumarse. Días posteriores a hoy quedan en 0.
     /// </summary>
     public static double[] DailyAutoHours(
         IReadOnlyList<StudySession> schedule,
         IReadOnlyList<SessionException> exceptions,
-        string projectId, int year, int month)
+        string projectId, int year, int month, DateOnly today)
     {
         int daysInMonth = DateTime.DaysInMonth(year, month);
         var result = new double[daysInMonth];
@@ -30,6 +32,7 @@ public static class WorkAutoCompute
         for (int day = 1; day <= daysInMonth; day++)
         {
             var date = new DateOnly(year, month, day);
+            if (date > today) break;   // futuro: aún no trabajado (#137c)
             foreach (var s in linked.Where(s => s.Day == date.DayOfWeek))
             {
                 var key = SessionKey.For(s);
@@ -43,21 +46,21 @@ public static class WorkAutoCompute
         return result;
     }
 
-    /// <summary>Total de horas automáticas del mes para un proyecto (suma de <see cref="DailyAutoHours"/>).</summary>
+    /// <summary>Total de horas automáticas del mes para un proyecto, hasta <paramref name="today"/>.</summary>
     public static double MonthAutoHours(
         IReadOnlyList<StudySession> schedule,
         IReadOnlyList<SessionException> exceptions,
-        string projectId, int year, int month)
-        => DailyAutoHours(schedule, exceptions, projectId, year, month).Sum();
+        string projectId, int year, int month, DateOnly today)
+        => DailyAutoHours(schedule, exceptions, projectId, year, month, today).Sum();
 
     /// <summary>
     /// Entradas virtuales de las sesiones PROVISIONALES (one-off) vinculadas a un proyecto en su
-    /// fecha concreta (#137). Las provisionales no tienen excepciones (ya son de un día puntual).
+    /// fecha concreta (#137), SOLO hasta <paramref name="today"/> (las futuras no se computan, #137c).
     /// </summary>
     public static IReadOnlyList<WorkLogEntry> OneOffEntriesForMonth(
-        IReadOnlyList<OneOffSession> oneOffs, string projectId, int year, int month)
+        IReadOnlyList<OneOffSession> oneOffs, string projectId, int year, int month, DateOnly today)
         => oneOffs
-            .Where(o => o.ProjectId == projectId && o.Date.Year == year && o.Date.Month == month)
+            .Where(o => o.ProjectId == projectId && o.Date.Year == year && o.Date.Month == month && o.Date <= today)
             .Select(o => new WorkLogEntry
             {
                 Id = $"auto1-{o.Id}", ProjectId = projectId, Date = o.Date, Hours = o.Duration.TotalHours
@@ -89,9 +92,9 @@ public static class WorkAutoCompute
     public static IReadOnlyList<WorkLogEntry> VirtualEntriesForMonth(
         IReadOnlyList<StudySession> schedule,
         IReadOnlyList<SessionException> exceptions,
-        string projectId, int year, int month)
+        string projectId, int year, int month, DateOnly today)
     {
-        var daily = DailyAutoHours(schedule, exceptions, projectId, year, month);
+        var daily = DailyAutoHours(schedule, exceptions, projectId, year, month, today);
         var list = new List<WorkLogEntry>();
         for (int d = 0; d < daily.Length; d++)
             if (daily[d] > 0)

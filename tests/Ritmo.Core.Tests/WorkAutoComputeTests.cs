@@ -8,6 +8,9 @@ namespace Ritmo.Core.Tests;
 /// <summary>Auto-cómputo de horas desde sesiones vinculadas + excepciones (#137).</summary>
 public class WorkAutoComputeTests
 {
+    // Fin de mes: como "hoy" para los tests que cuentan el mes completo (#137c).
+    private static readonly DateOnly FinDeAgosto = new(2026, 8, 31);
+
     private static StudySession Sess(string title, DayOfWeek day, int startH, double hours, string? projectId)
         => new()
         {
@@ -16,11 +19,24 @@ public class WorkAutoComputeTests
         };
 
     [Fact]
+    public void No_cuenta_los_dias_futuros_del_mes()
+    {
+        // Sesión de 4 h los lunes (3, 10, 17, 24, 31 de agosto 2026). Si "hoy" es el día 10,
+        // solo deben contar los lunes 3 y 10 = 8 h; los futuros (17, 24, 31) no.
+        var schedule = new[] { Sess("Turno", DayOfWeek.Monday, 16, 4, "p1") };
+        Assert.Equal(8, WorkAutoCompute.MonthAutoHours(schedule, [], "p1", 2026, 8, new DateOnly(2026, 8, 10)));
+        var daily = WorkAutoCompute.DailyAutoHours(schedule, [], "p1", 2026, 8, new DateOnly(2026, 8, 10));
+        Assert.Equal(4, daily[2]);    // lunes 3
+        Assert.Equal(4, daily[9]);    // lunes 10 (hoy)
+        Assert.Equal(0, daily[16]);   // lunes 17 (futuro) → no cuenta
+    }
+
+    [Fact]
     public void Suma_horas_de_las_sesiones_vinculadas_los_dias_que_tocan()
     {
         // Agosto 2026: los lunes son 3, 10, 17, 24, 31 → 5 lunes. Sesión de 4 h vinculada a p1.
         var schedule = new[] { Sess("Heladería", DayOfWeek.Monday, 16, 4, "p1") };
-        double total = WorkAutoCompute.MonthAutoHours(schedule, [], "p1", 2026, 8);
+        double total = WorkAutoCompute.MonthAutoHours(schedule, [], "p1", 2026, 8, FinDeAgosto);
         Assert.Equal(20, total);   // 5 lunes × 4 h
     }
 
@@ -34,7 +50,7 @@ public class WorkAutoComputeTests
             Sess("C", DayOfWeek.Monday, 17, 1, null),
         };
         // Solo la de p1 cuenta para p1.
-        Assert.Equal(15, WorkAutoCompute.MonthAutoHours(schedule, [], "p1", 2026, 8));   // 5 lunes × 3
+        Assert.Equal(15, WorkAutoCompute.MonthAutoHours(schedule, [], "p1", 2026, 8, FinDeAgosto));   // 5 lunes × 3
     }
 
     [Fact]
@@ -44,7 +60,7 @@ public class WorkAutoComputeTests
         var key = SessionKey.For(schedule[0]);
         var exc = new[] { new SessionException { Id = "e1", SessionKey = key, From = new DateOnly(2026, 8, 10), To = new DateOnly(2026, 8, 10) } };
         // 5 lunes − 1 cancelado = 4 × 4 h.
-        Assert.Equal(16, WorkAutoCompute.MonthAutoHours(schedule, exc, "p1", 2026, 8));
+        Assert.Equal(16, WorkAutoCompute.MonthAutoHours(schedule, exc, "p1", 2026, 8, FinDeAgosto));
         Assert.True(WorkAutoCompute.IsCancelled(schedule[0], new DateOnly(2026, 8, 10), exc));
         Assert.False(WorkAutoCompute.IsCancelled(schedule[0], new DateOnly(2026, 8, 3), exc));
     }
@@ -57,9 +73,9 @@ public class WorkAutoComputeTests
         // El lunes 10 solo hice 1.5 h (parcial), no las 4.
         var exc = new[] { new SessionException { Id = "e1", SessionKey = key, From = new DateOnly(2026, 8, 10), To = new DateOnly(2026, 8, 10), ActualHours = 1.5 } };
         // 4 lunes completos (16 h) + 1 parcial (1.5) = 17.5.
-        Assert.Equal(17.5, WorkAutoCompute.MonthAutoHours(schedule, exc, "p1", 2026, 8));
+        Assert.Equal(17.5, WorkAutoCompute.MonthAutoHours(schedule, exc, "p1", 2026, 8, FinDeAgosto));
         // Ese día computa 1.5, no 4.
-        Assert.Equal(1.5, WorkAutoCompute.DailyAutoHours(schedule, exc, "p1", 2026, 8)[9]);
+        Assert.Equal(1.5, WorkAutoCompute.DailyAutoHours(schedule, exc, "p1", 2026, 8, FinDeAgosto)[9]);
         // No está «cancelada» del todo: la excepción existe pero es parcial.
         Assert.False(exc[0].IsNotDone);
         var e = WorkAutoCompute.ExceptionFor(schedule[0], new DateOnly(2026, 8, 10), exc);
@@ -74,14 +90,14 @@ public class WorkAutoComputeTests
         var key = SessionKey.For(schedule[0]);
         // Rango que cubre los lunes 10 y 17.
         var exc = new[] { new SessionException { Id = "e1", SessionKey = key, From = new DateOnly(2026, 8, 8), To = new DateOnly(2026, 8, 20) } };
-        Assert.Equal(12, WorkAutoCompute.MonthAutoHours(schedule, exc, "p1", 2026, 8));   // 5 − 2 = 3 × 4
+        Assert.Equal(12, WorkAutoCompute.MonthAutoHours(schedule, exc, "p1", 2026, 8, FinDeAgosto));   // 5 − 2 = 3 × 4
     }
 
     [Fact]
     public void DailyAutoHours_coloca_las_horas_en_el_dia_correcto()
     {
         var schedule = new[] { Sess("Heladería", DayOfWeek.Monday, 16, 4, "p1") };
-        var daily = WorkAutoCompute.DailyAutoHours(schedule, [], "p1", 2026, 8);
+        var daily = WorkAutoCompute.DailyAutoHours(schedule, [], "p1", 2026, 8, FinDeAgosto);
         Assert.Equal(4, daily[2]);    // día 3 (lunes)
         Assert.Equal(0, daily[3]);    // día 4 (martes)
         Assert.Equal(4, daily[9]);    // día 10 (lunes)
@@ -187,7 +203,7 @@ public class WorkAutoComputeTests
         var one = store.Load().OneOffSessions.Single();
         Assert.Equal(pid, one.ProjectId);
         // Computa sus horas ese mes.
-        var entries = WorkAutoCompute.OneOffEntriesForMonth(store.Load().OneOffSessions, pid, 2026, 8);
+        var entries = WorkAutoCompute.OneOffEntriesForMonth(store.Load().OneOffSessions, pid, 2026, 8, FinDeAgosto);
         Assert.Equal(4, entries.Sum(e => e.Hours));
         // Round-trip conserva el vínculo.
         var json = svc.ExportJson();
