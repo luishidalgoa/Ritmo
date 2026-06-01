@@ -99,6 +99,14 @@ public sealed partial class SchedulePage : Page
     // columna (la sesión queda clicable a la izquierda); su ancho se recalcula al redimensionar.
     private readonly List<Border> _calConflictCards = new();
 
+    // Selección rectangular tipo Excel (#142): miembros seleccionados ("{(int)día}|{clave}"), grupo
+    // ancla (último clic normal), supresión del Tapped tras un shift+clic, y los grupos pintados.
+    private readonly HashSet<string> _multiSel = new();
+    private SessionGroup? _anchorGroup;
+    private bool _suppressNextTap;
+    private List<SessionGroup> _renderGroups = new();
+    private static string MemberKey(StudySession s) => $"{(int)s.Day}|{SessionKey(s)}";
+
     public SchedulePage()
     {
         InitializeComponent();
@@ -669,6 +677,7 @@ public sealed partial class SchedulePage : Page
             int di = Array.IndexOf(Days, ov.Day);
             if (di >= 0) groups.Add(new Ritmo.Core.Scheduling.SessionGroup(ov, di, 1, new[] { ov }));
         }
+        _renderGroups = groups;   // guardado para calcular la selección rectangular (#142)
 
         foreach (var group in groups)
         {
@@ -685,8 +694,9 @@ public sealed partial class SchedulePage : Page
 
             var baseColor = ScheduleColors.For(s.CategoryId);
             bool isActive = activeSession is not null && group.Members.Any(m => ReferenceEquals(m, activeSession));
-            bool isSelected = _selectedSessionKey is not null && SessionKey(s) == _selectedSessionKey;
-            bool ring = isActive || isSelected;   // borde de acento: bloque activo o seleccionado en el panel
+            bool inMulti = _multiSel.Count > 0 && group.Members.Any(m => _multiSel.Contains(MemberKey(m)));   // #142
+            bool isSelected = inMulti || (_selectedSessionKey is not null && SessionKey(s) == _selectedSessionKey);
+            bool ring = isActive || isSelected;   // borde de acento: bloque activo, seleccionado o en multiselección
 
             // Excepciones (#137/#137b) en la semana visible: NO realizada → atenuar + tachar;
             // PARCIAL → atenuar un poco (sí se hizo, en parte). Se calcula ANTES de pintar para
@@ -744,12 +754,23 @@ public sealed partial class SchedulePage : Page
             card.PointerPressed += (o, e) =>
             {
                 var b = (SessionCard)o;
+                // Shift+clic = selección rectangular (#142): del ancla a esta tarjeta. No arrastra.
+                if (e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Shift))
+                {
+                    _suppressNextTap = true;   // evita que el Tapped que sigue abra el detalle individual
+                    RangeSelectTo(thisGroup);
+                    return;
+                }
                 BeginDrag(b, thisGroup, ZoneMode(b, e), cardDayCol, cardStartSlot, thisGroup.DaySpan, cardSpanSlots, e);
             };
             // Clic = abrir el detalle. Tapped es fiable dentro del ScrollViewer (no
             // depende de la captura del puntero, que el SV roba); el mismo mecanismo
             // que usan los eventos del calendario. El arrastre sigue por Pointer*. #114
-            card.Tapped += (_, _) => ShowSessionDetail(thisGroup);
+            card.Tapped += (_, _) =>
+            {
+                if (_suppressNextTap) { _suppressNextTap = false; return; }   // #142 fue un shift+clic
+                ShowSessionDetail(thisGroup);
+            };
             Grid.SetRow(card, 1); Grid.SetRowSpan(card, totalRows);   // flota; alto/margen lo posicionan (#61)
             Grid.SetColumn(card, dayCol + 1); Grid.SetColumnSpan(card, group.DaySpan);
             if (laneCount > 1)   // solape (#130): se estrecha a su carril y se desplaza al lado
@@ -1604,6 +1625,7 @@ public sealed partial class SchedulePage : Page
         var rep = group.Representative;
         _selectedGroup = group; _selectedEvent = null; _selectedOneOff = null;
         _selectedSessionKey = SessionKey(rep); _selectedEventKey = null;
+        _anchorGroup = group; _multiSel.Clear();   // #142: este clic fija el ancla y cancela la multiselección
         Build();   // repinta la rejilla con el resaltado
 
         var content = DetailContent;
@@ -1969,7 +1991,161 @@ public sealed partial class SchedulePage : Page
         DetailContent.Children.Clear();
         _selectedSessionKey = null; _selectedEventKey = null;
         _selectedGroup = null; _selectedEvent = null; _selectedOneOff = null;
+        _multiSel.Clear(); _anchorGroup = null;   // #142
         if (!internalRefresh) Build();   // repinta sin resaltado (RefreshWeek ya repinta por su cuenta)
+    }
+
+    // ---------- Selección rectangular tipo Excel + acciones en bloque (#142) ----------
+
+    /// <summary>
+    /// Selecciona, con Shift+clic, todas las sesiones del rectángulo (columnas × franja horaria) que
+    /// abarcan el grupo ancla (último clic normal) y <paramref name="target"/>. Sin ancla, equivale a
+    /// un clic normal.
+    /// </summary>
+    private void RangeSelectTo(SessionGroup target)
+    {
+        if (_anchorGroup is null) { ShowSessionDetail(target); return; }
+        var a = _anchorGroup; var b = target;
+        int dayMin = Math.Min(a.FirstDayIndex, b.FirstDayIndex);
+        int dayMax = Math.Max(a.FirstDayIndex + a.DaySpan - 1, b.FirstDayIndex + b.DaySpan - 1);
+        var timeMin = a.Representative.Start <= b.Representative.Start ? a.Representative.Start : b.Representative.Start;
+        var timeMax = a.Representative.End >= b.Representative.End ? a.Representative.End : b.Representative.End;
+
+        _multiSel.Clear();
+        foreach (var grp in _renderGroups)
+            foreach (var m in grp.Members)
+            {
+                int di = Array.IndexOf(Days, m.Day);
+                if (di < 0) continue;
+                if (Ritmo.Core.Scheduling.ScheduleRectangle.InRectangle(di, m.Start, m.End, dayMin, dayMax, timeMin, timeMax))
+                    _multiSel.Add(MemberKey(m));
+            }
+
+        Build();             // repinta con los anillos de selección
+        ShowMultiDetail();   // panel de acciones en bloque
+    }
+
+    /// <summary>Panel lateral con las acciones en bloque para la selección múltiple (#142).</summary>
+    private void ShowMultiDetail()
+    {
+        int count = _multiSel.Count;
+        if (count == 0) { CloseDetail(); return; }
+
+        var content = DetailContent;
+        content.Children.Clear();
+        content.Children.Add(DetailHeader($"{count} sesiones seleccionadas"));
+        content.Children.Add(MetaLine("Selección rectangular (Shift+clic). Las acciones se aplican a todas."));
+
+        var col = new StackPanel { Spacing = 8, Margin = new Thickness(0, 10, 0, 0) };
+        col.Children.Add(BulkButton("Renombrar todas…", BulkRename));
+        col.Children.Add(BulkButton("Cambiar categoría…", BulkCategory));
+        col.Children.Add(BulkButton("Vincular a proyecto…", BulkProject));
+        col.Children.Add(BulkButton("Marcar no realizada esta semana", BulkMarkNotDone));
+        col.Children.Add(BulkButton("Borrar todas", BulkDelete));
+        content.Children.Add(col);
+
+        DetailPanel.Visibility = Visibility.Visible;
+    }
+
+    private Button BulkButton(string text, Func<Task> action)
+    {
+        var b = new Button { Content = text, HorizontalAlignment = HorizontalAlignment.Stretch };
+        b.Click += async (_, _) => { await action(); };
+        return b;
+    }
+
+    /// <summary>Sesiones de la fase activa que están en la selección (#142).</summary>
+    private bool IsSelected(StudySession s) => _multiSel.Contains(MemberKey(s));
+
+    /// <summary>Aplica una transformación a las sesiones seleccionadas de la fase activa y guarda.</summary>
+    private void ApplyToSelected(Func<StudySession, StudySession> transform)
+    {
+        if (_activePhaseName is null) return;
+        var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        if (phase is null) return;
+        PushUndo();   // #136
+        var updated = phase.Schedule.Sessions.Select(x => IsSelected(x) ? transform(x) : x).ToList();
+        AppState.Config.ReplaceSessions(_activePhaseName, updated);
+    }
+
+    /// <summary>Tras una acción en bloque que cambia los datos: limpia la selección y repinta.</summary>
+    private void AfterBulk() { _multiSel.Clear(); _anchorGroup = null; CloseDetail(); }
+
+    private async Task BulkRename()
+    {
+        var box = new TextBox { PlaceholderText = "Nuevo título para todas", AcceptsReturn = false };
+        var dlg = new ContentDialog { Title = "Renombrar sesiones", Content = box, PrimaryButtonText = "Aplicar",
+            CloseButtonText = "Cancelar", XamlRoot = this.XamlRoot, DefaultButton = ContentDialogButton.Primary };
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        var title = (box.Text ?? "").Trim();
+        if (title.Length == 0) return;
+        ApplyToSelected(x => x with { Title = title });
+        AfterBulk();
+    }
+
+    private async Task BulkCategory()
+    {
+        var s = AppState.Load();
+        var combo = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
+        foreach (var c in s.Categories) combo.Items.Add(new ComboBoxItem { Content = c.Name, Tag = c.Id });
+        combo.SelectedIndex = 0;
+        var dlg = new ContentDialog { Title = "Cambiar categoría", Content = combo, PrimaryButtonText = "Aplicar",
+            CloseButtonText = "Cancelar", XamlRoot = this.XamlRoot, DefaultButton = ContentDialogButton.Primary };
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        if (combo.SelectedItem is not ComboBoxItem item || item.Tag is not string cid) return;
+        ApplyToSelected(x => x with { CategoryId = cid });
+        AfterBulk();
+    }
+
+    private async Task BulkProject()
+    {
+        var s = AppState.Load();
+        var combo = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
+        combo.Items.Add(new ComboBoxItem { Content = "(Ninguno)", Tag = "" });
+        foreach (var p in s.WorkProjects.Where(p => !p.Archived)) combo.Items.Add(new ComboBoxItem { Content = p.Name, Tag = p.Id });
+        combo.SelectedIndex = 0;
+        var dlg = new ContentDialog { Title = "Vincular a proyecto", Content = combo, PrimaryButtonText = "Aplicar",
+            CloseButtonText = "Cancelar", XamlRoot = this.XamlRoot, DefaultButton = ContentDialogButton.Primary };
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        if (combo.SelectedItem is not ComboBoxItem item || item.Tag is not string pid) return;
+        var proj = string.IsNullOrEmpty(pid) ? null : pid;
+        ApplyToSelected(x => x with { ProjectId = proj });
+        AfterBulk();
+    }
+
+    private async Task BulkMarkNotDone()
+    {
+        if (_activePhaseName is null || _multiSel.Count == 0) return;
+        var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        if (phase is null) return;
+        PushUndo();   // #136
+        foreach (var x in phase.Schedule.Sessions)
+        {
+            if (!IsSelected(x)) continue;
+            int di = Array.IndexOf(Days, x.Day);
+            if (di < 0) continue;
+            var date = _weekStart.AddDays(di);
+            AppState.Config.AddSessionException(Ritmo.Core.Model.SessionKey.For(x), date, date);
+        }
+        AfterBulk();
+        await Task.CompletedTask;
+    }
+
+    private async Task BulkDelete()
+    {
+        if (_activePhaseName is null || _multiSel.Count == 0) return;
+        var dlg = new ContentDialog { Title = "Borrar sesiones",
+            Content = $"¿Borrar las {_multiSel.Count} sesiones seleccionadas? (puedes deshacer con Ctrl+Z)",
+            PrimaryButtonText = "Borrar", CloseButtonText = "Cancelar", XamlRoot = this.XamlRoot,
+            DefaultButton = ContentDialogButton.Close };
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        if (phase is null) return;
+        PushUndo();   // #136
+        var kept = phase.Schedule.Sessions.Where(x => !IsSelected(x)).ToList();
+        AppState.Config.ReplaceSessions(_activePhaseName, kept);
+        AppState.Config.PruneOrphanSessionData();   // #138
+        AfterBulk();
     }
 
     // ---------- Bloques de UI del panel ----------
