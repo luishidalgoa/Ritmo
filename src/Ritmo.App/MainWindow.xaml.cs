@@ -201,6 +201,7 @@ public sealed partial class MainWindow : Window
             "timer" => typeof(TimerPage),
             "schedule" => typeof(SchedulePage),
             "work" => typeof(WorkPage),
+            "tasks" => typeof(TasksPage),
             "settings" => typeof(SettingsPage),
             "help" => typeof(HelpPage),
             _ => typeof(HomePage)

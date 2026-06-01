@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Ritmo_App.TasksPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Padding="32" Spacing="20" MaxWidth="900" HorizontalAlignment="Stretch">
+            <Grid>
+                <StackPanel Spacing="2">
+                    <TextBlock Text="Tareas" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock Text="Listas de tareas estilo Recordatorios. Crea bloques y añade tareas dentro."
+                               Opacity="0.7" FontSize="13" />
+                </StackPanel>
+                <Button x:Name="AddBlockBtn" Content="Nuevo bloque" HorizontalAlignment="Right"
+                        VerticalAlignment="Top" Click="AddBlockBtn_Click"
+                        Style="{ThemeResource AccentButtonStyle}" />
+            </Grid>
+
+            <TextBlock x:Name="EmptyText" Visibility="Collapsed" Opacity="0.6" FontSize="14" TextWrapping="Wrap"
+                       Text="Aún no tienes bloques. Crea uno con «Nuevo bloque» para empezar a organizar tus tareas." />
+
+            <StackPanel x:Name="BlocksHost" Spacing="16" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

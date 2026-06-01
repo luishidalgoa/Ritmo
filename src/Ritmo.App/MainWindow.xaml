@@ -40,6 +40,11 @@
                     <FontIcon Glyph="&#xE9F9;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="Tareas" Tag="tasks">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE73E;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem x:Name="WorkEnvNav" Content="Entornos de trabajo" Tag="workenv" SelectsOnInvoked="False">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE821;" />
