@@ -312,8 +312,15 @@ public sealed partial class TimerPage : Page
                     void LaunchWorkspace()
                     {
                         AppLauncher.OpenAll(openApps);           // abrir herramientas de trabajo (#109)
-                        if (env.OpenLinksInBrowser && openLinks.Count > 0)   // enlaces en ventana nueva del navegador por defecto
-                            DefaultBrowser.OpenLinksInNewWindow(openLinks.Select(l => l.Url).ToList());
+                        var urls = openLinks.Select(l => l.Url).ToList();
+                        // Música WEB (Navidrome / URL http): si el entorno abre ventana nueva, debe abrirse
+                        // EN esa misma ventana junto a los enlaces, no en el navegador principal. Si NO se
+                        // abre ventana nueva, se lanza por su cuenta en el navegador por defecto. (#146)
+                        bool musicInNewWindow = env.OpenLinksInBrowser && IsWebMusic(env.Music);
+                        if (musicInNewWindow) urls.Add(env.Music!.Target.Trim());
+                        if (env.OpenLinksInBrowser && urls.Count > 0)
+                            DefaultBrowser.OpenLinksInNewWindow(urls);
+                        if (!musicInNewWindow) MusicService.TryLaunch(env.Music);   // app/URI o sin ventana nueva
                     }
 
                     if (env.NewVirtualDesktop)                   // escritorio virtual limpio PRIMERO (#110)
@@ -321,7 +328,6 @@ public sealed partial class TimerPage : Page
                         VirtualDesktops.CreateAndSwitch();
                         _createdDesktop = true;
                     }
-                    MusicService.TryLaunch(env.Music);          // lanzar música (#10)
                     AppCloser.CloseAll(env.AppsToClose);         // cerrar apps de ruido (#35)
                     AppMuter.Mute(env.AppsToMute);               // silenciar apps de ruido (#9)
                     if (env.HideTaskbarBadges && MainWindow.Current is not null)   // sin parpadeos/badge (#31)
@@ -351,4 +357,14 @@ public sealed partial class TimerPage : Page
         }
         DndBadge.Visibility = _focus.IsActive ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    /// <summary>
+    /// ¿La música del entorno es WEB (se abre en navegador)? Navidrome (proveedor) o cualquier
+    /// Target http(s). Las apps/URIs (p. ej. "spotify:") NO lo son. (#146)
+    /// </summary>
+    private static bool IsWebMusic(Ritmo.Core.Focus.MusicLauncher? m)
+        => m is not null && !string.IsNullOrWhiteSpace(m.Target) && (
+               string.Equals(m.Provider, "navidrome", StringComparison.OrdinalIgnoreCase)
+               || m.Target.TrimStart().StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+               || m.Target.TrimStart().StartsWith("https://", StringComparison.OrdinalIgnoreCase));
 }
