@@ -46,6 +46,9 @@ public static class KnownApps
         new("Telegram", "Telegram", AppCategory.Mensajeria, "https://telegram.org/", "telegram"),
         new("WhatsApp", "WhatsApp", AppCategory.Mensajeria, "https://www.whatsapp.com/download", "whatsapp"),
         new("Microsoft Teams", "ms-teams", AppCategory.Mensajeria, "https://www.microsoft.com/microsoft-teams/download-app", "teams"),
+        // Zoom como app (#144): abrir/cerrar/silenciar desde el entorno. El proceso es «Zoom.exe»
+        // (ProcessName «Zoom» para cerrar/silenciar); para abrir se intenta vía App Paths (best-effort).
+        new("Zoom", "Zoom", AppCategory.Mensajeria, "https://zoom.us/download", "zoom", "Zoom.exe"),
 
         new("Steam", "steam", AppCategory.Juegos, "https://store.steampowered.com/about/", "steam"),
         new("Epic Games", "EpicGamesLauncher", AppCategory.Juegos, "https://store.epicgames.com/", "epic games"),

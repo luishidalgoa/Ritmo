@@ -64,4 +64,13 @@ public class KnownAppsTests
         Assert.NotNull(KnownApps.ByProcess("WINWORD"));
         Assert.NotNull(KnownApps.ByProcess("POWERPNT"));
     }
+
+    [Fact]
+    public void Incluye_zoom_como_app_de_mensajeria()
+    {
+        var zoom = KnownApps.ByProcess("Zoom");   // #144
+        Assert.NotNull(zoom);
+        Assert.Equal(AppCategory.Mensajeria, zoom!.Category);
+        Assert.Equal("zoom", zoom.MatchTerm);
+    }
 }
