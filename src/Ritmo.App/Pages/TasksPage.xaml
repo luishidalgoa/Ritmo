@@ -8,23 +8,34 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="32" Spacing="20" MaxWidth="900" HorizontalAlignment="Stretch">
-            <Grid>
-                <StackPanel Spacing="2">
-                    <TextBlock Text="Tareas" FontSize="28" FontWeight="SemiBold" />
-                    <TextBlock Text="Listas de tareas estilo Recordatorios. Crea bloques y añade tareas dentro."
-                               Opacity="0.7" FontSize="13" />
-                </StackPanel>
-                <Button x:Name="AddBlockBtn" Content="Nuevo bloque" HorizontalAlignment="Right"
-                        VerticalAlignment="Top" Click="AddBlockBtn_Click"
-                        Style="{ThemeResource AccentButtonStyle}" />
-            </Grid>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="290" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-            <TextBlock x:Name="EmptyText" Visibility="Collapsed" Opacity="0.6" FontSize="14" TextWrapping="Wrap"
-                       Text="Aún no tienes bloques. Crea uno con «Nuevo bloque» para empezar a organizar tus tareas." />
+        <!-- Columna izquierda: lista de bloques (cada uno abre su vista completa a la derecha). -->
+        <Grid Grid.Column="0" Padding="16" RowSpacing="12"
+              Background="{ThemeResource LayerFillColorDefaultBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Spacing="2">
+                <TextBlock Text="Tareas" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock Text="Tus listas, estilo Recordatorios." Opacity="0.7" FontSize="12" />
+            </StackPanel>
+            <Button Grid.Row="1" x:Name="AddBlockBtn" Content="Nuevo bloque" Click="AddBlockBtn_Click"
+                    HorizontalAlignment="Stretch" Style="{ThemeResource AccentButtonStyle}" />
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="BlockListHost" Spacing="4" />
+            </ScrollViewer>
+        </Grid>
 
-            <StackPanel x:Name="BlocksHost" Spacing="16" />
-        </StackPanel>
-    </ScrollViewer>
+        <!-- Columna derecha: vista completa del bloque seleccionado. -->
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="DetailHost" Padding="32" Spacing="16" MaxWidth="820" HorizontalAlignment="Stretch" />
+        </ScrollViewer>
+    </Grid>
 </Page>
