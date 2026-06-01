@@ -119,7 +119,7 @@ public sealed partial class WorkPage : Page
         card.Children.Add(new TextBlock { Text = monthLine, FontWeight = FontWeights.SemiBold, FontSize = 15, TextWrapping = TextWrapping.Wrap });
 
         var subParts = new System.Collections.Generic.List<string>();
-        if (sum.HoursThisMonth > 0) subParts.Add($"Proyección fin de mes ~{sum.ProjectedMonthHours:0.#} h" + (p.Rate > 0 ? $" · {sum.ProjectedMonthEarnings:0.##} {sym}" : ""));
+        if (sum.HasProjection) subParts.Add($"Proyección fin de mes ~{sum.ProjectedMonthHours:0.#} h" + (p.Rate > 0 ? $" · {sum.ProjectedMonthEarnings:0.##} {sym}" : ""));
         subParts.Add($"Total histórico {sum.HoursTotal:0.##} h" + (p.Rate > 0 ? $" · {sum.EarningsTotal:0.##} {sym}" : ""));
         card.Children.Add(new TextBlock { Text = string.Join("   ·   ", subParts), Opacity = 0.65, FontSize = 12, TextWrapping = TextWrapping.Wrap });
 
@@ -167,22 +167,28 @@ public sealed partial class WorkPage : Page
             return new TextBlock { Text = "Aún no hay horas anotadas este mes.", Opacity = 0.5, FontSize = 12, Margin = new Thickness(0, 6, 0, 6) };
         }
 
-        // Escala vertical: el máximo entre el día pico y el objetivo total (para que la línea quepa).
-        double maxBar = daily.Length > 0 ? daily.Max() : 0;
-        double maxCum = cumulative.Length > 0 ? cumulative.Max() : 0;
-        double scaleMax = Math.Max(Math.Max(maxBar, maxCum), p.MonthlyGoalHours);
-        if (scaleMax <= 0) scaleMax = 1;
+        // El día de HOY (1-based) dentro del mes mostrado; si miramos otro mes, todo el mes.
+        bool isCurrentMonth = today.Year == DateTime.Now.Year && today.Month == DateTime.Now.Month;
+        int todayIdx = isCurrentMonth ? today.Day : days;   // hasta dónde llega la línea de acumulado
 
-        // Línea de objetivo (meta diaria proporcional) como referencia horizontal al final del mes.
+        // Escalas SEPARADAS: las barras (horas/día) y la línea de acumulado tienen magnitudes muy
+        // distintas (p. ej. 6 h/día vs 120 h acumuladas). Si compartieran escala, las barras se
+        // verían planas o la línea saturada. Por eso cada una tiene su propio máximo.
+        double maxBar = daily.Length > 0 ? daily.Max() : 0;
+        if (maxBar <= 0) maxBar = 1;
+        double cumTop = Math.Max(cumulative.Length > 0 ? cumulative.Max() : 0, p.MonthlyGoalHours);
+        if (cumTop <= 0) cumTop = 1;
+
+        const double barArea = 70;   // las barras ocupan la parte baja
         var accent = Hex(p.ColorHex);
         var faint = Hex(p.ColorHex, 0.45);
 
-        // Barras: horas de cada día.
+        // Barras: horas de cada día (escala propia, en la franja inferior).
         for (int d = 0; d < days; d++)
         {
             double x = d * (barW + gap);
-            double barH = daily[d] > 0 ? Math.Max(2, daily[d] / scaleMax * H) : 0;
-            bool isToday = (d + 1) == today.Day && today.Month == today.Month;
+            double barH = daily[d] > 0 ? Math.Max(3, daily[d] / maxBar * barArea) : 0;
+            bool isToday = isCurrentMonth && (d + 1) == today.Day;
             if (barH > 0)
             {
                 var bar = new Rectangle
@@ -197,7 +203,7 @@ public sealed partial class WorkPage : Page
             }
         }
 
-        // Línea de objetivo (recta de meta acumulada: de 0 a objetivo a lo largo del mes).
+        // Línea de objetivo (recta de meta acumulada: de 0 el día 1 a objetivo el último día).
         if (p.MonthlyGoalHours > 0)
         {
             var goalLine = new Polyline
@@ -205,27 +211,26 @@ public sealed partial class WorkPage : Page
                 Stroke = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"],
                 StrokeThickness = 1.5, StrokeDashArray = new DoubleCollection { 4, 3 }
             };
-            double y0 = H - (0 / scaleMax * H);
-            double y1 = H - (p.MonthlyGoalHours / scaleMax * H);
-            goalLine.Points.Add(new Windows.Foundation.Point(barW / 2, y0));
-            goalLine.Points.Add(new Windows.Foundation.Point(width - barW / 2, y1));
+            goalLine.Points.Add(new Windows.Foundation.Point(barW / 2, H));
+            goalLine.Points.Add(new Windows.Foundation.Point(width - barW / 2, H - (p.MonthlyGoalHours / cumTop * H)));
             canvas.Children.Add(goalLine);
         }
 
-        // Línea de acumulado real.
+        // Línea de acumulado real, SOLO hasta hoy (no plana hasta fin de mes).
         var cumLine = new Polyline { Stroke = accent, StrokeThickness = 2 };
-        for (int d = 0; d < days; d++)
+        for (int d = 0; d < days && d < todayIdx; d++)
         {
             double x = d * (barW + gap) + barW / 2;
-            double y = H - (cumulative[d] / scaleMax * H);
+            double y = H - (cumulative[d] / cumTop * H);
             cumLine.Points.Add(new Windows.Foundation.Point(x, y));
         }
-        canvas.Children.Add(cumLine);
+        if (cumLine.Points.Count > 1) canvas.Children.Add(cumLine);
 
         var wrap = new StackPanel { Spacing = 4 };
         // Leyenda.
         var legend = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
-        legend.Children.Add(LegendDot(accent, "Acumulado / horas por día"));
+        legend.Children.Add(LegendDot(faint, "Horas por día"));
+        legend.Children.Add(LegendDot(accent, "Acumulado del mes"));
         if (p.MonthlyGoalHours > 0) legend.Children.Add(LegendDot((Brush)Application.Current.Resources["TextFillColorTertiaryBrush"], "Objetivo"));
         wrap.Children.Add(new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = canvas });
         wrap.Children.Add(legend);

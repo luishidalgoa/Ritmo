@@ -21,14 +21,29 @@ public class WorkTrackingTests
     }
 
     [Fact]
-    public void Resumen_calcula_ganado_y_proyeccion()
+    public void Resumen_calcula_ganado_y_proyeccion_por_dia_trabajado()
     {
-        var log = new[] { E("p1", 2026, 8, 1, 4), E("p1", 2026, 8, 5, 6) };   // 10 h hasta el día 5
+        // 2 días trabajados (1 y 5) con 10 h, mirando el día 5 de agosto (31 días).
+        var log = new[] { E("p1", 2026, 8, 1, 4), E("p1", 2026, 8, 5, 6) };
         var sum = WorkTracking.Summarize(log, "p1", 20m, new DateOnly(2026, 8, 5));
         Assert.Equal(10, sum.HoursThisMonth);
         Assert.Equal(200m, sum.EarningsThisMonth);
-        Assert.Equal(62, sum.ProjectedMonthHours, 3);          // 10/5 * 31 días
-        Assert.Equal(1240m, sum.ProjectedMonthEarnings);
+        Assert.True(sum.HasProjection);
+        // ritmo = 10h/2días = 5 h/día trabajado; días trabajados esperados = (2/5)*31 = 12.4;
+        // proyección = 5 * 12.4 = 62 h. (Coincide con la lineal simple aquí, pero ya no se dispara
+        // si trabajas muchas horas en un único día — ver el test de "no proyecta el día 1".)
+        Assert.Equal(62, sum.ProjectedMonthHours, 1);
+    }
+
+    [Fact]
+    public void No_proyecta_al_principio_del_mes()
+    {
+        // 20 h el día 1: antes daba 600 h/mes. Ahora no proyecta hasta pasados unos días.
+        var log = new[] { E("p1", 2026, 8, 1, 20) };
+        var sum = WorkTracking.Summarize(log, "p1", 6m, new DateOnly(2026, 8, 1));
+        Assert.False(sum.HasProjection);
+        Assert.Equal(20, sum.ProjectedMonthHours);   // = lo real, sin extrapolar
+        Assert.Equal(20, sum.HoursThisMonth);
     }
 
     [Fact]

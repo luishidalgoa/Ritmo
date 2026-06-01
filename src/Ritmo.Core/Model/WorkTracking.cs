@@ -10,7 +10,8 @@ public sealed record WorkSummary(
     double HoursTotal,
     decimal EarningsTotal,
     double ProjectedMonthHours,
-    decimal ProjectedMonthEarnings);
+    decimal ProjectedMonthEarnings,
+    bool HasProjection = false);
 
 /// <summary>
 /// Agrega el registro manual de horas por PROYECTO (#84 V3): horas y ganado del mes, total, y una
@@ -52,18 +53,44 @@ public static class WorkTracking
     public static double GoalProgress(double hoursThisMonth, double monthlyGoalHours)
         => monthlyGoalHours > 0 ? hoursThisMonth / monthlyGoalHours : 0;
 
+    /// <summary>Días transcurridos del mes mínimos antes de mostrar una proyección (evita
+    /// extrapolaciones absurdas, p. ej. 20 h el día 1 → 600 h/mes).</summary>
+    public const int MinDaysForProjection = 5;
+
     /// <summary>
     /// Resumen del proyecto para el mes de <paramref name="today"/>. La proyección extrapola
-    /// linealmente el ritmo del mes (horas/día transcurrido) a los días totales del mes.
+    /// linealmente el ritmo del mes (horas POR DÍA TRABAJADO, no por día de calendario) a los días
+    /// LABORABLES restantes; y solo si ya han pasado unos días (<see cref="MinDaysForProjection"/>),
+    /// para no dar cifras irreales al principio del mes. <see cref="WorkSummary.HasProjection"/>
+    /// indica si la proyección es significativa.
     /// </summary>
     public static WorkSummary Summarize(IEnumerable<WorkLogEntry> log, string projectId, decimal rate, System.DateOnly today)
     {
         var list = log.Where(e => e.ProjectId == projectId).ToList();
-        double monthHours = list.Where(e => e.Date.Year == today.Year && e.Date.Month == today.Month).Sum(e => e.Hours);
+        var month = list.Where(e => e.Date.Year == today.Year && e.Date.Month == today.Month).ToList();
+        double monthHours = month.Sum(e => e.Hours);
         double totalHours = list.Sum(e => e.Hours);
 
         int daysInMonth = System.DateTime.DaysInMonth(today.Year, today.Month);
-        double projHours = today.Day > 0 ? monthHours / today.Day * daysInMonth : monthHours;
+        // Ritmo = horas por DÍA EFECTIVAMENTE TRABAJADO este mes (no por día de calendario), así
+        // un único día de 20 h no se extrapola a "600 h/mes". Proyección = ritmo × (días del mes
+        // en los que sueles trabajar). Aproximamos esos días como la media observada.
+        int daysWorked = month.Select(e => e.Date.Day).Distinct().Count();
+        bool hasProjection = today.Day >= MinDaysForProjection && daysWorked > 0;
+
+        double projHours;
+        if (hasProjection)
+        {
+            double hoursPerWorkedDay = monthHours / daysWorked;
+            // Fracción de días trabajados sobre los transcurridos, extrapolada a todo el mes.
+            double workedDayRate = (double)daysWorked / today.Day;
+            double expectedWorkedDays = workedDayRate * daysInMonth;
+            projHours = hoursPerWorkedDay * expectedWorkedDays;
+        }
+        else
+        {
+            projHours = monthHours;   // aún no proyectamos: mostramos lo real
+        }
 
         return new WorkSummary(
             HoursThisMonth: monthHours,
@@ -71,6 +98,7 @@ public static class WorkTracking
             HoursTotal: totalHours,
             EarningsTotal: (decimal)totalHours * rate,
             ProjectedMonthHours: projHours,
-            ProjectedMonthEarnings: (decimal)projHours * rate);
+            ProjectedMonthEarnings: (decimal)projHours * rate,
+            HasProjection: hasProjection);
     }
 }
