@@ -32,6 +32,9 @@ internal sealed class SettingsDto
     public List<WorkProjectDto> WorkProjects { get; set; } = [];
     public List<WorkLogEntryDto> WorkLog { get; set; } = [];
     public List<SessionExceptionDto>? SessionExceptions { get; set; }   // #137
+    // Tareas (#145): bloques (listas) + tareas.
+    public List<TaskBlockDto> TaskBlocks { get; set; } = [];
+    public List<TaskItemDto> Tasks { get; set; } = [];
     // LEGACY (#84 V1/V2): tarifa/objetivo por ENTORNO. Se migran a proyectos en FromDto y dejan de
     // escribirse. Se mantienen solo para leer settings.json antiguos.
     public Dictionary<string, decimal>? EnvironmentRates { get; set; }
@@ -82,6 +85,27 @@ internal sealed class SessionExceptionDto
     public string To { get; set; } = "2026-01-01";
     public string Reason { get; set; } = "";
     public double? ActualHours { get; set; }   // null = no realizada; valor = parcial. #137b
+}
+
+internal sealed class TaskBlockDto
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string? ColorHex { get; set; }
+    public int Order { get; set; }
+    public string? EnvironmentId { get; set; }
+}
+
+internal sealed class TaskItemDto
+{
+    public string Id { get; set; } = "";
+    public string BlockId { get; set; } = "";
+    public string Text { get; set; } = "";
+    public bool Done { get; set; }
+    public int Order { get; set; }
+    public string? Notes { get; set; }
+    public string? DueDate { get; set; }   // "yyyy-MM-dd" o null
+    public string? SessionKey { get; set; }
 }
 
 internal sealed class WorkLogEntryDto
@@ -313,6 +337,16 @@ internal static class SettingsMapper
             To = x.To.ToString(DateFormat, CultureInfo.InvariantCulture),
             Reason = x.Reason, ActualHours = x.ActualHours
         }).ToList(),
+        TaskBlocks = s.TaskBlocks.Select(b => new TaskBlockDto
+        {
+            Id = b.Id, Name = b.Name, ColorHex = b.ColorHex, Order = b.Order, EnvironmentId = b.EnvironmentId
+        }).ToList(),
+        Tasks = s.Tasks.Select(t => new TaskItemDto
+        {
+            Id = t.Id, BlockId = t.BlockId, Text = t.Text, Done = t.Done, Order = t.Order,
+            Notes = t.Notes, SessionKey = t.SessionKey,
+            DueDate = t.DueDate?.ToString(DateFormat, CultureInfo.InvariantCulture)
+        }).ToList(),
         NavidromeServerUrl = s.NavidromeServerUrl,
         NavidromeUser = s.NavidromeUser,
         NtfyEnabled = s.NtfyEnabled,
@@ -463,6 +497,26 @@ internal static class SettingsMapper
             To = DateOnly.ParseExact(x.To, DateFormat, CultureInfo.InvariantCulture),
             Reason = x.Reason ?? "",
             ActualHours = x.ActualHours
+        }).ToList(),
+        TaskBlocks = d.TaskBlocks.Select(b => new TaskBlock
+        {
+            Id = string.IsNullOrWhiteSpace(b.Id) ? $"block-{Guid.NewGuid():N}"[..12] : b.Id,
+            Name = b.Name ?? "",
+            ColorHex = b.ColorHex,
+            Order = b.Order,
+            EnvironmentId = b.EnvironmentId
+        }).ToList(),
+        Tasks = d.Tasks.Select(t => new TaskItem
+        {
+            Id = string.IsNullOrWhiteSpace(t.Id) ? $"task-{Guid.NewGuid():N}"[..12] : t.Id,
+            BlockId = t.BlockId ?? "",
+            Text = t.Text ?? "",
+            Done = t.Done,
+            Order = t.Order,
+            Notes = t.Notes,
+            SessionKey = t.SessionKey,
+            DueDate = string.IsNullOrWhiteSpace(t.DueDate) ? null
+                : DateOnly.ParseExact(t.DueDate, DateFormat, CultureInfo.InvariantCulture)
         }).ToList()
         };
         return CategoryMigration.Apply(s, d.ViewConfig?.ColorsByKind);

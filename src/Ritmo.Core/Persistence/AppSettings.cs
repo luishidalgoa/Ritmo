@@ -62,6 +62,13 @@ public sealed record AppSettings
     /// realiza (no computa horas y se ve atenuada en el horario).</summary>
     public IReadOnlyList<SessionException> SessionExceptions { get; init; } = [];
 
+    /// <summary>Bloques de tareas (#145), estilo listas de Recordatorios. Pueden ir por libre o
+    /// vincularse a un entorno.</summary>
+    public IReadOnlyList<TaskBlock> TaskBlocks { get; init; } = [];
+
+    /// <summary>Tareas (#145), hijas de un <see cref="TaskBlock"/> por su BlockId.</summary>
+    public IReadOnlyList<TaskItem> Tasks { get; init; } = [];
+
     /// <summary>Entornos de concentración definidos por el usuario.</summary>
     public IReadOnlyList<FocusEnvironment> FocusEnvironments { get; init; } = [];
 

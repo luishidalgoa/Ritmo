@@ -1142,6 +1142,156 @@ public sealed class ConfigurationService
         _store.Save(cleaned);
         return CommandResult.Ok($"Limpiadas {removed} excepción(es) huérfana(s).");
     }
+
+    // ---------- Tareas: bloques + tareas (#145) ----------
+
+    /// <summary>Crea un bloque de tareas (lista). Devuelve su id. EnvironmentId opcional lo vincula a un entorno.</summary>
+    public CommandResult AddTaskBlock(string name, string? colorHex = null, string? environmentId = null)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return CommandResult.Fail("El bloque necesita un nombre.");
+        var s = _store.Load();
+        var block = new Ritmo.Core.Model.TaskBlock
+        {
+            Id = $"block-{Guid.NewGuid():N}"[..12],
+            Name = name.Trim(),
+            ColorHex = string.IsNullOrWhiteSpace(colorHex) ? null : colorHex,
+            Order = s.TaskBlocks.Count == 0 ? 0 : s.TaskBlocks.Max(b => b.Order) + 1,
+            EnvironmentId = string.IsNullOrWhiteSpace(environmentId) ? null : environmentId
+        };
+        _store.Save(s with { TaskBlocks = [.. s.TaskBlocks, block] });
+        return CommandResult.Ok(block.Id);
+    }
+
+    public CommandResult RenameTaskBlock(string id, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return CommandResult.Fail("El bloque necesita un nombre.");
+        var s = _store.Load();
+        if (s.TaskBlocks.All(b => b.Id != id)) return CommandResult.Fail("No existe el bloque.");
+        _store.Save(s with { TaskBlocks = s.TaskBlocks.Select(b => b.Id == id ? b with { Name = name.Trim() } : b).ToList() });
+        return CommandResult.Ok("Bloque renombrado.");
+    }
+
+    public CommandResult SetTaskBlockColor(string id, string? colorHex)
+    {
+        var s = _store.Load();
+        if (s.TaskBlocks.All(b => b.Id != id)) return CommandResult.Fail("No existe el bloque.");
+        var c = string.IsNullOrWhiteSpace(colorHex) ? null : colorHex;
+        _store.Save(s with { TaskBlocks = s.TaskBlocks.Select(b => b.Id == id ? b with { ColorHex = c } : b).ToList() });
+        return CommandResult.Ok("Color actualizado.");
+    }
+
+    /// <summary>Vincula (o desvincula con null) el bloque a un entorno (#145 fase 3).</summary>
+    public CommandResult SetTaskBlockEnvironment(string id, string? environmentId)
+    {
+        var s = _store.Load();
+        if (s.TaskBlocks.All(b => b.Id != id)) return CommandResult.Fail("No existe el bloque.");
+        var env = string.IsNullOrWhiteSpace(environmentId) ? null : environmentId;
+        _store.Save(s with { TaskBlocks = s.TaskBlocks.Select(b => b.Id == id ? b with { EnvironmentId = env } : b).ToList() });
+        return CommandResult.Ok(env is null ? "Bloque desvinculado del entorno." : "Bloque vinculado al entorno.");
+    }
+
+    /// <summary>Elimina un bloque y todas sus tareas.</summary>
+    public CommandResult RemoveTaskBlock(string id)
+    {
+        var s = _store.Load();
+        if (s.TaskBlocks.All(b => b.Id != id)) return CommandResult.Fail("No existe el bloque.");
+        _store.Save(s with
+        {
+            TaskBlocks = s.TaskBlocks.Where(b => b.Id != id).ToList(),
+            Tasks = s.Tasks.Where(t => t.BlockId != id).ToList()
+        });
+        return CommandResult.Ok("Bloque eliminado.");
+    }
+
+    public CommandResult MoveTaskBlock(string id, bool up)
+    {
+        var s = _store.Load();
+        var ordered = s.TaskBlocks.OrderBy(b => b.Order).ToList();
+        int idx = ordered.FindIndex(b => b.Id == id);
+        if (idx < 0) return CommandResult.Fail("No existe el bloque.");
+        int swap = up ? idx - 1 : idx + 1;
+        if (swap < 0 || swap >= ordered.Count) return CommandResult.Ok("Sin cambios.");
+        (ordered[idx], ordered[swap]) = (ordered[swap], ordered[idx]);
+        _store.Save(s with { TaskBlocks = ordered.Select((b, i) => b with { Order = i }).ToList() });
+        return CommandResult.Ok("Bloque movido.");
+    }
+
+    /// <summary>Añade una tarea a un bloque. Devuelve su id. SessionKey opcional la asocia a una sesión.</summary>
+    public CommandResult AddTask(string blockId, string text, string? sessionKey = null)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return CommandResult.Fail("La tarea necesita un texto.");
+        var s = _store.Load();
+        if (s.TaskBlocks.All(b => b.Id != blockId)) return CommandResult.Fail("No existe el bloque.");
+        var siblings = s.Tasks.Where(t => t.BlockId == blockId).ToList();
+        var task = new Ritmo.Core.Model.TaskItem
+        {
+            Id = $"task-{Guid.NewGuid():N}"[..12],
+            BlockId = blockId,
+            Text = text.Trim(),
+            Order = siblings.Count == 0 ? 0 : siblings.Max(t => t.Order) + 1,
+            SessionKey = string.IsNullOrWhiteSpace(sessionKey) ? null : sessionKey
+        };
+        _store.Save(s with { Tasks = [.. s.Tasks, task] });
+        return CommandResult.Ok(task.Id);
+    }
+
+    public CommandResult ToggleTask(string id)
+    {
+        var s = _store.Load();
+        if (s.Tasks.All(t => t.Id != id)) return CommandResult.Fail("No existe la tarea.");
+        _store.Save(s with { Tasks = s.Tasks.Select(t => t.Id == id ? t with { Done = !t.Done } : t).ToList() });
+        return CommandResult.Ok("Tarea actualizada.");
+    }
+
+    public CommandResult RenameTask(string id, string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return CommandResult.Fail("La tarea necesita un texto.");
+        var s = _store.Load();
+        if (s.Tasks.All(t => t.Id != id)) return CommandResult.Fail("No existe la tarea.");
+        _store.Save(s with { Tasks = s.Tasks.Select(t => t.Id == id ? t with { Text = text.Trim() } : t).ToList() });
+        return CommandResult.Ok("Tarea actualizada.");
+    }
+
+    public CommandResult SetTaskNotes(string id, string? notes)
+    {
+        var s = _store.Load();
+        if (s.Tasks.All(t => t.Id != id)) return CommandResult.Fail("No existe la tarea.");
+        var n = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        _store.Save(s with { Tasks = s.Tasks.Select(t => t.Id == id ? t with { Notes = n } : t).ToList() });
+        return CommandResult.Ok("Notas actualizadas.");
+    }
+
+    public CommandResult SetTaskDueDate(string id, DateOnly? due)
+    {
+        var s = _store.Load();
+        if (s.Tasks.All(t => t.Id != id)) return CommandResult.Fail("No existe la tarea.");
+        _store.Save(s with { Tasks = s.Tasks.Select(t => t.Id == id ? t with { DueDate = due } : t).ToList() });
+        return CommandResult.Ok("Fecha actualizada.");
+    }
+
+    public CommandResult RemoveTask(string id)
+    {
+        var s = _store.Load();
+        if (s.Tasks.All(t => t.Id != id)) return CommandResult.Fail("No existe la tarea.");
+        _store.Save(s with { Tasks = s.Tasks.Where(t => t.Id != id).ToList() });
+        return CommandResult.Ok("Tarea eliminada.");
+    }
+
+    public CommandResult MoveTask(string id, bool up)
+    {
+        var s = _store.Load();
+        var task = s.Tasks.FirstOrDefault(t => t.Id == id);
+        if (task is null) return CommandResult.Fail("No existe la tarea.");
+        var siblings = s.Tasks.Where(t => t.BlockId == task.BlockId).OrderBy(t => t.Order).ToList();
+        int idx = siblings.FindIndex(t => t.Id == id);
+        int swap = up ? idx - 1 : idx + 1;
+        if (swap < 0 || swap >= siblings.Count) return CommandResult.Ok("Sin cambios.");
+        (siblings[idx], siblings[swap]) = (siblings[swap], siblings[idx]);
+        var reordered = siblings.Select((t, i) => t with { Order = i }).ToList();
+        var others = s.Tasks.Where(t => t.BlockId != task.BlockId).ToList();
+        _store.Save(s with { Tasks = [.. others, .. reordered] });
+        return CommandResult.Ok("Tarea movida.");
+    }
 }
 
 /// <summary>Resumen del estado de la app (respuesta para IA / UI).</summary>
