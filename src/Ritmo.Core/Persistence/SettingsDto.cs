@@ -198,6 +198,7 @@ internal sealed class OneOffSessionDto
     public string Kind { get; set; } = "Otro";
     public List<int> PreAlertsMinutes { get; set; } = [];
     public bool IsTentative { get; set; }
+    public string? ProjectId { get; set; }   // #137: vínculo a proyecto
 }
 
 internal sealed class PhaseDto
@@ -268,7 +269,8 @@ internal static class SettingsMapper
             DurationMinutes = (int)o.Duration.TotalMinutes,
             Kind = o.CategoryId,
             PreAlertsMinutes = o.PreAlerts.Select(a => a.MinutesBefore).ToList(),
-            IsTentative = o.IsTentative
+            IsTentative = o.IsTentative,
+            ProjectId = o.ProjectId
         }).ToList(),
         Notes = s.Notes.Select(ToDto).ToList(),
         ViewConfig = ToDto(s.ViewConfig),
@@ -414,7 +416,8 @@ internal static class SettingsMapper
             Duration = TimeSpan.FromMinutes(o.DurationMinutes),
             CategoryId = string.IsNullOrWhiteSpace(o.Kind) ? CategoryIds.Other : o.Kind,
             PreAlerts = o.PreAlertsMinutes.Select(m => new PreAlert(m)).ToList(),
-            IsTentative = o.IsTentative
+            IsTentative = o.IsTentative,
+            ProjectId = string.IsNullOrWhiteSpace(o.ProjectId) ? null : o.ProjectId
         }).ToList(),
         Notes = d.Notes.Select(FromDto).ToList(),
         ViewConfig = d.ViewConfig is null ? new ScheduleViewConfig() : FromDto(d.ViewConfig),

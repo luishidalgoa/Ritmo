@@ -51,6 +51,20 @@ public static class WorkAutoCompute
         => DailyAutoHours(schedule, exceptions, projectId, year, month).Sum();
 
     /// <summary>
+    /// Entradas virtuales de las sesiones PROVISIONALES (one-off) vinculadas a un proyecto en su
+    /// fecha concreta (#137). Las provisionales no tienen excepciones (ya son de un día puntual).
+    /// </summary>
+    public static IReadOnlyList<WorkLogEntry> OneOffEntriesForMonth(
+        IReadOnlyList<OneOffSession> oneOffs, string projectId, int year, int month)
+        => oneOffs
+            .Where(o => o.ProjectId == projectId && o.Date.Year == year && o.Date.Month == month)
+            .Select(o => new WorkLogEntry
+            {
+                Id = $"auto1-{o.Id}", ProjectId = projectId, Date = o.Date, Hours = o.Duration.TotalHours
+            })
+            .ToList();
+
+    /// <summary>
     /// ¿La sesión <paramref name="s"/> está cancelada el día <paramref name="date"/>? (para pintarla
     /// atenuada/tachada en el horario). #137
     /// </summary>

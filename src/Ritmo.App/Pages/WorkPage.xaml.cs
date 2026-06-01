@@ -37,7 +37,9 @@ public sealed partial class WorkPage : Page
         var schedule = s.Plan.Phases.SelectMany(ph => ph.Schedule.Sessions)
             .Concat(s.Schedule.Sessions).ToList();
         var virt = WorkAutoCompute.VirtualEntriesForMonth(schedule, s.SessionExceptions, p.Id, today.Year, today.Month);
-        return virt.Count == 0 ? s.WorkLog : s.WorkLog.Concat(virt).ToList();
+        var oneOff = WorkAutoCompute.OneOffEntriesForMonth(s.OneOffSessions, p.Id, today.Year, today.Month);
+        if (virt.Count == 0 && oneOff.Count == 0) return s.WorkLog;
+        return s.WorkLog.Concat(virt).Concat(oneOff).ToList();
     }
 
     private static Brush Hex(string hex, double opacity = 1)

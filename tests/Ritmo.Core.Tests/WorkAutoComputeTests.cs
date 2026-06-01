@@ -119,6 +119,33 @@ public class WorkAutoComputeTests
     }
 
     [Fact]
+    public void SetCategoryProject_vincula_todas_las_sesiones_de_esa_categoria()
+    {
+        var store = new InMemorySettingsStore();
+        var svc = new ConfigurationService(store);
+        var pid = svc.AddWorkProject("Heladería", 6m).Message;
+        svc.AddPhase("F1", new DateOnly(2026, 1, 1), null);
+        // Dos recurrentes «Tecnico» + una «Otro» + una provisional «Tecnico».
+        svc.AddSession("F1", new StudySession { Title = "A", Day = DayOfWeek.Monday, Start = new TimeOnly(9, 0), Duration = TimeSpan.FromHours(2), CategoryId = "Tecnico" });
+        svc.AddSession("F1", new StudySession { Title = "B", Day = DayOfWeek.Tuesday, Start = new TimeOnly(9, 0), Duration = TimeSpan.FromHours(2), CategoryId = "Tecnico" });
+        svc.AddSession("F1", new StudySession { Title = "C", Day = DayOfWeek.Wednesday, Start = new TimeOnly(9, 0), Duration = TimeSpan.FromHours(2), CategoryId = "Otro" });
+        svc.AddOneOffSession(new DateOnly(2026, 8, 10), "D", new TimeOnly(16, 0), TimeSpan.FromHours(3), "Tecnico", System.Array.Empty<PreAlert>(), false);
+
+        Assert.True(svc.SetCategoryProject("Tecnico", pid).Success);
+
+        var s = store.Load();
+        var rec = s.Plan.Phases.Single().Schedule.Sessions;
+        Assert.Equal(pid, rec.Single(x => x.Title == "A").ProjectId);   // Tecnico → vinculada
+        Assert.Equal(pid, rec.Single(x => x.Title == "B").ProjectId);   // Tecnico → vinculada
+        Assert.Null(rec.Single(x => x.Title == "C").ProjectId);          // Otro → NO
+        Assert.Equal(pid, s.OneOffSessions.Single().ProjectId);          // provisional Tecnico → vinculada
+
+        // Desvincular la categoría las quita todas.
+        Assert.True(svc.SetCategoryProject("Tecnico", null).Success);
+        Assert.All(store.Load().Plan.Phases.Single().Schedule.Sessions.Where(x => x.CategoryId == "Tecnico"), x => Assert.Null(x.ProjectId));
+    }
+
+    [Fact]
     public void AddSessionException_y_Remove()
     {
         var svc = NewWithProjectAndSession(out var store, out _, out var key);
@@ -146,6 +173,27 @@ public class WorkAutoComputeTests
         var all = store.Load().SessionExceptions.Where(e => e.SessionKey == key).ToList();
         Assert.Single(all);                 // no se duplica
         Assert.Equal(2, all[0].ActualHours); // queda la última (parcial)
+    }
+
+    [Fact]
+    public void Una_sesion_provisional_vinculada_computa_y_sobrevive_al_round_trip()
+    {
+        var store = new InMemorySettingsStore();
+        var svc = new ConfigurationService(store);
+        var pid = svc.AddWorkProject("Heladería", 6m).Message;
+        // Provisional el 10/08 de 4 h, vinculada al proyecto.
+        Assert.True(svc.AddOneOffSession(new DateOnly(2026, 8, 10), "Turno extra", new TimeOnly(16, 0),
+            TimeSpan.FromHours(4), "Otro", System.Array.Empty<PreAlert>(), false, pid).Success);
+        var one = store.Load().OneOffSessions.Single();
+        Assert.Equal(pid, one.ProjectId);
+        // Computa sus horas ese mes.
+        var entries = WorkAutoCompute.OneOffEntriesForMonth(store.Load().OneOffSessions, pid, 2026, 8);
+        Assert.Equal(4, entries.Sum(e => e.Hours));
+        // Round-trip conserva el vínculo.
+        var json = svc.ExportJson();
+        var store2 = new InMemorySettingsStore();
+        Assert.True(new ConfigurationService(store2).ImportJson(json).Success);
+        Assert.Equal(pid, store2.Load().OneOffSessions.Single().ProjectId);
     }
 
     [Fact]

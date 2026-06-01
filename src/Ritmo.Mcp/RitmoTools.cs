@@ -342,6 +342,13 @@ public sealed class RitmoTools
         [Description("Id del proyecto, o vacío para desvincular")] string? projectId = null)
         => Report(_config.SetSessionProject(sessionKey, string.IsNullOrWhiteSpace(projectId) ? null : projectId));
 
+    [McpServerTool(Name = "link_category_to_project")]
+    [Description("Vincula TODAS las sesiones de una categoría (recurrentes, sueltas y provisionales) a un proyecto de seguimiento laboral, para que sus horas se computen solas. categoryId de get_config; projectId vacío = desvincular la categoría.")]
+    public string LinkCategoryToProject(
+        [Description("Id de la categoría")] string categoryId,
+        [Description("Id del proyecto, o vacío para desvincular")] string? projectId = null)
+        => Report(_config.SetCategoryProject(categoryId, string.IsNullOrWhiteSpace(projectId) ? null : projectId));
+
     [McpServerTool(Name = "add_session_exception")]
     [Description("Marca una sesión recurrente como NO realizada o PARCIAL en un rango de fechas (un día = from igual a to). actualHours negativo = no realizada (0 h); >= 0 = realizada parcialmente con esas horas. Fechas yyyy-MM-dd; fin >= inicio.")]
     public string AddSessionException(

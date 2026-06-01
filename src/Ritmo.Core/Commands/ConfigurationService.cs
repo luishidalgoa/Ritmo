@@ -223,7 +223,7 @@ public sealed class ConfigurationService
 
     /// <summary>Añade una sesión provisional (extraordinaria) en una fecha concreta. Devuelve su Id.</summary>
     public CommandResult AddOneOffSession(DateOnly date, string title, TimeOnly start, TimeSpan duration,
-        string categoryId, IReadOnlyList<PreAlert> preAlerts, bool isTentative)
+        string categoryId, IReadOnlyList<PreAlert> preAlerts, bool isTentative, string? projectId = null)
     {
         if (duration <= TimeSpan.Zero) return CommandResult.Fail("La duración debe ser mayor que cero.");
         if (string.IsNullOrWhiteSpace(title)) return CommandResult.Fail("La sesión necesita un título.");
@@ -233,7 +233,8 @@ public sealed class ConfigurationService
             Id = $"oneoff-{Guid.NewGuid():N}"[..14],
             Date = date, Title = title.Trim(), Start = start, Duration = duration,
             CategoryId = string.IsNullOrWhiteSpace(categoryId) ? CategoryIds.Other : categoryId,
-            PreAlerts = preAlerts.ToList(), IsTentative = isTentative
+            PreAlerts = preAlerts.ToList(), IsTentative = isTentative,
+            ProjectId = string.IsNullOrWhiteSpace(projectId) ? null : projectId
         };
         _store.Save(s with { OneOffSessions = [.. s.OneOffSessions, one] });
         return CommandResult.Ok(one.Id);
@@ -1057,6 +1058,33 @@ public sealed class ConfigurationService
         var newSchedule = s.Schedule with { Sessions = s.Schedule.Sessions.Select(Map).ToList() };
         _store.Save(s with { Plan = s.Plan with { Phases = newPhases }, Schedule = newSchedule });
         return CommandResult.Ok(projectId is null ? "Sesión desvinculada del proyecto." : "Sesión vinculada al proyecto.");
+    }
+
+    /// <summary>
+    /// Vincula (o desvincula con projectId=null) al proyecto TODAS las sesiones de una CATEGORÍA
+    /// (#137): recurrentes de todas las fases, del horario suelto y provisionales. Así, asignar el
+    /// proyecto a un bloque «Técnico» lo aplica a todos los bloques de esa categoría.
+    /// </summary>
+    public CommandResult SetCategoryProject(string categoryId, string? projectId)
+    {
+        if (string.IsNullOrWhiteSpace(categoryId)) return CommandResult.Fail("Categoría inválida.");
+        var s = _store.Load();
+        if (projectId is not null && s.WorkProjects.All(p => p.Id != projectId))
+            return CommandResult.Fail($"No existe el proyecto «{projectId}».");
+
+        bool Match(string catId) => string.Equals(catId, categoryId, StringComparison.OrdinalIgnoreCase);
+        StudySession MapS(StudySession x) => Match(x.CategoryId) ? x with { ProjectId = projectId } : x;
+        OneOffSession MapO(OneOffSession o) => Match(o.CategoryId) ? o with { ProjectId = projectId } : o;
+
+        var newPhases = s.Plan.Phases
+            .Select(p => p with { Schedule = p.Schedule with { Sessions = p.Schedule.Sessions.Select(MapS).ToList() } })
+            .ToList();
+        var newSchedule = s.Schedule with { Sessions = s.Schedule.Sessions.Select(MapS).ToList() };
+        var newOneOffs = s.OneOffSessions.Select(MapO).ToList();
+        _store.Save(s with { Plan = s.Plan with { Phases = newPhases }, Schedule = newSchedule, OneOffSessions = newOneOffs });
+        return CommandResult.Ok(projectId is null
+            ? "Categoría desvinculada del proyecto."
+            : "Todas las sesiones de la categoría se han vinculado al proyecto.");
     }
 
     /// <summary>

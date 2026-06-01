@@ -227,6 +227,13 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
   Es de concentración, Aviso previo por defecto, Sesión extraordinaria, Provisional, Categorías y
   Modo descanso (Ajustes), y todo el **seguimiento laboral** (Trabajo, Tarifa, Objetivo, Computar
   desde el horario, Proyecto vinculado, No realizada/parcial). Misma fuente (glosario) que la Ayuda.
+- **#137b — El vínculo a proyecto se aplica a TODA la categoría + las sesiones provisionales se
+  vinculan.** Dos arreglos: (1) las sesiones **provisionales** (`OneOffSession`) ahora también pueden
+  vincularse a un proyecto (antes el `ProjectId` se perdía al guardar, porque solo existía en las
+  recurrentes); (2) al vincular una sesión, el proyecto se asigna a **todas las sesiones de su
+  categoría** (recurrentes de todas las fases, sueltas y provisionales), no solo a la editada — vía
+  `SetCategoryProject`. Las provisionales vinculadas computan sus horas en «Trabajo». MCP:
+  `link_category_to_project`. Núcleo 525/525.
 - **#137 — Vincular una sesión del horario a un proyecto + excepciones (no realizada / parcial).** Al
   editar una sesión recurrente puedes **vincularla a un proyecto** de Trabajo: sus horas se computan
   SOLAS en «Trabajo» los días que toca (si el proyecto está en modo automático), sin anotar a mano.

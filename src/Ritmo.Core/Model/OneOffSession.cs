@@ -18,6 +18,8 @@ public sealed record OneOffSession
     public string CategoryId { get; init; } = CategoryIds.Other;
     public IReadOnlyList<PreAlert> PreAlerts { get; init; } = [];
     public bool IsTentative { get; init; }
+    /// <summary>Proyecto de seguimiento laboral vinculado (#137), o null. Sus horas computan ese día.</summary>
+    public string? ProjectId { get; init; }
 
     /// <summary>Vista como <see cref="StudySession"/> (Day derivado de la fecha) para reutilizar el render.</summary>
     public StudySession AsSession() => new()
@@ -28,6 +30,7 @@ public sealed record OneOffSession
         Duration = Duration,
         CategoryId = CategoryId,
         PreAlerts = PreAlerts,
-        IsTentative = IsTentative
+        IsTentative = IsTentative,
+        ProjectId = ProjectId
     };
 }

@@ -328,7 +328,7 @@ public sealed partial class SchedulePage : Page
         if (!_clipWasOneOff && _activePhaseName is not null)
             AppState.Config.AddSession(_activePhaseName, candidate);
         else
-            AppState.Config.AddOneOffSession(targetDate, src.Title, start, src.Duration, src.CategoryId, src.PreAlerts, src.IsTentative);
+            AppState.Config.AddOneOffSession(targetDate, src.Title, start, src.Duration, src.CategoryId, src.PreAlerts, src.IsTentative, src.ProjectId);
 
         Build();
     }
@@ -432,7 +432,7 @@ public sealed partial class SchedulePage : Page
         PushUndo();   // #136
         // No hay UpdateOneOff en la fachada: se quita y se vuelve a crear con la nueva posición.
         AppState.Config.RemoveOneOffSession(one.Id);
-        AppState.Config.AddOneOffSession(newDate, one.Title, newStart, one.Duration, one.CategoryId, one.PreAlerts, one.IsTentative);
+        AppState.Config.AddOneOffSession(newDate, one.Title, newStart, one.Duration, one.CategoryId, one.PreAlerts, one.IsTentative, one.ProjectId);
         Build();
     }
 
@@ -1201,6 +1201,7 @@ public sealed partial class SchedulePage : Page
             else
                 foreach (var d in dlg.SelectedDays)
                     AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));   // reconvertida a recurrente
+            ApplyProjectToCategory(dlg, dlg.ToSession(one.Date.DayOfWeek).CategoryId);   // vínculo por categoría (#137)
         }
         else if (result == ContentDialogResult.None)   // Eliminar
         {
@@ -1391,11 +1392,20 @@ public sealed partial class SchedulePage : Page
         if (result == ContentDialogResult.Primary)
         {
             PushUndo();   // #136
+            string? cat = null;
             if (dlg.IsOneOff)
+            {
                 AddOneOffsForRange(dlg);   // provisional: una por cada día del rango de fechas (#131)
+                cat = dlg.ToSession(DayOfWeek.Monday).CategoryId;
+            }
             else
                 foreach (var d in dlg.SelectedDays)   // recurrente: en cada día marcado (#81)
-                    AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));
+                {
+                    var ss = dlg.ToSession(d);
+                    cat = ss.CategoryId;
+                    AppState.Config.AddSession(_activePhaseName, ss);
+                }
+            if (cat is not null) ApplyProjectToCategory(dlg, cat);   // vínculo por categoría (#137)
             Build();
         }
     }
@@ -1406,8 +1416,20 @@ public sealed partial class SchedulePage : Page
         for (var date = dlg.StartDate; date <= dlg.EndDate; date = date.AddDays(1))
         {
             var ss = dlg.ToSession(date.DayOfWeek);
-            AppState.Config.AddOneOffSession(date, ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative);
+            AppState.Config.AddOneOffSession(date, ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative, ss.ProjectId);
         }
+    }
+
+    /// <summary>
+    /// Propaga el vínculo a proyecto a TODAS las sesiones de la categoría editada (#137). Solo actúa
+    /// si el diálogo trae un proyecto seleccionado (vincular); no desvincula la categoría entera por
+    /// no haber elegido nada en una sesión suelta.
+    /// </summary>
+    private void ApplyProjectToCategory(SessionDialog dlg, string categoryId)
+    {
+        var pid = dlg.SelectedProjectId;
+        if (pid is not null && !string.IsNullOrWhiteSpace(categoryId))
+            AppState.Config.SetCategoryProject(categoryId, pid);
     }
 
     /// <summary>¿Comparten título/tipo/horario/provisional? (para identificar el grupo fusionado).</summary>
@@ -1453,6 +1475,7 @@ public sealed partial class SchedulePage : Page
         if (result == ContentDialogResult.Primary)
         {
             PushUndo();   // #136
+            StudySession? edited = null;
             if (dlg.IsOneOff)
             {
                 // Convertir a extraordinaria (#103/#131): quitar el grupo recurrente y crear una
@@ -1463,9 +1486,12 @@ public sealed partial class SchedulePage : Page
             else
             {
                 // Reemplaza el grupo por una sesión recurrente en cada día marcado.
-                var rebuilt = dlg.SelectedDays.Select(d => dlg.ToSession(d));
+                var rebuilt = dlg.SelectedDays.Select(d => dlg.ToSession(d)).ToList();
+                edited = rebuilt.FirstOrDefault();
                 AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
             }
+            // El vínculo a proyecto se aplica a TODA la categoría (#137): si cambió, propágalo.
+            ApplyProjectToCategory(dlg, edited?.CategoryId ?? rep.CategoryId);
         }
         else if (result == ContentDialogResult.None)   // Eliminar todo el grupo
         {

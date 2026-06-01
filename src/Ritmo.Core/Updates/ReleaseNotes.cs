@@ -89,7 +89,7 @@ public static class ReleaseNotes
                 "Nueva sección «Trabajo»: lleva tus horas y ganancias por proyecto o cliente, con tarifa, objetivo y moneda.",
                 "Gráficos por proyecto: barras de horas por día y línea de lo acumulado frente a tu objetivo del mes.",
                 "Pensado para quien no tiene horario fijo: vas sumando horas día a día y ves la estimación de fin de mes.",
-                "Vincula una sesión del horario a un proyecto y sus horas se cuentan solas; marca un día como «no realizado» o «parcial» cuando falles o salgas antes.",
+                "Vincula una categoría del horario a un proyecto y todas sus sesiones cuentan solas; marca un día como «no realizado» o «parcial» cuando falles o salgas antes.",
                 "¿Un cambio sin querer en el horario? Deshaz con Ctrl+Z y rehaz con Ctrl+Y.",
                 "Pasa el ratón por el «?» de los campos: ahora hay explicaciones con ejemplos en lo nuevo.",
                 "Al concentrarte, Ritmo deja de parpadear en la barra de tareas para no distraerte.",
