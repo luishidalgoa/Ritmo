@@ -29,6 +29,9 @@ public sealed partial class TimerPage : Page
     private DispatcherQueueTimer? _ticker;
     private bool _environmentApplied;
     private bool _createdDesktop;   // #110: creamos un escritorio virtual esta sesión
+    // Espera tras crear el escritorio virtual antes de lanzar apps/navegador, para que el cambio
+    // de escritorio (asíncrono) se complete y se abran EN el escritorio nuevo (#141).
+    private const int WorkspaceLaunchDelayMs = 700;
 
     // Contexto del bloque vigente (resuelto desde el horario).
     private FocusEnvironment? _activeEnv;
@@ -303,6 +306,16 @@ public sealed partial class TimerPage : Page
                 var env = _activeEnv;
                 if (env is not null)
                 {
+                    // Solo el subconjunto de apps/enlaces de la categoría de sesión activa (#116);
+                    // sin perfil para ese título, ResolveOpen devuelve todo (por defecto).
+                    var (openLinks, openApps) = env.ResolveOpen(_activeSessionTitle);
+                    void LaunchWorkspace()
+                    {
+                        AppLauncher.OpenAll(openApps);           // abrir herramientas de trabajo (#109)
+                        if (env.OpenLinksInBrowser && openLinks.Count > 0)   // enlaces en ventana nueva del navegador por defecto
+                            DefaultBrowser.OpenLinksInNewWindow(openLinks.Select(l => l.Url).ToList());
+                    }
+
                     if (env.NewVirtualDesktop)                   // escritorio virtual limpio PRIMERO (#110)
                     {
                         VirtualDesktops.CreateAndSwitch();
@@ -313,12 +326,14 @@ public sealed partial class TimerPage : Page
                     AppMuter.Mute(env.AppsToMute);               // silenciar apps de ruido (#9)
                     if (env.HideTaskbarBadges && MainWindow.Current is not null)   // sin parpadeos/badge (#31)
                         TaskbarSilencer.Suppress(WinRT.Interop.WindowNative.GetWindowHandle(MainWindow.Current));
-                    // Solo el subconjunto de apps/enlaces de la categoría de sesión activa (#116);
-                    // sin perfil para ese título, ResolveOpen devuelve todo (por defecto).
-                    var (openLinks, openApps) = env.ResolveOpen(_activeSessionTitle);
-                    AppLauncher.OpenAll(openApps);               // abrir herramientas de trabajo (#109)
-                    if (env.OpenLinksInBrowser && openLinks.Count > 0)   // abrir enlaces en ventana nueva del navegador por defecto
-                        DefaultBrowser.OpenLinksInNewWindow(openLinks.Select(l => l.Url).ToList());
+
+                    if (env.NewVirtualDesktop)
+                        // El cambio de escritorio (SendInput Win+Ctrl+D) es ASÍNCRONO a nivel del SO:
+                        // si lanzáramos las apps/navegador ya, se abrirían en el escritorio viejo (#141).
+                        // Esperamos a que el escritorio nuevo esté activo (fuera de la UI, best-effort).
+                        _ = System.Threading.Tasks.Task.Delay(WorkspaceLaunchDelayMs).ContinueWith(_ => LaunchWorkspace());
+                    else
+                        LaunchWorkspace();                       // sin escritorio nuevo: abrir ya, en el actual
                 }
             }
         }
