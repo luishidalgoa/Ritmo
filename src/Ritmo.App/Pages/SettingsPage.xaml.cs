@@ -982,10 +982,14 @@ public sealed partial class SettingsPage : Page
 
     // ---------- Actualizaciones (#124, Fase 3) ----------
 
+    private Services.LatestRelease? _pendingUpdate;   // versión nueva detectada (para «Instalar ahora»)
+
     private async void CheckUpdateBtn_Click(object sender, RoutedEventArgs e)
     {
         UpdateStatus.Text = "Comprobando…";
         CheckUpdateBtn.IsEnabled = false;
+        InstallUpdateBtn.Visibility = Visibility.Collapsed;
+        _pendingUpdate = null;
         try
         {
             var latest = await Services.GitHubReleasesService.GetLatestAsync();
@@ -993,12 +997,34 @@ public sealed partial class SettingsPage : Page
             if (latest is null)
                 UpdateStatus.Text = "No se pudo comprobar (sin conexión o aún no hay versiones publicadas).";
             else if (Ritmo.Core.Updates.ReleaseNotes.CompareVersions(latest.Version, current) > 0)
-                UpdateStatus.Text = $"✨ Hay una versión nueva ({latest.Tag}). Se instalará sola al reiniciar (App Installer).";
+            {
+                _pendingUpdate = latest;
+                UpdateStatus.Text = $"✨ Hay una versión nueva ({latest.Tag}). Pulsa «Instalar ahora».";
+                InstallUpdateBtn.Visibility = Visibility.Visible;
+            }
             else
                 UpdateStatus.Text = $"✓ Estás al día (v{current}).";
         }
         catch { UpdateStatus.Text = "⚠ Error al comprobar."; }
         finally { CheckUpdateBtn.IsEnabled = true; }
+    }
+
+    /// <summary>
+    /// Lanza la instalación de la versión nueva. Abre el .appinstaller con App Installer (que pide
+    /// confirmación y actualiza el paquete); si no hay asset, abre la página de la release.
+    /// </summary>
+    private async void InstallUpdateBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (_pendingUpdate is null) return;
+        var target = !string.IsNullOrWhiteSpace(_pendingUpdate.AppInstallerUrl)
+            ? _pendingUpdate.AppInstallerUrl!
+            : _pendingUpdate.Url;
+        try
+        {
+            UpdateStatus.Text = "Abriendo el instalador…";
+            await Windows.System.Launcher.LaunchUriAsync(new Uri(target));
+        }
+        catch { UpdateStatus.Text = "⚠ No se pudo abrir el instalador."; }
     }
 
     /// <summary>Abre la guía visual (carrusel) de cómo conectar el móvil con el topic actual.</summary>

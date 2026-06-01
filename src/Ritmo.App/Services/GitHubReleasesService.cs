@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 
 namespace Ritmo_App.Services;
 
-/// <summary>Última release publicada en GitHub (versión derivada del tag + URL).</summary>
-internal sealed record LatestRelease(string Version, string Tag, string Url);
+/// <summary>Última release publicada en GitHub (versión derivada del tag + URL de la página y del .appinstaller).</summary>
+internal sealed record LatestRelease(string Version, string Tag, string Url, string? AppInstallerUrl);
 
 /// <summary>
 /// Consulta la GitHub Releases API para saber si hay una versión más nueva (#updates,
@@ -47,7 +47,20 @@ internal static class GitHubReleasesService
             var htmlUrl = root.TryGetProperty("html_url", out var u) ? u.GetString() ?? "" : "";
             if (string.IsNullOrWhiteSpace(tag)) return null;
 
-            return new LatestRelease(tag.TrimStart('v', 'V'), tag, htmlUrl);
+            // URL de descarga del asset .appinstaller (lo que App Installer abre para actualizar).
+            string? appInstaller = null;
+            if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
+                foreach (var a in assets.EnumerateArray())
+                {
+                    var name = a.TryGetProperty("name", out var n) ? n.GetString() : null;
+                    if (name is not null && name.EndsWith(".appinstaller", StringComparison.OrdinalIgnoreCase))
+                    {
+                        appInstaller = a.TryGetProperty("browser_download_url", out var d) ? d.GetString() : null;
+                        break;
+                    }
+                }
+
+            return new LatestRelease(tag.TrimStart('v', 'V'), tag, htmlUrl, appInstaller);
         }
         catch
         {

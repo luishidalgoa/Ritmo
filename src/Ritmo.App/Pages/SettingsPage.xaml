@@ -340,6 +340,8 @@
                                Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                         <Button x:Name="CheckUpdateBtn" Content="Buscar actualizaciones" Click="CheckUpdateBtn_Click" />
+                        <Button x:Name="InstallUpdateBtn" Content="Instalar ahora" Click="InstallUpdateBtn_Click"
+                                Style="{ThemeResource AccentButtonStyle}" Visibility="Collapsed" />
                         <TextBlock x:Name="UpdateStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="13" TextWrapping="Wrap" />
                     </StackPanel>
                 </StackPanel>
