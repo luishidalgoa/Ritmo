@@ -194,7 +194,9 @@ public sealed class ConfigurationService
         list.RemoveAt(index);
         var newPhase = phase with { Schedule = new WeeklySchedule { Sessions = list } };
         var newPhases = s.Plan.Phases.Select(p => ReferenceEquals(p, phase) ? newPhase : p).ToList();
-        _store.Save(s with { Plan = new SchedulePlan { Phases = newPhases } });
+        // Borrar = limpiar también sus hijos huérfanos (excepciones sin sesión viva). #138
+        var updated = Ritmo.Core.Model.SessionCleanup.PruneOrphans(s with { Plan = new SchedulePlan { Phases = newPhases } });
+        _store.Save(updated);
         return CommandResult.Ok($"Sesión eliminada de «{phaseName}».");
     }
 
@@ -1122,6 +1124,23 @@ public sealed class ConfigurationService
         if (s.SessionExceptions.All(e => e.Id != id)) return CommandResult.Ok("Sin cambios.");
         _store.Save(s with { SessionExceptions = s.SessionExceptions.Where(e => e.Id != id).ToList() });
         return CommandResult.Ok("Excepción eliminada.");
+    }
+
+    /// <summary>
+    /// Limpia los "hijos huérfanos" del calendario (#138): excepciones (#137 «no realizada/parcial»)
+    /// cuya <see cref="Ritmo.Core.Model.SessionKey"/> ya no corresponde a ninguna sesión recurrente
+    /// viva, porque la sesión se borró. Inertes en el almacenamiento y fuente de marcas fantasma si
+    /// luego se recrea una sesión con la misma clave. Idempotente: no toca nada si no hay huérfanos.
+    /// Las notas/post-its NO se tocan (contienen texto del usuario).
+    /// </summary>
+    public CommandResult PruneOrphanSessionData()
+    {
+        var s = _store.Load();
+        var cleaned = Ritmo.Core.Model.SessionCleanup.PruneOrphans(s);
+        if (ReferenceEquals(cleaned, s)) return CommandResult.Ok("Sin huérfanos que limpiar.");
+        int removed = s.SessionExceptions.Count - cleaned.SessionExceptions.Count;
+        _store.Save(cleaned);
+        return CommandResult.Ok($"Limpiadas {removed} excepción(es) huérfana(s).");
     }
 }
 

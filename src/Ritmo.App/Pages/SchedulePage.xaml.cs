@@ -299,6 +299,7 @@ public sealed partial class SchedulePage : Page
             var kept = phase.Schedule.Sessions.Where(x => !Belongs(x)).ToList();
             PushUndo();   // #136
             AppState.Config.ReplaceSessions(_activePhaseName, kept);
+            AppState.Config.PruneOrphanSessionData();   // #138 limpia excepciones huérfanas
             CloseDetail();
         }
         // Un evento de calendario externo (_selectedEvent) no se borra desde aquí.
@@ -1481,6 +1482,7 @@ public sealed partial class SchedulePage : Page
                 // Convertir a extraordinaria (#103/#131): quitar el grupo recurrente y crear una
                 // sesión provisional por cada día del rango de fechas elegido.
                 AppState.Config.ReplaceSessions(_activePhaseName, kept);
+                AppState.Config.PruneOrphanSessionData();   // #138 el grupo recurrente ya no existe
                 AddOneOffsForRange(dlg);
             }
             else
@@ -1497,6 +1499,7 @@ public sealed partial class SchedulePage : Page
         {
             PushUndo();   // #136
             AppState.Config.ReplaceSessions(_activePhaseName, kept);
+            AppState.Config.PruneOrphanSessionData();   // #138 limpia excepciones huérfanas
         }
         else
             return; // Cancelar
