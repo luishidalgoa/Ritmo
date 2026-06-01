@@ -12,7 +12,10 @@
         <StackPanel Padding="32" Spacing="20" MaxWidth="1100" HorizontalAlignment="Stretch">
             <Grid>
                 <StackPanel Spacing="2">
-                    <TextBlock Text="Trabajo" FontSize="28" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Trabajo" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <ContentControl x:Name="WorkHelp" VerticalAlignment="Center" />
+                    </StackPanel>
                     <TextBlock Text="Seguimiento de horas y ganancias por proyecto o cliente."
                                Opacity="0.7" FontSize="13" />
                 </StackPanel>

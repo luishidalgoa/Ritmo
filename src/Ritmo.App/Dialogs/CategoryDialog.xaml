@@ -17,10 +17,11 @@
                  PlaceholderText="p. ej. Concentración, Reunión, Lectura…" />
 
         <StackPanel Spacing="6">
-            <TextBlock Text="Es de concentración" FontWeight="SemiBold" />
+            <StackPanel x:Name="FocusHeader" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Es de concentración" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <ContentControl x:Name="FocusHelp" VerticalAlignment="Center" />
+            </StackPanel>
             <ToggleSwitch x:Name="FocusSwitch" OffContent="No" OnContent="Sí" />
-            <TextBlock Text="Si está activado, al empezar un bloque de esta categoría se activa el modo concentración (Pomodoro, entorno, silenciado…)."
-                       Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
         </StackPanel>
 
         <StackPanel Spacing="6">

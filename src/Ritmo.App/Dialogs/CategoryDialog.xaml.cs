@@ -20,6 +20,7 @@ public sealed partial class CategoryDialog : ContentDialog
     public CategoryDialog()
     {
         InitializeComponent();
+        FocusHelp.Content = Services.HelpHint.Icon("focus-category");   // ayuda (#93)
         BuildSwatches();
     }
 

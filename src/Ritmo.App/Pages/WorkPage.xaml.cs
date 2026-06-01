@@ -21,6 +21,7 @@ public sealed partial class WorkPage : Page
     public WorkPage()
     {
         InitializeComponent();
+        WorkHelp.Content = Services.HelpHint.Icon("work-tracking");   // ayuda (#93)
         Loaded += (_, _) => Build();
     }
 

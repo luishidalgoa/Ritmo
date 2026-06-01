@@ -214,6 +214,13 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-06-01
 
+- **#93 — Tooltips de ayuda «?» enriquecidos en los campos nuevos.** Los tooltips ahora muestran
+  **título + descripción + un ejemplo destacado** (en cursiva, color de acento), con mejor formato
+  (interlineado, ancho cómodo). El glosario del núcleo gana un `Example` opcional y entradas ricas
+  para todo lo nuevo. Se coloca el «?» (helper `HelpHint.Label`) junto a los títulos de: Categoría,
+  Es de concentración, Aviso previo por defecto, Sesión extraordinaria, Provisional, Categorías y
+  Modo descanso (Ajustes), y todo el **seguimiento laboral** (Trabajo, Tarifa, Objetivo, Computar
+  desde el horario, Proyecto vinculado, No realizada/parcial). Misma fuente (glosario) que la Ayuda.
 - **#137 — Vincular una sesión del horario a un proyecto + excepciones (no realizada / parcial).** Al
   editar una sesión recurrente puedes **vincularla a un proyecto** de Trabajo: sus horas se computan
   SOLAS en «Trabajo» los días que toca (si el proyecto está en modo automático), sin anotar a mano.

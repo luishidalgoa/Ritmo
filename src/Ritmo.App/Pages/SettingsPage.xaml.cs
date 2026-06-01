@@ -39,8 +39,11 @@ public sealed partial class SettingsPage : Page
         GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
         DayPreviewToggle.IsOn = s.ViewConfig.ShowDayPreviewOnFocusStart;
         SelectComboByTag(DefaultPreAlertBox, s.ViewConfig.DefaultPreAlertMinutes.ToString());
+        DefaultPreAlertBox.Header = HelpHint.Label("Aviso previo por defecto", "default-prealert");   // ayuda (#93)
 
         BuildCategories(s);
+        CategoriesHelp.Content = HelpHint.Icon("category");   // ayuda en el título de sección (#93)
+        RestHelp.Content = HelpHint.Icon("rest-mode");
         LoadRest(s);   // modo descanso (#135)
         RefreshConnections(s);
         VersionText.Text = $"Versión actual: {AppVersionInfo.Current}";
@@ -1240,6 +1243,7 @@ public sealed partial class SettingsPage : Page
     {
         _loadingRest = true;
         RestToggle.IsOn = s.RestActive;
+        RestToggle.Header = HelpHint.Label("Modo descanso (ahora)", "rest-mode");   // ayuda (#93)
         _loadingRest = false;
         BuildRestPeriods(s);
     }

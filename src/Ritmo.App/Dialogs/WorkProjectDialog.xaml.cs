@@ -22,6 +22,10 @@ public sealed partial class WorkProjectDialog : ContentDialog
     public WorkProjectDialog()
     {
         InitializeComponent();
+        // «?» de ayuda en los títulos de los campos (#93).
+        RateBox.Header = Services.HelpHint.Label("Tarifa por hora", "work-rate");
+        GoalBox.Header = Services.HelpHint.Label("Objetivo de horas al mes (0 = sin objetivo)", "work-goal");
+        AutoSwitch.Header = Services.HelpHint.Label("Computar horas desde el horario", "work-auto");
     }
 
     public string ProjectName => NameBox.Text?.Trim() ?? "";

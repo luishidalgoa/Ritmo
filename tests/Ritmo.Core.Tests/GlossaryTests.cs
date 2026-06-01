@@ -26,6 +26,18 @@ public class GlossaryTests
     [InlineData("deep-work")]
     [InlineData("prealert")]
     [InlineData("environment")]
+    // Conceptos nuevos con tooltip enriquecido (#93).
+    [InlineData("category")]
+    [InlineData("focus-category")]
+    [InlineData("default-prealert")]
+    [InlineData("oneoff")]
+    [InlineData("rest-mode")]
+    [InlineData("work-tracking")]
+    [InlineData("work-rate")]
+    [InlineData("work-goal")]
+    [InlineData("work-auto")]
+    [InlineData("work-link")]
+    [InlineData("session-exception")]
     public void Find_encuentra_claves_conocidas(string key)
         => Assert.NotNull(Glossary.Find(key));
 

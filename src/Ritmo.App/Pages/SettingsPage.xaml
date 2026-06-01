@@ -105,7 +105,10 @@
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
                     <Grid>
-                        <TextBlock Text="Categorías" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Categorías" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <ContentControl x:Name="CategoriesHelp" VerticalAlignment="Center" />
+                        </StackPanel>
                         <Button x:Name="AddCategoryBtn" Content="Añadir categoría" HorizontalAlignment="Right"
                                 Click="AddCategoryBtn_Click" />
                     </Grid>
@@ -120,7 +123,10 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Descanso" FontSize="18" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Descanso" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <ContentControl x:Name="RestHelp" VerticalAlignment="Center" />
+                    </StackPanel>
                     <TextBlock Text="Pausa los avisos del horario. Útil para vacaciones o pausas: el horario se sigue viendo, pero no suenan avisos."
                                Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
                     <ToggleSwitch x:Name="RestToggle" Header="Modo descanso (ahora)"

@@ -91,6 +91,7 @@ public static class ReleaseNotes
                 "Pensado para quien no tiene horario fijo: vas sumando horas día a día y ves la estimación de fin de mes.",
                 "Vincula una sesión del horario a un proyecto y sus horas se cuentan solas; marca un día como «no realizado» o «parcial» cuando falles o salgas antes.",
                 "¿Un cambio sin querer en el horario? Deshaz con Ctrl+Z y rehaz con Ctrl+Y.",
+                "Pasa el ratón por el «?» de los campos: ahora hay explicaciones con ejemplos en lo nuevo.",
             ]
         },
     ];

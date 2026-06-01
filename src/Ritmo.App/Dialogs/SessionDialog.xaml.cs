@@ -25,6 +25,11 @@ public sealed partial class SessionDialog : ContentDialog
             (DaySun, DayOfWeek.Sunday)
         ];
         AlertHelp.Content = Ritmo_App.Services.HelpHint.Icon("prealert");   // ayuda (#93)
+        // «?» de ayuda en los títulos de los campos (#93).
+        KindBox.Header = Ritmo_App.Services.HelpHint.Label("Categoría", "category");
+        ProjectBox.Header = Ritmo_App.Services.HelpHint.Label("Proyecto (seguimiento laboral)", "work-link");
+        TentativeSwitch.Header = Ritmo_App.Services.HelpHint.Label("Provisional (no dispara concentración)", "tentative");
+        OneOffSwitch.Header = Ritmo_App.Services.HelpHint.Label("Sesión extraordinaria (en fechas concretas)", "oneoff");
     }
 
     /// <summary>Carga los títulos existentes del horario como sugerencias del combo (#116).</summary>
