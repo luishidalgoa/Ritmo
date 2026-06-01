@@ -1075,7 +1075,12 @@ public sealed class ConfigurationService
             SessionKey = sessionKey, From = from, To = to, Reason = (reason ?? "").Trim(),
             ActualHours = actualHours
         };
-        _store.Save(s with { SessionExceptions = [.. s.SessionExceptions, ex] });
+        // Evita duplicados/solapes (#137b): quita las excepciones EXISTENTES de la misma sesión que
+        // se solapen con el nuevo rango (la nueva las reemplaza).
+        bool Overlaps(Ritmo.Core.Model.SessionException e) =>
+            e.SessionKey == sessionKey && e.From <= to && e.To >= from;
+        var kept = s.SessionExceptions.Where(e => !Overlaps(e)).ToList();
+        _store.Save(s with { SessionExceptions = [.. kept, ex] });
         string what = actualHours is { } h ? $"realizada parcialmente ({h:0.##} h)" : "no realizada";
         return CommandResult.Ok(from == to
             ? $"Sesión marcada como {what} el {from:dd/MM/yyyy}."

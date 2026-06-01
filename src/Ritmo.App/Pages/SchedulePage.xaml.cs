@@ -645,10 +645,21 @@ public sealed partial class SchedulePage : Page
             foreach (var a in Ritmo.Core.Scheduling.OverlapLanes.Assign(dayGrp.ToList()))
                 if (a.LaneCount > 1) { laneInfo[a.Session] = (a.Lane, a.LaneCount); overlapping.Add(a.Session); }
 
-        // Grupos a pintar: fusionar solo las NO solapadas; cada solapada, una tarjeta de un día.
-        var mergeable = schedule.Sessions.Where(x => !overlapping.Contains(x)).ToList();
+        // No fusionar (#137b) las sesiones con una excepción ESTA semana: así una sesión no realizada
+        // o parcial un día concreto se tacha/atenúa SOLO ese día, no toda la tira de días contiguos.
+        var hasExceptionThisWeek = new HashSet<StudySession>(ReferenceEqualityComparer.Instance);
+        foreach (var x in schedule.Sessions)
+        {
+            int di = Array.IndexOf(Days, x.Day);
+            if (di >= 0 && Ritmo.Core.Model.WorkAutoCompute.ExceptionFor(x, _weekStart.AddDays(di), _sessionExceptions) is not null)
+                hasExceptionThisWeek.Add(x);
+        }
+        bool Standalone(StudySession x) => overlapping.Contains(x) || hasExceptionThisWeek.Contains(x);
+
+        // Grupos a pintar: fusionar solo las que NO son "standalone"; cada standalone, una tarjeta de un día.
+        var mergeable = schedule.Sessions.Where(x => !Standalone(x)).ToList();
         var groups = new List<Ritmo.Core.Scheduling.SessionGroup>(Ritmo.Core.Scheduling.SessionMerge.Merge(mergeable, Days));
-        foreach (var ov in overlapping)
+        foreach (var ov in schedule.Sessions.Where(Standalone))
         {
             int di = Array.IndexOf(Days, ov.Day);
             if (di >= 0) groups.Add(new Ritmo.Core.Scheduling.SessionGroup(ov, di, 1, new[] { ov }));

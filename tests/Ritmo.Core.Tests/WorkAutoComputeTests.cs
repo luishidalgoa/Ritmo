@@ -137,6 +137,18 @@ public class WorkAutoComputeTests
     }
 
     [Fact]
+    public void AddSessionException_no_duplica_el_mismo_dia_lo_reemplaza()
+    {
+        var svc = NewWithProjectAndSession(out var store, out _, out var key);
+        var day = new DateOnly(2026, 8, 10);
+        svc.AddSessionException(key, day, day);                 // no realizada
+        svc.AddSessionException(key, day, day, actualHours: 2); // re-marcar el mismo día como parcial
+        var all = store.Load().SessionExceptions.Where(e => e.SessionKey == key).ToList();
+        Assert.Single(all);                 // no se duplica
+        Assert.Equal(2, all[0].ActualHours); // queda la última (parcial)
+    }
+
+    [Fact]
     public void Vinculo_y_excepciones_sobreviven_al_round_trip()
     {
         var svc = NewWithProjectAndSession(out var store, out var projId, out var key);
