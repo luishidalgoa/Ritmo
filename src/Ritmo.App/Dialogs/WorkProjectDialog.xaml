@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Ritmo_App.Dialogs.WorkProjectDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App.Dialogs"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Proyecto"
+    PrimaryButtonText="Guardar"
+    SecondaryButtonText="Cancelar"
+    DefaultButton="Primary">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="520">
+        <StackPanel Spacing="14" Width="320" Padding="0,0,4,0">
+            <TextBox x:Name="NameBox" Header="Nombre" HorizontalAlignment="Stretch"
+                     PlaceholderText="p. ej. Cliente A, Proyecto X" />
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <NumberBox x:Name="RateBox" Grid.Column="0" Header="Tarifa por hora" Minimum="0" SmallChange="1"
+                           SpinButtonPlacementMode="Compact" />
+                <ComboBox x:Name="CurrencyBox" Grid.Column="1" Header="Moneda" HorizontalAlignment="Stretch">
+                    <ComboBoxItem Content="€ EUR" Tag="EUR" />
+                    <ComboBoxItem Content="$ USD" Tag="USD" />
+                    <ComboBoxItem Content="£ GBP" Tag="GBP" />
+                    <ComboBoxItem Content="$ MXN" Tag="MXN" />
+                    <ComboBoxItem Content="$ ARS" Tag="ARS" />
+                    <ComboBoxItem Content="$ COP" Tag="COP" />
+                    <ComboBoxItem Content="$ CLP" Tag="CLP" />
+                </ComboBox>
+            </Grid>
+            <NumberBox x:Name="GoalBox" Header="Objetivo de horas al mes (0 = sin objetivo)" Minimum="0" SmallChange="5"
+                       SpinButtonPlacementMode="Compact" HorizontalAlignment="Stretch" />
+            <StackPanel Spacing="6">
+                <TextBlock Text="Color" FontWeight="SemiBold" />
+                <Grid x:Name="SwatchHost" ColumnSpacing="6" RowSpacing="6" HorizontalAlignment="Left" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

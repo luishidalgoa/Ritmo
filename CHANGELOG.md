@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 59 herramientas
+### 🤖 La IA (servidor MCP) — 60 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -54,7 +54,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Tareas del entorno: `add_environment_task`, `toggle_environment_task`, `remove_environment_task`, `move_environment_task` (reordenar).
 - Perfiles por tipo de sesión (qué se abre en cada bloque): `set_session_profile`, `clear_session_profile`.
 - Mapeo tipo de bloque → entorno: `map_environment_to_kind`, `clear_environment_kind`.
-- Seguimiento laboral (tarifa + objetivo + horas): `set_environment_rate`, `set_environment_goal`, `log_work_hours`, `remove_work_log_entry`.
+- Seguimiento laboral (proyectos + horas): `add_work_project`, `update_work_project`, `remove_work_project`, `log_work_hours`, `remove_work_log_entry`.
 
 **Notas y atajos**
 - Notas (markdown, opcional post-it de sesión): `add_note`, `update_note`, `remove_note`.
@@ -140,6 +140,17 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - **Comportamiento por tipo de sesión**: qué apps/enlaces se abren en cada tipo de bloque (#70, #116).
 - Asociar tipo de bloque → entorno (#70).
 
+### 💼 Trabajo (seguimiento laboral, #84)
+
+- **Proyectos/clientes** independientes de los entornos, con tarifa por hora, objetivo mensual,
+  color y **moneda** (€/$/£…).
+- **Registro manual y acumulativo** de horas (pensado para perfiles sin horario fijo): vas
+  sumando horas día a día, con nota opcional; editar y borrar anotaciones.
+- Página **«Trabajo»** con, por proyecto: resumen del mes (horas + ganado), **proyección a fin de
+  mes**, total histórico, **gráfico** de barras por día + **línea de acumulado vs objetivo**.
+- **Resumen global** del mes (todos los proyectos, agrupando el dinero por moneda).
+- Disponible también por IA (MCP): crear/editar/borrar proyecto y anotar horas.
+
 ### 🎵 Música
 
 - Lanzar app de música configurable (#10). Elegir entre apps instaladas (#98).
@@ -198,6 +209,15 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-06-01
 
+- **#84 V3 — Seguimiento laboral reworkeado: proyectos + página «Trabajo» con gráficos.** El
+  seguimiento deja de colgar de los entornos de concentración y pasa a un concepto propio
+  **Proyecto/Cliente** (`WorkProject`: nombre, color, tarifa, objetivo mensual, **moneda**). Nueva
+  **página «Trabajo»** en el menú lateral, con: tarjeta por proyecto (resumen del mes, ganado,
+  proyección y total histórico), **gráfico** de barras de horas por día + **línea de acumulado vs
+  objetivo**, anotación rápida de horas (con nota) y edición/borrado; y un **resumen global** de
+  todos los proyectos del mes (horas + ganado por moneda). Los datos antiguos (tarifa/objetivo/horas
+  por entorno) se **migran** automáticamente a proyectos. MCP: `add/update/remove_work_project`,
+  `log_work_hours(projectId, note)`. Núcleo 499/499.
 - **#136 — Deshacer / rehacer en el Horario (Ctrl+Z / Ctrl+Y).** Si haces un cambio no deseado
   (mover/redimensionar/crear/borrar/editar/pegar una sesión o sesión provisional), puedes deshacerlo
   con **Ctrl+Z** y rehacerlo con **Ctrl+Y**. Implementado con un historial de snapshots completos del
