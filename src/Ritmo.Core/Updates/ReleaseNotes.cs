@@ -92,6 +92,7 @@ public static class ReleaseNotes
                 "Vincula una sesión del horario a un proyecto y sus horas se cuentan solas; marca un día como «no realizado» o «parcial» cuando falles o salgas antes.",
                 "¿Un cambio sin querer en el horario? Deshaz con Ctrl+Z y rehaz con Ctrl+Y.",
                 "Pasa el ratón por el «?» de los campos: ahora hay explicaciones con ejemplos en lo nuevo.",
+                "Al concentrarte, Ritmo deja de parpadear en la barra de tareas para no distraerte.",
             ]
         },
     ];

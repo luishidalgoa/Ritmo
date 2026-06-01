@@ -48,7 +48,7 @@ public sealed partial class TimerPage : Page
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        Unloaded += (_, _) => { _ticker?.Stop(); _focus.Exit(); _overlay?.Close(); _overlay = null; };
+        Unloaded += (_, _) => { _ticker?.Stop(); _focus.Exit(); TaskbarSilencer.Restore(); _overlay?.Close(); _overlay = null; };
     }
 
     private bool _loadingEnv;
@@ -311,6 +311,8 @@ public sealed partial class TimerPage : Page
                     MusicService.TryLaunch(env.Music);          // lanzar música (#10)
                     AppCloser.CloseAll(env.AppsToClose);         // cerrar apps de ruido (#35)
                     AppMuter.Mute(env.AppsToMute);               // silenciar apps de ruido (#9)
+                    if (env.HideTaskbarBadges && MainWindow.Current is not null)   // sin parpadeos/badge (#31)
+                        TaskbarSilencer.Suppress(WinRT.Interop.WindowNative.GetWindowHandle(MainWindow.Current));
                     // Solo el subconjunto de apps/enlaces de la categoría de sesión activa (#116);
                     // sin perfil para ese título, ResolveOpen devuelve todo (por defecto).
                     var (openLinks, openApps) = env.ResolveOpen(_activeSessionTitle);
@@ -329,6 +331,7 @@ public sealed partial class TimerPage : Page
         {
             _environmentApplied = false;   // reset al parar
             AppMuter.RestoreAll();         // restaurar el audio de las apps silenciadas (#9)
+            TaskbarSilencer.Restore();     // volver a permitir parpadeos/badge (#31)
             if (_createdDesktop) { VirtualDesktops.CloseCurrent(); _createdDesktop = false; }   // cerrar el escritorio de concentración
         }
         DndBadge.Visibility = _focus.IsActive ? Visibility.Visible : Visibility.Collapsed;

@@ -214,6 +214,12 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-06-01
 
+- **#31 — Ocultar distintivos/parpadeos de la barra de tareas al concentrarse.** El ajuste «Ocultar
+  distintivos» del entorno (que ya existía pero no hacía nada) ahora SÍ actúa: al entrar en
+  concentración, Ritmo suprime el parpadeo (flash) de su botón en la barra de tareas y limpia su
+  distintivo de overlay (`TaskbarSilencer` vía `ITaskbarList3`/`FlashWindowEx`); al terminar, lo
+  restaura. Nota: Windows no permite silenciar por programación los parpadeos de OTRAS apps (eso lo
+  gobierna Focus Assist, de solo lectura); el silenciado global de avisos lo cubre «No molestar» (#30).
 - **#93 — Tooltips de ayuda «?» enriquecidos en los campos nuevos.** Los tooltips ahora muestran
   **título + descripción + un ejemplo destacado** (en cursiva, color de acento), con mejor formato
   (interlineado, ancho cómodo). El glosario del núcleo gana un `Example` opcional y entradas ricas
