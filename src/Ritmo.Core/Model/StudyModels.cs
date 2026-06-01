@@ -41,6 +41,13 @@ public sealed record StudySession
     /// </summary>
     public bool IsTentative { get; init; }
 
+    /// <summary>
+    /// Proyecto de seguimiento laboral al que está VINCULADA esta sesión (#137), o null si no.
+    /// Si está vinculada, sus horas pueden computarse automáticamente los días que toca (salvo
+    /// excepciones; ver <see cref="SessionException"/> y <c>WorkAutoCompute</c>).
+    /// </summary>
+    public string? ProjectId { get; init; }
+
     public TimeOnly End => Start.Add(Duration);
 }
 

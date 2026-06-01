@@ -31,6 +31,7 @@ internal sealed class SettingsDto
     // Seguimiento laboral (#84 V3): proyectos + registro de horas.
     public List<WorkProjectDto> WorkProjects { get; set; } = [];
     public List<WorkLogEntryDto> WorkLog { get; set; } = [];
+    public List<SessionExceptionDto>? SessionExceptions { get; set; }   // #137
     // LEGACY (#84 V1/V2): tarifa/objetivo por ENTORNO. Se migran a proyectos en FromDto y dejan de
     // escribirse. Se mantienen solo para leer settings.json antiguos.
     public Dictionary<string, decimal>? EnvironmentRates { get; set; }
@@ -70,6 +71,16 @@ internal sealed class WorkProjectDto
     public string CurrencyCode { get; set; } = "EUR";
     public int Order { get; set; }
     public bool Archived { get; set; }
+    public bool AutoFromSchedule { get; set; } = true;   // #137
+}
+
+internal sealed class SessionExceptionDto
+{
+    public string Id { get; set; } = "";
+    public string SessionKey { get; set; } = "";
+    public string From { get; set; } = "2026-01-01";
+    public string To { get; set; } = "2026-01-01";
+    public string Reason { get; set; } = "";
 }
 
 internal sealed class WorkLogEntryDto
@@ -155,6 +166,7 @@ internal sealed class SessionDto
     public string Kind { get; set; } = "Otro";
     public List<int> PreAlertsMinutes { get; set; } = [];
     public bool IsTentative { get; set; }
+    public string? ProjectId { get; set; }   // #137: vínculo a proyecto de seguimiento laboral
 }
 
 internal sealed class PomodoroDto
@@ -281,7 +293,7 @@ internal static class SettingsMapper
         {
             Id = p.Id, Name = p.Name, ColorHex = p.ColorHex, Rate = p.Rate,
             MonthlyGoalHours = p.MonthlyGoalHours, CurrencyCode = p.CurrencyCode,
-            Order = p.Order, Archived = p.Archived
+            Order = p.Order, Archived = p.Archived, AutoFromSchedule = p.AutoFromSchedule
         }).ToList(),
         WorkLog = s.WorkLog.Select(w => new WorkLogEntryDto
         {
@@ -290,6 +302,13 @@ internal static class SettingsMapper
             Date = w.Date.ToString(DateFormat, CultureInfo.InvariantCulture),
             Hours = w.Hours,
             Note = w.Note
+        }).ToList(),
+        SessionExceptions = s.SessionExceptions.Select(x => new SessionExceptionDto
+        {
+            Id = x.Id, SessionKey = x.SessionKey,
+            From = x.From.ToString(DateFormat, CultureInfo.InvariantCulture),
+            To = x.To.ToString(DateFormat, CultureInfo.InvariantCulture),
+            Reason = x.Reason
         }).ToList(),
         NavidromeServerUrl = s.NavidromeServerUrl,
         NavidromeUser = s.NavidromeUser,
@@ -337,7 +356,8 @@ internal static class SettingsMapper
         DurationMinutes = (int)x.Duration.TotalMinutes,
         Kind = x.CategoryId,
         PreAlertsMinutes = x.PreAlerts.Select(a => a.MinutesBefore).ToList(),
-        IsTentative = x.IsTentative
+        IsTentative = x.IsTentative,
+        ProjectId = x.ProjectId
     };
 
     private static PhaseDto ToDto(SchedulePhase p) => new()
@@ -430,7 +450,15 @@ internal static class SettingsMapper
         CalendarFeeds = d.CalendarFeeds.Select(f => new CalendarFeed { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
         OverlapPriorities = d.OverlapPriorities
             .Where(p => !string.IsNullOrWhiteSpace(p.EventKey))
-            .Select(p => new OverlapPriority { EventKey = p.EventKey, PreferCalendar = p.PreferCalendar }).ToList()
+            .Select(p => new OverlapPriority { EventKey = p.EventKey, PreferCalendar = p.PreferCalendar }).ToList(),
+        SessionExceptions = (d.SessionExceptions ?? []).Select(x => new SessionException
+        {
+            Id = string.IsNullOrWhiteSpace(x.Id) ? $"exc-{Guid.NewGuid():N}"[..12] : x.Id,
+            SessionKey = x.SessionKey ?? "",
+            From = DateOnly.ParseExact(x.From, DateFormat, CultureInfo.InvariantCulture),
+            To = DateOnly.ParseExact(x.To, DateFormat, CultureInfo.InvariantCulture),
+            Reason = x.Reason ?? ""
+        }).ToList()
         };
         return CategoryMigration.Apply(s, d.ViewConfig?.ColorsByKind);
     }
@@ -450,7 +478,7 @@ internal static class SettingsMapper
                 ColorHex = string.IsNullOrWhiteSpace(p.ColorHex) ? "#1E88E5" : p.ColorHex,
                 Rate = p.Rate, MonthlyGoalHours = p.MonthlyGoalHours,
                 CurrencyCode = string.IsNullOrWhiteSpace(p.CurrencyCode) ? "EUR" : p.CurrencyCode,
-                Order = p.Order, Archived = p.Archived
+                Order = p.Order, Archived = p.Archived, AutoFromSchedule = p.AutoFromSchedule
             }).ToList();
 
         // Legacy → derivar proyectos. Reúne todos los entornos con datos de seguimiento.
@@ -522,7 +550,8 @@ internal static class SettingsMapper
         Duration = TimeSpan.FromMinutes(x.DurationMinutes),
         CategoryId = string.IsNullOrWhiteSpace(x.Kind) ? CategoryIds.Other : x.Kind,
         PreAlerts = x.PreAlertsMinutes.Select(m => new PreAlert(m)).ToList(),
-        IsTentative = x.IsTentative
+        IsTentative = x.IsTentative,
+        ProjectId = string.IsNullOrWhiteSpace(x.ProjectId) ? null : x.ProjectId
     };
 
     private static SchedulePhase FromDto(PhaseDto p) => new()

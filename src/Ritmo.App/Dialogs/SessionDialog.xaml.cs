@@ -48,6 +48,35 @@ public sealed partial class SessionDialog : ContentDialog
             KindBox.Items.Add(new ComboBoxItem { Content = c.Name, Tag = c.Id });
     }
 
+    /// <summary>Llena el combo de proyectos para vincular la sesión (#137). Primer item = sin vincular.</summary>
+    public void SetProjects(IEnumerable<WorkProject> projects)
+    {
+        ProjectBox.Items.Clear();
+        ProjectBox.Items.Add(new ComboBoxItem { Content = "Sin vincular", Tag = "" });
+        foreach (var p in projects.Where(p => !p.Archived).OrderBy(p => p.Order))
+            ProjectBox.Items.Add(new ComboBoxItem { Content = p.Name, Tag = p.Id });
+        ProjectBox.SelectedIndex = 0;
+    }
+
+    /// <summary>Id del proyecto vinculado, o null. #137</summary>
+    public string? SelectedProjectId
+    {
+        get
+        {
+            var tag = (ProjectBox.SelectedItem as ComboBoxItem)?.Tag as string;
+            return string.IsNullOrEmpty(tag) ? null : tag;
+        }
+    }
+
+    /// <summary>Pre-selecciona el proyecto vinculado (al editar). #137</summary>
+    public void SetProject(string? projectId)
+    {
+        for (int i = 0; i < ProjectBox.Items.Count; i++)
+            if (ProjectBox.Items[i] is ComboBoxItem it && (string)it.Tag == (projectId ?? ""))
+            { ProjectBox.SelectedIndex = i; return; }
+        ProjectBox.SelectedIndex = 0;
+    }
+
     /// <summary>Días marcados (uno o varios). El que crea la sesión itera sobre ellos.</summary>
     public IReadOnlyList<DayOfWeek> SelectedDays =>
         _dayToggles.Where(t => t.btn.IsChecked == true).Select(t => t.day).ToList();
@@ -166,6 +195,7 @@ public sealed partial class SessionDialog : ContentDialog
         var mins = s.PreAlerts.Select(a => a.MinutesBefore).Where(m => m > 0).Distinct().OrderByDescending(m => m).ToList();
         SetAlert(Alert1Box, Alert1Custom, mins.Count > 0 ? mins[0] : 0);
         SetAlert(Alert2Box, Alert2Custom, mins.Count > 1 ? mins[1] : 0);
+        SetProject(s.ProjectId);   // #137
     }
 
     /// <summary>
@@ -204,7 +234,8 @@ public sealed partial class SessionDialog : ContentDialog
             Duration = duration,
             CategoryId = categoryId,
             PreAlerts = alerts,
-            IsTentative = TentativeSwitch.IsOn
+            IsTentative = TentativeSwitch.IsOn,
+            ProjectId = SelectedProjectId   // #137: vínculo a proyecto
         };
     }
 }

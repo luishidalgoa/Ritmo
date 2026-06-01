@@ -934,7 +934,7 @@ public sealed class ConfigurationService
 
     /// <summary>Crea un proyecto de seguimiento laboral. Devuelve su id en el mensaje.</summary>
     public CommandResult AddWorkProject(string name, decimal rate = 0, double monthlyGoalHours = 0,
-        string colorHex = "#1E88E5", string currencyCode = "EUR")
+        string colorHex = "#1E88E5", string currencyCode = "EUR", bool autoFromSchedule = true)
     {
         if (string.IsNullOrWhiteSpace(name)) return CommandResult.Fail("El proyecto necesita un nombre.");
         if (rate < 0) return CommandResult.Fail("La tarifa no puede ser negativa.");
@@ -947,15 +947,16 @@ public sealed class ConfigurationService
             Id = id, Name = name.Trim(), Rate = rate, MonthlyGoalHours = monthlyGoalHours,
             ColorHex = string.IsNullOrWhiteSpace(colorHex) ? "#1E88E5" : colorHex,
             CurrencyCode = string.IsNullOrWhiteSpace(currencyCode) ? "EUR" : currencyCode.Trim(),
-            Order = order
+            Order = order, AutoFromSchedule = autoFromSchedule
         };
         _store.Save(s with { WorkProjects = [.. s.WorkProjects, proj] });
         return CommandResult.Ok(id);
     }
 
-    /// <summary>Actualiza nombre/tarifa/objetivo/color/moneda/archivado de un proyecto (no cambia su id).</summary>
+    /// <summary>Actualiza nombre/tarifa/objetivo/color/moneda/archivado/modo-auto de un proyecto (no cambia su id).</summary>
     public CommandResult UpdateWorkProject(string id, string? name = null, decimal? rate = null,
-        double? monthlyGoalHours = null, string? colorHex = null, string? currencyCode = null, bool? archived = null)
+        double? monthlyGoalHours = null, string? colorHex = null, string? currencyCode = null,
+        bool? archived = null, bool? autoFromSchedule = null)
     {
         var s = _store.Load();
         var proj = s.WorkProjects.FirstOrDefault(p => p.Id == id);
@@ -971,7 +972,8 @@ public sealed class ConfigurationService
             MonthlyGoalHours = monthlyGoalHours ?? proj.MonthlyGoalHours,
             ColorHex = colorHex ?? proj.ColorHex,
             CurrencyCode = currencyCode?.Trim() ?? proj.CurrencyCode,
-            Archived = archived ?? proj.Archived
+            Archived = archived ?? proj.Archived,
+            AutoFromSchedule = autoFromSchedule ?? proj.AutoFromSchedule
         };
         _store.Save(s with { WorkProjects = s.WorkProjects.Select(p => p.Id == id ? updated : p).ToList() });
         return CommandResult.Ok("Proyecto actualizado.");
@@ -1029,6 +1031,58 @@ public sealed class ConfigurationService
         if (s.WorkLog.All(e => e.Id != id)) return CommandResult.Ok("Sin cambios.");
         _store.Save(s with { WorkLog = s.WorkLog.Where(e => e.Id != id).ToList() });
         return CommandResult.Ok("Anotación eliminada.");
+    }
+
+    // ---------- Vincular sesión ↔ proyecto y excepciones (#137) ----------
+
+    /// <summary>
+    /// Vincula (o desvincula con projectId=null) una sesión del horario a un proyecto, para que sus
+    /// horas se computen automáticamente. Actúa sobre TODAS las sesiones que comparten clave (mismo
+    /// título/categoría/inicio/duración) en todas las fases y en el horario suelto.
+    /// </summary>
+    public CommandResult SetSessionProject(string sessionKey, string? projectId)
+    {
+        if (projectId is not null)
+        {
+            var chk = _store.Load();
+            if (chk.WorkProjects.All(p => p.Id != projectId)) return CommandResult.Fail($"No existe el proyecto «{projectId}».");
+        }
+        var s = _store.Load();
+        StudySession Map(StudySession x) =>
+            Ritmo.Core.Model.SessionKey.For(x) == sessionKey ? x with { ProjectId = projectId } : x;
+
+        var newPhases = s.Plan.Phases
+            .Select(p => p with { Schedule = p.Schedule with { Sessions = p.Schedule.Sessions.Select(Map).ToList() } })
+            .ToList();
+        var newSchedule = s.Schedule with { Sessions = s.Schedule.Sessions.Select(Map).ToList() };
+        _store.Save(s with { Plan = s.Plan with { Phases = newPhases }, Schedule = newSchedule });
+        return CommandResult.Ok(projectId is null ? "Sesión desvinculada del proyecto." : "Sesión vinculada al proyecto.");
+    }
+
+    /// <summary>Marca una sesión como NO realizada en un rango de fechas (#137). From==To = un día.</summary>
+    public CommandResult AddSessionException(string sessionKey, DateOnly from, DateOnly to, string reason = "")
+    {
+        if (string.IsNullOrWhiteSpace(sessionKey)) return CommandResult.Fail("Sesión inválida.");
+        if (to < from) return CommandResult.Fail("La fecha de fin no puede ser anterior a la de inicio.");
+        var s = _store.Load();
+        var ex = new Ritmo.Core.Model.SessionException
+        {
+            Id = $"exc-{Guid.NewGuid():N}"[..12],
+            SessionKey = sessionKey, From = from, To = to, Reason = (reason ?? "").Trim()
+        };
+        _store.Save(s with { SessionExceptions = [.. s.SessionExceptions, ex] });
+        return CommandResult.Ok(from == to
+            ? $"Sesión marcada como no realizada el {from:dd/MM/yyyy}."
+            : $"Sesión marcada como no realizada del {from:dd/MM/yyyy} al {to:dd/MM/yyyy}.");
+    }
+
+    /// <summary>Quita una excepción de sesión por su id (#137).</summary>
+    public CommandResult RemoveSessionException(string id)
+    {
+        var s = _store.Load();
+        if (s.SessionExceptions.All(e => e.Id != id)) return CommandResult.Ok("Sin cambios.");
+        _store.Save(s with { SessionExceptions = s.SessionExceptions.Where(e => e.Id != id).ToList() });
+        return CommandResult.Ok("Excepción eliminada.");
     }
 }
 

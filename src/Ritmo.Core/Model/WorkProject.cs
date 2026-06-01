@@ -24,6 +24,13 @@ public sealed record WorkProject
     /// <summary>¿Archivado? (se oculta de las vistas activas pero conserva su historial).</summary>
     public bool Archived { get; init; }
 
+    /// <summary>
+    /// Modo de cómputo de las sesiones VINCULADAS a este proyecto (#137): si es true, las horas de
+    /// las sesiones del horario asociadas se suman AUTOMÁTICAMENTE los días que tocan (salvo
+    /// excepciones). Si es false, Ritmo solo las SUGIERE para que el usuario las confirme.
+    /// </summary>
+    public bool AutoFromSchedule { get; init; } = true;
+
     /// <summary>Símbolo de moneda a partir del código (solo los comunes; si no, el propio código).</summary>
     public string CurrencySymbol => CurrencyCode switch
     {

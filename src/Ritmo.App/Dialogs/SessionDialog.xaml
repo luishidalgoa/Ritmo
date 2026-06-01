@@ -60,6 +60,11 @@
         <ComboBox x:Name="KindBox" Header="Categoría" HorizontalAlignment="Stretch"
                   PlaceholderText="Elige una categoría" />
 
+        <!-- Vínculo a un proyecto de seguimiento laboral (#137): si se elige, las horas de esta
+             sesión se computan solas en «Trabajo» los días que toca. -->
+        <ComboBox x:Name="ProjectBox" Header="Proyecto (seguimiento laboral)" HorizontalAlignment="Stretch"
+                  PlaceholderText="Sin vincular" />
+
         <StackPanel Spacing="6">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Avisos previos" FontWeight="SemiBold" VerticalAlignment="Center" />

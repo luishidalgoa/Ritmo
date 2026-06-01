@@ -35,6 +35,10 @@
             </Grid>
             <NumberBox x:Name="GoalBox" Header="Objetivo de horas al mes (0 = sin objetivo)" Minimum="0" SmallChange="5"
                        SpinButtonPlacementMode="Compact" HorizontalAlignment="Stretch" />
+            <ToggleSwitch x:Name="AutoSwitch" Header="Computar horas desde el horario"
+                          OnContent="Sí, automático" OffContent="No, manual" />
+            <TextBlock Text="Si está activo, las sesiones del horario vinculadas a este proyecto suman sus horas solas los días que tocan (salvo que marques una sesión como no realizada)."
+                       Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
             <StackPanel Spacing="6">
                 <TextBlock Text="Color" FontWeight="SemiBold" />
                 <Grid x:Name="SwatchHost" ColumnSpacing="6" RowSpacing="6" HorizontalAlignment="Left" />

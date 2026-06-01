@@ -58,6 +58,10 @@ public sealed record AppSettings
     /// <summary>Seguimiento laboral (#84): registro MANUAL de horas trabajadas por día y proyecto.</summary>
     public IReadOnlyList<WorkLogEntry> WorkLog { get; init; } = [];
 
+    /// <summary>Excepciones de sesiones recurrentes (#137): días/rangos en que una sesión NO se
+    /// realiza (no computa horas y se ve atenuada en el horario).</summary>
+    public IReadOnlyList<SessionException> SessionExceptions { get; init; } = [];
+
     /// <summary>Entornos de concentración definidos por el usuario.</summary>
     public IReadOnlyList<FocusEnvironment> FocusEnvironments { get; init; } = [];
 

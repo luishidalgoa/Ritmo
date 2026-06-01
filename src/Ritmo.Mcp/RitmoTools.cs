@@ -335,6 +335,31 @@ public sealed class RitmoTools
     public string RemoveWorkLogEntry([Description("Id de la anotación de horas")] string id)
         => Report(_config.RemoveWorkLogEntry(id));
 
+    [McpServerTool(Name = "link_session_to_project")]
+    [Description("Vincula una sesión recurrente del horario a un proyecto, para que sus horas se computen automáticamente los días que toca. La sesión se identifica por su clave 'titulo|categoria|HH:mm|HH:MM:SS' (ver get_config). projectId vacío = desvincular.")]
+    public string LinkSessionToProject(
+        [Description("Clave de la sesión (titulo|categoria|inicio|duracion)")] string sessionKey,
+        [Description("Id del proyecto, o vacío para desvincular")] string? projectId = null)
+        => Report(_config.SetSessionProject(sessionKey, string.IsNullOrWhiteSpace(projectId) ? null : projectId));
+
+    [McpServerTool(Name = "add_session_exception")]
+    [Description("Marca una sesión recurrente como NO realizada en un rango de fechas (un día = from igual a to). Esos días no computan horas. Fechas yyyy-MM-dd; fin >= inicio.")]
+    public string AddSessionException(
+        [Description("Clave de la sesión (ver get_config)")] string sessionKey,
+        [Description("Fecha de inicio (yyyy-MM-dd)")] string from,
+        [Description("Fecha de fin INCLUSIVE (yyyy-MM-dd)")] string to,
+        [Description("Motivo opcional")] string reason = "")
+    {
+        if (!TryDate(from, out var f)) return Err($"Fecha de inicio inválida: '{from}'.");
+        if (!TryDate(to, out var t)) return Err($"Fecha de fin inválida: '{to}'.");
+        return Report(_config.AddSessionException(sessionKey, f, t, reason));
+    }
+
+    [McpServerTool(Name = "remove_session_exception")]
+    [Description("Quita una excepción de sesión (vuelve a contar ese día/rango) por su id.")]
+    public string RemoveSessionException([Description("Id de la excepción")] string id)
+        => Report(_config.RemoveSessionException(id));
+
     [McpServerTool(Name = "set_kind_color")]
     [Description("Fija el color de fondo de un tipo de bloque en la rejilla del horario. hex en formato #RRGGBB; deja hex vacío para volver al color por defecto de ese tipo.")]
     public string SetKindColor(

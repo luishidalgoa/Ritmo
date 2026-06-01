@@ -74,6 +74,7 @@ public sealed partial class SchedulePage : Page
     private IReadOnlyList<StudySession> _sessions = [];        // sesiones de la fase visible (para detectar conflictos)
     private IReadOnlyList<OverlapPriority> _priorities = [];   // decisiones de prioridad guardadas
     private IReadOnlyList<OneOffSession> _oneOffs = [];        // sesiones provisionales (con fecha) (#103)
+    private IReadOnlyList<Ritmo.Core.Model.SessionException> _sessionExceptions = [];   // sesiones no realizadas (#137)
     private IReadOnlyList<StudyNote> _notes = [];             // notas (post-its de sesión, #73)
     private string? _selectedSessionKey;                       // sesión resaltada en la rejilla
     private string? _selectedEventKey;                         // evento resaltado en la rejilla
@@ -513,6 +514,7 @@ public sealed partial class SchedulePage : Page
         _sessions = schedule.Sessions;
         _priorities = settings.OverlapPriorities;
         _oneOffs = settings.OneOffSessions;
+        _sessionExceptions = settings.SessionExceptions;   // #137
         _notes = settings.Notes;
 
         // Extiende el rango si una sesión provisional de esta semana cae fuera (#103).
@@ -691,13 +693,22 @@ public sealed partial class SchedulePage : Page
                     }
                 }
             };
+            // ¿Cancelada (#137) algún día de la semana visible? La atenuamos y tachamos el título.
+            bool anyCancelled = group.Members.Any(m =>
+            {
+                int mi = Array.IndexOf(Days, m.Day);
+                return mi >= 0 && Ritmo.Core.Model.WorkAutoCompute.IsCancelled(m, _weekStart.AddDays(mi), _sessionExceptions);
+            });
+            if (anyCancelled && visual.Child is StackPanel sp && sp.Children.Count > 0 && sp.Children[0] is TextBlock tb)
+                tb.TextDecorations = Windows.UI.Text.TextDecorations.Strikethrough;
+
             var card = new SessionCard
             {
                 Content = visual,
                 VerticalAlignment = VerticalAlignment.Top,           // flota por su minuto real (#61)
                 Height = Math.Max(14, heightPx - 3),
                 Margin = new Thickness(2, topPx + 1.5, 2, 0),
-                Opacity = s.IsTentative ? 0.6 : 1.0,
+                Opacity = anyCancelled ? 0.4 : (s.IsTentative ? 0.6 : 1.0),
                 Tag = group
             };
 
@@ -1161,6 +1172,7 @@ public sealed partial class SchedulePage : Page
             CloseButtonText = "Eliminar"
         };
         dlg.SetCategories(AppState.Load().Categories);   // categorías dinámicas (#83)
+        dlg.SetProjects(AppState.Load().WorkProjects);   // vínculo a proyecto (#137)
         dlg.SetKnownTitles(AllTitles());
         dlg.LoadFrom(one.AsSession());
         dlg.PreselectDays([one.Date.DayOfWeek]);   // por si se reconvierte a recurrente
@@ -1357,6 +1369,7 @@ public sealed partial class SchedulePage : Page
         var dlg = new SessionDialog { XamlRoot = this.XamlRoot };
         var settings = AppState.Load();
         dlg.SetCategories(settings.Categories);   // categorías dinámicas (#83)
+        dlg.SetProjects(settings.WorkProjects);   // vínculo a proyecto (#137)
         dlg.SetKnownTitles(AllTitles());
         dlg.LoadDefaults(day, start, settings.ViewConfig.DefaultPreAlertMinutes);   // aviso por defecto configurable (#48)
         // Fecha por defecto del rango provisional: el día pulsado (o el lunes visible). #131
@@ -1414,6 +1427,7 @@ public sealed partial class SchedulePage : Page
             CloseButtonText = "Eliminar"
         };
         dlg.SetCategories(AppState.Load().Categories);   // categorías dinámicas (#83)
+        dlg.SetProjects(AppState.Load().WorkProjects);   // vínculo a proyecto (#137)
         dlg.SetKnownTitles(AllTitles());
         dlg.LoadFrom(rep);
         dlg.PreselectDays(groupDays);   // todos los días del grupo marcados
@@ -1494,6 +1508,9 @@ public sealed partial class SchedulePage : Page
         actions.Children.Add(editBtn); actions.Children.Add(focusBtn);
         content.Children.Add(actions);
 
+        // No realizada (#137): marcar que esta sesión no se hace un día o rango (no computa horas).
+        content.Children.Add(BuildExceptionsSection(rep));
+
         // Atajo: qué apps/enlaces del entorno se abren para este tipo de sesión (#116).
         var behaviorBtn = new HyperlinkButton { Content = "Qué se abre al concentrarme…", Padding = new Thickness(0) };
         behaviorBtn.Click += async (_, _) => await ShowSessionBehavior(rep.Title);
@@ -1519,6 +1536,64 @@ public sealed partial class SchedulePage : Page
         }
 
         DetailPanel.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Bloque «No realizada» del detalle (#137): botón para marcar que la sesión no se hace un día o
+    /// rango, y la lista de excepciones existentes de esta sesión (con quitar).
+    /// </summary>
+    private FrameworkElement BuildExceptionsSection(StudySession rep)
+    {
+        var key = Ritmo.Core.Model.SessionKey.For(rep);
+        var box = new StackPanel { Spacing = 4, Margin = new Thickness(0, 6, 0, 0) };
+
+        var markBtn = new HyperlinkButton { Content = "Marcar como no realizada…", Padding = new Thickness(0) };
+        markBtn.Click += async (_, _) => { await MarkSessionNotDone(key); if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup); };
+        box.Children.Add(markBtn);
+
+        var existing = AppState.Load().SessionExceptions.Where(x => x.SessionKey == key).OrderBy(x => x.From).ToList();
+        foreach (var x in existing)
+        {
+            var txt = x.From == x.To ? $"No realizada el {x.From:dd/MM/yyyy}" : $"No realizada {x.From:dd/MM} – {x.To:dd/MM/yyyy}";
+            if (!string.IsNullOrWhiteSpace(x.Reason)) txt += $"  ({x.Reason})";
+            var line = new TextBlock { Text = txt, FontSize = 12, Opacity = 0.7, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(line, 0);
+            var del = new Button { Content = new FontIcon { Glyph = "", FontSize = 12 }, Padding = new Thickness(6), MinWidth = 0,
+                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0) };
+            var xid = x.Id;
+            del.Click += (_, _) => { AppState.Config.RemoveSessionException(xid); if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup); };
+            Grid.SetColumn(del, 1);
+            var g = new Grid();
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            g.Children.Add(line); g.Children.Add(del);
+            box.Children.Add(g);
+        }
+        return box;
+    }
+
+    /// <summary>Diálogo: elegir día o rango en que la sesión no se realiza (#137).</summary>
+    private async Task MarkSessionNotDone(string sessionKey)
+    {
+        var from = new CalendarDatePicker { Header = "Desde", Date = new DateTimeOffset(_weekStart.ToDateTime(TimeOnly.MinValue)), MinWidth = 150 };
+        var to = new CalendarDatePicker { Header = "Hasta (vacío = un solo día)", MinWidth = 150 };
+        var reason = new TextBox { Header = "Motivo (opcional)", PlaceholderText = "p. ej. festivo, baja" };
+        var inner = new StackPanel { Spacing = 12, Width = 320 };
+        inner.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { from, to } });
+        inner.Children.Add(reason);
+
+        var dlg = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot, Title = "Sesión no realizada",
+            Content = inner, PrimaryButtonText = "Marcar", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Primary
+        };
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+
+        var f = from.Date is { } fd ? DateOnly.FromDateTime(fd.Date) : _weekStart;
+        var t = to.Date is { } td ? DateOnly.FromDateTime(td.Date) : f;
+        if (t < f) t = f;
+        var r = AppState.Config.AddSessionException(sessionKey, f, t, reason.Text ?? "");
+        if (!r.Success) await new ContentDialog { XamlRoot = this.XamlRoot, Title = "Sesión", Content = r.Message, CloseButtonText = "Vale" }.ShowAsync();
     }
 
     /// <summary>Muestra el detalle de un evento del calendario (y su resolución si pisa una sesión).</summary>

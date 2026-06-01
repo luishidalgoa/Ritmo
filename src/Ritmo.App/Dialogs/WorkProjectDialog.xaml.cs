@@ -29,11 +29,13 @@ public sealed partial class WorkProjectDialog : ContentDialog
     public double GoalHours => double.IsNaN(GoalBox.Value) ? 0 : GoalBox.Value;
     public string ColorHex => _color;
     public string CurrencyCode => (CurrencyBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "EUR";
+    public bool AutoFromSchedule => AutoSwitch.IsOn;
 
     public void LoadDefaults()
     {
         Title = "Nuevo proyecto";
         CurrencyBox.SelectedIndex = 0;
+        AutoSwitch.IsOn = true;
         _color = Palette[0];
         BuildSwatches();
     }
@@ -44,6 +46,7 @@ public sealed partial class WorkProjectDialog : ContentDialog
         NameBox.Text = p.Name;
         RateBox.Value = (double)p.Rate;
         GoalBox.Value = p.MonthlyGoalHours;
+        AutoSwitch.IsOn = p.AutoFromSchedule;
         _color = string.IsNullOrWhiteSpace(p.ColorHex) ? Palette[0] : p.ColorHex;
         SelectCurrency(p.CurrencyCode);
         BuildSwatches();

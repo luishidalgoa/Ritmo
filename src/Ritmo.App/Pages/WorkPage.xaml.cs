@@ -24,6 +24,21 @@ public sealed partial class WorkPage : Page
         Loaded += (_, _) => Build();
     }
 
+    /// <summary>
+    /// Log EFECTIVO de un proyecto para el mes mostrado (#137): las anotaciones manuales + las horas
+    /// automáticas (virtuales) de las sesiones vinculadas, si el proyecto está en modo automático.
+    /// Así los totales/gráficos reflejan tanto lo anotado a mano como lo del horario.
+    /// </summary>
+    private static System.Collections.Generic.IReadOnlyList<WorkLogEntry> EffectiveLog(
+        Ritmo.Core.Persistence.AppSettings s, WorkProject p, DateOnly today)
+    {
+        if (!p.AutoFromSchedule) return s.WorkLog;
+        var schedule = s.Plan.Phases.SelectMany(ph => ph.Schedule.Sessions)
+            .Concat(s.Schedule.Sessions).ToList();
+        var virt = WorkAutoCompute.VirtualEntriesForMonth(schedule, s.SessionExceptions, p.Id, today.Year, today.Month);
+        return virt.Count == 0 ? s.WorkLog : s.WorkLog.Concat(virt).ToList();
+    }
+
     private static Brush Hex(string hex, double opacity = 1)
     {
         try
@@ -68,7 +83,7 @@ public sealed partial class WorkPage : Page
         var byCurrency = new System.Collections.Generic.Dictionary<string, decimal>();
         foreach (var p in projects)
         {
-            var sum = WorkTracking.Summarize(s.WorkLog, p.Id, p.Rate, today);
+            var sum = WorkTracking.Summarize(EffectiveLog(s, p, today), p.Id, p.Rate, today);
             totalHours += sum.HoursThisMonth;
             var sym = p.CurrencySymbol;
             byCurrency[sym] = byCurrency.GetValueOrDefault(sym) + sum.EarningsThisMonth;
@@ -84,7 +99,8 @@ public sealed partial class WorkPage : Page
 
     private FrameworkElement ProjectCard(Ritmo.Core.Persistence.AppSettings s, WorkProject p, DateOnly today)
     {
-        var sum = WorkTracking.Summarize(s.WorkLog, p.Id, p.Rate, today);
+        var effLog = EffectiveLog(s, p, today);
+        var sum = WorkTracking.Summarize(effLog, p.Id, p.Rate, today);
         var sym = p.CurrencySymbol;
 
         var card = new StackPanel { Spacing = 12 };
@@ -124,7 +140,7 @@ public sealed partial class WorkPage : Page
         card.Children.Add(new TextBlock { Text = string.Join("   ·   ", subParts), Opacity = 0.65, FontSize = 12, TextWrapping = TextWrapping.Wrap });
 
         // --- Gráfico: barras de horas por día + línea de acumulado vs objetivo ---
-        card.Children.Add(BuildChart(s, p, today));
+        card.Children.Add(BuildChart(effLog, p, today));
 
         // --- Anotar horas de hoy ---
         card.Children.Add(BuildLogRow(p, today));
@@ -149,10 +165,10 @@ public sealed partial class WorkPage : Page
 
     // ---------- Gráfico (barras por día + línea acumulada vs objetivo) ----------
 
-    private FrameworkElement BuildChart(Ritmo.Core.Persistence.AppSettings s, WorkProject p, DateOnly today)
+    private FrameworkElement BuildChart(System.Collections.Generic.IReadOnlyList<WorkLogEntry> log, WorkProject p, DateOnly today)
     {
-        var daily = WorkTracking.DailyHours(s.WorkLog, p.Id, today.Year, today.Month);
-        var cumulative = WorkTracking.CumulativeHours(s.WorkLog, p.Id, today.Year, today.Month);
+        var daily = WorkTracking.DailyHours(log, p.Id, today.Year, today.Month);
+        var cumulative = WorkTracking.CumulativeHours(log, p.Id, today.Year, today.Month);
         int days = daily.Length;
 
         const double H = 120;       // alto del área de gráfico
@@ -292,7 +308,7 @@ public sealed partial class WorkPage : Page
         var dlg = new WorkProjectDialog { XamlRoot = this.XamlRoot };
         dlg.LoadDefaults();
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
-        AppState.Config.AddWorkProject(dlg.ProjectName, dlg.Rate, dlg.GoalHours, dlg.ColorHex, dlg.CurrencyCode);
+        AppState.Config.AddWorkProject(dlg.ProjectName, dlg.Rate, dlg.GoalHours, dlg.ColorHex, dlg.CurrencyCode, dlg.AutoFromSchedule);
         Build();
     }
 
@@ -301,7 +317,7 @@ public sealed partial class WorkPage : Page
         var dlg = new WorkProjectDialog { XamlRoot = this.XamlRoot };
         dlg.LoadFrom(p);
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
-        AppState.Config.UpdateWorkProject(p.Id, dlg.ProjectName, dlg.Rate, dlg.GoalHours, dlg.ColorHex, dlg.CurrencyCode);
+        AppState.Config.UpdateWorkProject(p.Id, dlg.ProjectName, dlg.Rate, dlg.GoalHours, dlg.ColorHex, dlg.CurrencyCode, autoFromSchedule: dlg.AutoFromSchedule);
         Build();
     }
 

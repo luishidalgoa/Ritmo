@@ -21,7 +21,7 @@ Este archivo tiene **dos partes**:
 
 ## Capacidades actuales
 
-### 🤖 La IA (servidor MCP) — 60 herramientas
+### 🤖 La IA (servidor MCP) — 63 herramientas
 
 Una IA compatible con MCP (Claude Desktop/Code u otra, 100% local por stdio) puede
 **ver y configurar toda la app** hablándole en lenguaje natural. Todo pasa por la
@@ -55,6 +55,7 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Perfiles por tipo de sesión (qué se abre en cada bloque): `set_session_profile`, `clear_session_profile`.
 - Mapeo tipo de bloque → entorno: `map_environment_to_kind`, `clear_environment_kind`.
 - Seguimiento laboral (proyectos + horas): `add_work_project`, `update_work_project`, `remove_work_project`, `log_work_hours`, `remove_work_log_entry`.
+- Vincular sesión↔proyecto y excepciones: `link_session_to_project`, `add_session_exception`, `remove_session_exception`.
 
 **Notas y atajos**
 - Notas (markdown, opcional post-it de sesión): `add_note`, `update_note`, `remove_note`.
@@ -149,7 +150,11 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 - Página **«Trabajo»** con, por proyecto: resumen del mes (horas + ganado), **proyección a fin de
   mes**, total histórico, **gráfico** de barras por día + **línea de acumulado vs objetivo**.
 - **Resumen global** del mes (todos los proyectos, agrupando el dinero por moneda).
-- Disponible también por IA (MCP): crear/editar/borrar proyecto y anotar horas.
+- **Vincular una sesión del horario a un proyecto** (#137): sus horas se computan solas los días que
+  toca (modo automático por proyecto) o se anotan a mano (modo manual).
+- **Excepciones**: marcar una sesión como no realizada un día o un rango (festivo, baja…); no computa
+  y se ve atenuada en el horario.
+- Disponible también por IA (MCP): crear/editar/borrar proyecto, anotar horas, vincular sesiones y excepciones.
 
 ### 🎵 Música
 
@@ -209,6 +214,14 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ### 2026-06-01
 
+- **#137 — Vincular una sesión del horario a un proyecto + marcar sesiones no realizadas.** Al editar
+  una sesión recurrente puedes **vincularla a un proyecto** de Trabajo: sus horas se computan SOLAS
+  en «Trabajo» los días que toca (si el proyecto está en modo automático), sin anotar a mano. Cada
+  proyecto elige el modo: **automático** (suma del horario) o **manual** (solo lo que anotes). Además,
+  un sistema de **excepciones**: desde el detalle de una sesión, marcarla como **no realizada** un día
+  o un **rango** (festivo, baja…); esos días no computan y la sesión se ve atenuada/tachada en el
+  horario. Núcleo puro `WorkAutoCompute` + `SessionException` (11 tests). MCP:
+  `link_session_to_project`, `add/remove_session_exception`.
 - **#84 V3 — Seguimiento laboral reworkeado: proyectos + página «Trabajo» con gráficos.** El
   seguimiento deja de colgar de los entornos de concentración y pasa a un concepto propio
   **Proyecto/Cliente** (`WorkProject`: nombre, color, tarifa, objetivo mensual, **moneda**). Nueva
