@@ -95,6 +95,10 @@ public sealed partial class SchedulePage : Page
     // Tarjetas en carril (solape el mismo día, #130): se re-disponen al cambiar el ancho de columna.
     private readonly List<(SessionCard card, int lane, int count, double topPx)> _laneCards = new();
 
+    // Eventos de calendario que solapan una sesión (#143): se estrechan a la mitad derecha de la
+    // columna (la sesión queda clicable a la izquierda); su ancho se recalcula al redimensionar.
+    private readonly List<Border> _calConflictCards = new();
+
     public SchedulePage()
     {
         InitializeComponent();
@@ -829,6 +833,9 @@ public sealed partial class SchedulePage : Page
             GridRoot.ColumnDefinitions[c].Width = new GridLength(dw);
         // Las tarjetas en carril (solape, #130) tienen ancho FIJO en px -> recalcúlalo al cambiar la columna.
         foreach (var lc in _laneCards) ApplyLaneLayout(lc.card, lc.lane, lc.count, lc.topPx);
+        // Eventos que solapan una sesión (#143): media columna, también recalculable.
+        double cw = ConflictEventWidth();
+        foreach (var c in _calConflictCards) c.Width = cw;
     }
 
     // Layout adaptativo del contenido de la tarjeta según su altura (#139/#140).
@@ -1052,8 +1059,13 @@ public sealed partial class SchedulePage : Page
 
     private static readonly Windows.UI.Color WarnColor = Windows.UI.Color.FromArgb(255, 245, 166, 35);   // ámbar "sin decidir"
 
+    /// <summary>Ancho de un evento que solapa una sesión: media columna (#143), dejando la otra
+    /// mitad para clicar la sesión que tiene debajo. Se recalcula al redimensionar.</summary>
+    private double ConflictEventWidth() => Math.Max(28, (_dayColWidth - 6) * 0.5);
+
     private void OverlayCalendar(Grid g, int startH, int hours)
     {
+        _calConflictCards.Clear();
         if (_calEvents.Count == 0) return;
         int totalRows = hours * _slotsPerHour;
         double maxPx = hours * HourHeight;
@@ -1133,6 +1145,17 @@ public sealed partial class SchedulePage : Page
                 Opacity = cardOpacity,                            // gana la sesión -> toda la tarjeta recede (#114)
                 Child = content                                   // clicable: abre el detalle del evento (#114)
             };
+            // Si el evento PISA una sesión (#143): estréchalo a la mitad derecha de la columna y
+            // alinéalo a la derecha, de modo que la sesión de debajo quede clicable a la izquierda.
+            // Así, sobre un solapamiento, el usuario puede elegir CUALQUIERA de los dos (la sesión
+            // normal abre su panel de detalle completo; el evento, el suyo).
+            if (conflict)
+            {
+                card.HorizontalAlignment = HorizontalAlignment.Right;
+                card.Width = ConflictEventWidth();
+                _calConflictCards.Add(card);
+            }
+
             var captured = ev;
             card.Tapped += (_, _) => ShowEventDetail(captured);
             Grid.SetRow(card, 1); Grid.SetRowSpan(card, totalRows);
