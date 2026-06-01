@@ -81,6 +81,9 @@ public sealed partial class SchedulePage : Page
     private CalendarEvent? _selectedEvent;                     // evento mostrado en el panel
     private OneOffSession? _selectedOneOff;                    // sesión provisional mostrada en el panel (#132)
 
+    // Deshacer/rehacer del Horario (#136): pila de snapshots de AppSettings.
+    private readonly Services.ScheduleHistory _history = new();
+
     // Copiar/pegar (#132): portapapeles en memoria + última celda bajo el ratón.
     private StudySession? _clipSession;                        // datos de la sesión copiada
     private bool _clipWasOneOff;                               // ¿la copiada era provisional?
@@ -109,9 +112,16 @@ public sealed partial class SchedulePage : Page
         // Supr: borra la sesión seleccionada (recurrente o provisional) del calendario (#134).
         var deleteAcc = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = Windows.System.VirtualKey.Delete };
         deleteAcc.Invoked += (_, a) => { a.Handled = true; DeleteSelected(); };
+        // Deshacer / rehacer cambios del Horario con Ctrl+Z / Ctrl+Y (#136).
+        var undoAcc = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = Windows.System.VirtualKey.Z, Modifiers = Windows.System.VirtualKeyModifiers.Control };
+        undoAcc.Invoked += (_, a) => { a.Handled = true; Undo(); };
+        var redoAcc = new Microsoft.UI.Xaml.Input.KeyboardAccelerator { Key = Windows.System.VirtualKey.Y, Modifiers = Windows.System.VirtualKeyModifiers.Control };
+        redoAcc.Invoked += (_, a) => { a.Handled = true; Redo(); };
         KeyboardAccelerators.Add(copyAcc);
         KeyboardAccelerators.Add(pasteAcc);
         KeyboardAccelerators.Add(deleteAcc);
+        KeyboardAccelerators.Add(undoAcc);
+        KeyboardAccelerators.Add(redoAcc);
 
         // Indicador de "ahora" reactivo: se recoloca cada 30 s mientras la página vive. #115
         _nowTimer = DispatcherQueue.CreateTimer();
@@ -242,11 +252,38 @@ public sealed partial class SchedulePage : Page
         // Sin nada seleccionado: no hace nada.
     }
 
+    // ---------- Deshacer / rehacer (#136) ----------
+
+    /// <summary>
+    /// Registra el estado ACTUAL como punto de retorno, JUSTO ANTES de aplicar un cambio del
+    /// horario. Llamar al principio de cada operación de usuario que muta el horario.
+    /// </summary>
+    private void PushUndo() => _history.Capture(AppState.Load());
+
+    private void Undo()
+    {
+        var snapshot = _history.Undo(AppState.Load());
+        if (snapshot is null) return;
+        AppState.Store.Save(snapshot);
+        CloseDetail(internalRefresh: true);
+        Build();
+    }
+
+    private void Redo()
+    {
+        var snapshot = _history.Redo(AppState.Load());
+        if (snapshot is null) return;
+        AppState.Store.Save(snapshot);
+        CloseDetail(internalRefresh: true);
+        Build();
+    }
+
     /// <summary>Supr: borra del calendario la sesión seleccionada (recurrente o provisional). #134</summary>
     private void DeleteSelected()
     {
         if (_selectedOneOff is not null)
         {
+            PushUndo();   // #136
             AppState.Config.RemoveOneOffSession(_selectedOneOff.Id);
             CloseDetail();   // cierra el panel + repinta
             return;
@@ -259,6 +296,7 @@ public sealed partial class SchedulePage : Page
             var groupDays = _selectedGroup.Members.Select(m => m.Day).ToHashSet();
             bool Belongs(StudySession x) => SameBlock(x, rep) && groupDays.Contains(x.Day);
             var kept = phase.Schedule.Sessions.Where(x => !Belongs(x)).ToList();
+            PushUndo();   // #136
             AppState.Config.ReplaceSessions(_activePhaseName, kept);
             CloseDetail();
         }
@@ -285,6 +323,7 @@ public sealed partial class SchedulePage : Page
         var sameDayOneOffs = _oneOffs.Where(o => o.Date == targetDate).Select(o => o.AsSession()).ToList();
         if (Collides([candidate], [.. sameDayRecurring, .. sameDayOneOffs])) return;   // ocupado → no pega
 
+        PushUndo();   // #136
         if (!_clipWasOneOff && _activePhaseName is not null)
             AppState.Config.AddSession(_activePhaseName, candidate);
         else
@@ -389,6 +428,7 @@ public sealed partial class SchedulePage : Page
         var newDate = _weekStart.AddDays(Math.Clamp(dayCol, 0, 6));
         var newStart = ScheduleMath.ShiftStart(one.Start, slotDelta, _granularity);
         if (newDate == one.Date && newStart == one.Start) { Build(); return; }   // no se movió de verdad
+        PushUndo();   // #136
         // No hay UpdateOneOff en la fachada: se quita y se vuelve a crear con la nueva posición.
         AppState.Config.RemoveOneOffSession(one.Id);
         AppState.Config.AddOneOffSession(newDate, one.Title, newStart, one.Duration, one.CategoryId, one.PreAlerts, one.IsTentative);
@@ -1100,7 +1140,7 @@ public sealed partial class SchedulePage : Page
         var edit = new Button { Content = "Editar" };
         edit.Click += (_, _) => _ = EditOneOff(one);
         var del = new Button { Content = "Eliminar" };
-        del.Click += (_, _) => { AppState.Config.RemoveOneOffSession(one.Id); CloseDetail(); };
+        del.Click += (_, _) => { PushUndo(); AppState.Config.RemoveOneOffSession(one.Id); CloseDetail(); };   // #136
         actions.Children.Add(edit); actions.Children.Add(del);
         content.Children.Add(actions);
 
@@ -1130,6 +1170,7 @@ public sealed partial class SchedulePage : Page
         var result = await dlg.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {
+            PushUndo();   // #136
             AppState.Config.RemoveOneOffSession(one.Id);   // se reemplaza por lo editado
             if (dlg.IsOneOff || _activePhaseName is null)
                 AddOneOffsForRange(dlg);   // provisional: una por cada día del rango (#131)
@@ -1138,7 +1179,10 @@ public sealed partial class SchedulePage : Page
                     AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));   // reconvertida a recurrente
         }
         else if (result == ContentDialogResult.None)   // Eliminar
+        {
+            PushUndo();   // #136
             AppState.Config.RemoveOneOffSession(one.Id);
+        }
         else
             return;   // Cancelar
         CloseDetail();
@@ -1203,6 +1247,7 @@ public sealed partial class SchedulePage : Page
 
         if (Collides(rebuilt, kept)) { Build(); return; }   // no pisar otra sesión (#88)
 
+        PushUndo();   // #136
         AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
         await Task.CompletedTask;
         Build();
@@ -1238,6 +1283,7 @@ public sealed partial class SchedulePage : Page
 
         if (Collides(moved, kept)) { Build(); return; }   // no pisar otra sesión (#88)
 
+        PushUndo();   // #136
         AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. moved]);
         await Task.CompletedTask;
         Build();
@@ -1264,6 +1310,7 @@ public sealed partial class SchedulePage : Page
 
         if (Collides(resized, kept)) { Build(); return; }   // chocaría con algo debajo (#90)
 
+        PushUndo();   // #136
         AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. resized]);
         await Task.CompletedTask;
         Build();
@@ -1288,6 +1335,7 @@ public sealed partial class SchedulePage : Page
 
         if (Collides(rebuilt, kept)) { Build(); return; }
 
+        PushUndo();   // #136
         AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
         await Task.CompletedTask;
         Build();
@@ -1317,6 +1365,7 @@ public sealed partial class SchedulePage : Page
         var result = await dlg.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {
+            PushUndo();   // #136
             if (dlg.IsOneOff)
                 AddOneOffsForRange(dlg);   // provisional: una por cada día del rango de fechas (#131)
             else
@@ -1377,6 +1426,7 @@ public sealed partial class SchedulePage : Page
 
         if (result == ContentDialogResult.Primary)
         {
+            PushUndo();   // #136
             if (dlg.IsOneOff)
             {
                 // Convertir a extraordinaria (#103/#131): quitar el grupo recurrente y crear una
@@ -1392,7 +1442,10 @@ public sealed partial class SchedulePage : Page
             }
         }
         else if (result == ContentDialogResult.None)   // Eliminar todo el grupo
+        {
+            PushUndo();   // #136
             AppState.Config.ReplaceSessions(_activePhaseName, kept);
+        }
         else
             return; // Cancelar
         Build();

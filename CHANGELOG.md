@@ -196,6 +196,14 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-01
+
+- **#136 — Deshacer / rehacer en el Horario (Ctrl+Z / Ctrl+Y).** Si haces un cambio no deseado
+  (mover/redimensionar/crear/borrar/editar/pegar una sesión o sesión provisional), puedes deshacerlo
+  con **Ctrl+Z** y rehacerlo con **Ctrl+Y**. Implementado con un historial de snapshots completos del
+  `AppSettings` (inmutable): cada operación de usuario captura el estado previo (`PushUndo`) y
+  deshacer/rehacer restauran el snapshot tal cual. Pila acotada (50) y de sesión.
+
 ### 2026-05-31
 
 - **#84 V2 — Seguimiento laboral: objetivo mensual + mini-gráfico.** Añade **objetivo de horas/mes**
