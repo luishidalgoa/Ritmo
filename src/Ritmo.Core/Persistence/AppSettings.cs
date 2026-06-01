@@ -51,16 +51,12 @@ public sealed record AppSettings
     /// (p. ej. vacaciones). El horario sigue viéndose; solo se silencian los avisos.</summary>
     public IReadOnlyList<RestPeriod> RestPeriods { get; init; } = [];
 
-    /// <summary>Seguimiento laboral (#84): tarifa por hora de cada entorno/proyecto (id → €/h).</summary>
-    public IReadOnlyDictionary<string, decimal> EnvironmentRates { get; init; }
-        = new Dictionary<string, decimal>();
+    /// <summary>Proyectos de seguimiento laboral (#84 V3): concepto propio, independiente de los
+    /// entornos. Cada uno con su tarifa, objetivo, color y moneda.</summary>
+    public IReadOnlyList<WorkProject> WorkProjects { get; init; } = [];
 
-    /// <summary>Seguimiento laboral (#84): registro MANUAL de horas trabajadas por día y entorno.</summary>
+    /// <summary>Seguimiento laboral (#84): registro MANUAL de horas trabajadas por día y proyecto.</summary>
     public IReadOnlyList<WorkLogEntry> WorkLog { get; init; } = [];
-
-    /// <summary>Seguimiento laboral (#84 V2): objetivo de horas/mes por entorno (id → horas). 0/ausente = sin objetivo.</summary>
-    public IReadOnlyDictionary<string, double> EnvironmentGoals { get; init; }
-        = new Dictionary<string, double>();
 
     /// <summary>Entornos de concentración definidos por el usuario.</summary>
     public IReadOnlyList<FocusEnvironment> FocusEnvironments { get; init; } = [];
@@ -147,4 +143,8 @@ public sealed record AppSettings
     /// algún periodo programado cubre esa fecha. En descanso, el horario NO lanza avisos.
     /// </summary>
     public bool IsRestingOn(System.DateOnly date) => RestActive || RestPeriods.Any(p => p.Covers(date));
+
+    /// <summary>El proyecto con ese id, o null si no existe. #84 V3</summary>
+    public WorkProject? Project(string? id)
+        => id is null ? null : WorkProjects.FirstOrDefault(p => p.Id == id);
 }

@@ -287,29 +287,47 @@ public sealed class RitmoTools
     public string RemoveRestPeriod([Description("Id del periodo de descanso")] string id)
         => Report(_config.RemoveRestPeriod(id));
 
-    [McpServerTool(Name = "set_environment_rate")]
-    [Description("Seguimiento laboral: fija la tarifa por hora (€/h) de un entorno/proyecto. 0 = sin tarifa.")]
-    public string SetEnvironmentRate(
-        [Description("Id del entorno (ver get_config)")] string environmentId,
-        [Description("Tarifa por hora (>= 0; 0 quita la tarifa)")] double rate)
-        => Report(_config.SetEnvironmentRate(environmentId, (decimal)rate));
+    [McpServerTool(Name = "add_work_project")]
+    [Description("Seguimiento laboral: crea un PROYECTO/cliente con tarifa por hora y objetivo mensual opcionales. Devuelve su id. currencyCode p. ej. EUR/USD/GBP.")]
+    public string AddWorkProject(
+        [Description("Nombre del proyecto/cliente")] string name,
+        [Description("Tarifa por hora (>= 0; 0 = sin tarifa)")] double rate = 0,
+        [Description("Objetivo de horas al mes (>= 0; 0 = sin objetivo)")] double monthlyGoalHours = 0,
+        [Description("Color #RRGGBB")] string colorHex = "#1E88E5",
+        [Description("Código de moneda ISO (EUR, USD, GBP…)")] string currencyCode = "EUR")
+        => Report(_config.AddWorkProject(name, (decimal)rate, monthlyGoalHours, colorHex, currencyCode));
 
-    [McpServerTool(Name = "set_environment_goal")]
-    [Description("Seguimiento laboral: fija el objetivo de horas/mes de un entorno/proyecto. 0 = sin objetivo.")]
-    public string SetEnvironmentGoal(
-        [Description("Id del entorno")] string environmentId,
-        [Description("Horas objetivo al mes (>= 0; 0 quita el objetivo)")] double monthlyHours)
-        => Report(_config.SetEnvironmentGoal(environmentId, monthlyHours));
+    [McpServerTool(Name = "update_work_project")]
+    [Description("Seguimiento laboral: edita un proyecto (nombre/tarifa/objetivo/color/moneda/archivado). Solo cambia lo que envíes; deja vacío/nulo lo demás.")]
+    public string UpdateWorkProject(
+        [Description("Id del proyecto")] string id,
+        [Description("Nuevo nombre (vacío = sin cambio)")] string? name = null,
+        [Description("Nueva tarifa (negativo = sin cambio)")] double rate = -1,
+        [Description("Nuevo objetivo h/mes (negativo = sin cambio)")] double monthlyGoalHours = -1,
+        [Description("Nuevo color #RRGGBB (vacío = sin cambio)")] string? colorHex = null,
+        [Description("Nueva moneda (vacío = sin cambio)")] string? currencyCode = null)
+        => Report(_config.UpdateWorkProject(id,
+            string.IsNullOrWhiteSpace(name) ? null : name,
+            rate < 0 ? null : (decimal)rate,
+            monthlyGoalHours < 0 ? null : monthlyGoalHours,
+            string.IsNullOrWhiteSpace(colorHex) ? null : colorHex,
+            string.IsNullOrWhiteSpace(currencyCode) ? null : currencyCode));
+
+    [McpServerTool(Name = "remove_work_project")]
+    [Description("Seguimiento laboral: elimina un proyecto y TODAS sus anotaciones de horas (por id).")]
+    public string RemoveWorkProject([Description("Id del proyecto")] string id)
+        => Report(_config.RemoveWorkProject(id));
 
     [McpServerTool(Name = "log_work_hours")]
-    [Description("Seguimiento laboral: anota horas trabajadas en un entorno/proyecto un día (acumulativo). Fecha yyyy-MM-dd; horas > 0.")]
+    [Description("Seguimiento laboral: anota horas trabajadas en un PROYECTO un día (acumulativo). projectId de add_work_project/get_config. Fecha yyyy-MM-dd; horas > 0. note opcional.")]
     public string LogWorkHours(
-        [Description("Id del entorno")] string environmentId,
+        [Description("Id del proyecto")] string projectId,
         [Description("Fecha (yyyy-MM-dd)")] string date,
-        [Description("Horas trabajadas (> 0)")] double hours)
+        [Description("Horas trabajadas (> 0)")] double hours,
+        [Description("Nota opcional (qué se hizo)")] string note = "")
     {
         if (!TryDate(date, out var d)) return Err($"Fecha inválida: '{date}' (usa yyyy-MM-dd).");
-        return Report(_config.AddWorkHours(environmentId, d, hours));
+        return Report(_config.AddWorkHours(projectId, d, hours, note));
     }
 
     [McpServerTool(Name = "remove_work_log_entry")]

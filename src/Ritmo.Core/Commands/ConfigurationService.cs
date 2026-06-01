@@ -930,45 +930,96 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Periodo de descanso eliminado.");
     }
 
-    // ---------- Seguimiento laboral (#84) ----------
+    // ---------- Seguimiento laboral: proyectos (#84 V3) ----------
 
-    /// <summary>Fija la tarifa por hora (€/h) de un entorno/proyecto. 0 = sin tarifa.</summary>
-    public CommandResult SetEnvironmentRate(string environmentId, decimal rate)
+    /// <summary>Crea un proyecto de seguimiento laboral. Devuelve su id en el mensaje.</summary>
+    public CommandResult AddWorkProject(string name, decimal rate = 0, double monthlyGoalHours = 0,
+        string colorHex = "#1E88E5", string currencyCode = "EUR")
     {
+        if (string.IsNullOrWhiteSpace(name)) return CommandResult.Fail("El proyecto necesita un nombre.");
         if (rate < 0) return CommandResult.Fail("La tarifa no puede ser negativa.");
+        if (monthlyGoalHours < 0) return CommandResult.Fail("El objetivo no puede ser negativo.");
         var s = _store.Load();
-        if (s.FocusEnvironments.All(e => e.Id != environmentId)) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
-        var map = s.EnvironmentRates.ToDictionary(kv => kv.Key, kv => kv.Value);
-        if (rate == 0) map.Remove(environmentId); else map[environmentId] = rate;
-        _store.Save(s with { EnvironmentRates = map });
-        return CommandResult.Ok(rate == 0 ? "Tarifa quitada." : $"Tarifa: {rate:0.##} €/h.");
+        var id = $"proj-{Guid.NewGuid():N}"[..12];
+        var order = s.WorkProjects.Count == 0 ? 0 : s.WorkProjects.Max(p => p.Order) + 1;
+        var proj = new Ritmo.Core.Model.WorkProject
+        {
+            Id = id, Name = name.Trim(), Rate = rate, MonthlyGoalHours = monthlyGoalHours,
+            ColorHex = string.IsNullOrWhiteSpace(colorHex) ? "#1E88E5" : colorHex,
+            CurrencyCode = string.IsNullOrWhiteSpace(currencyCode) ? "EUR" : currencyCode.Trim(),
+            Order = order
+        };
+        _store.Save(s with { WorkProjects = [.. s.WorkProjects, proj] });
+        return CommandResult.Ok(id);
     }
 
-    /// <summary>Fija el objetivo de horas/mes de un entorno (#84 V2). 0 = sin objetivo.</summary>
-    public CommandResult SetEnvironmentGoal(string environmentId, double monthlyHours)
+    /// <summary>Actualiza nombre/tarifa/objetivo/color/moneda/archivado de un proyecto (no cambia su id).</summary>
+    public CommandResult UpdateWorkProject(string id, string? name = null, decimal? rate = null,
+        double? monthlyGoalHours = null, string? colorHex = null, string? currencyCode = null, bool? archived = null)
     {
-        if (monthlyHours < 0) return CommandResult.Fail("El objetivo no puede ser negativo.");
         var s = _store.Load();
-        if (s.FocusEnvironments.All(e => e.Id != environmentId)) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
-        var map = s.EnvironmentGoals.ToDictionary(kv => kv.Key, kv => kv.Value);
-        if (monthlyHours == 0) map.Remove(environmentId); else map[environmentId] = monthlyHours;
-        _store.Save(s with { EnvironmentGoals = map });
-        return CommandResult.Ok(monthlyHours == 0 ? "Objetivo quitado." : $"Objetivo: {monthlyHours:0.##} h/mes.");
+        var proj = s.WorkProjects.FirstOrDefault(p => p.Id == id);
+        if (proj is null) return CommandResult.Fail($"No existe el proyecto «{id}».");
+        if (name is not null && string.IsNullOrWhiteSpace(name)) return CommandResult.Fail("El proyecto necesita un nombre.");
+        if (rate is < 0) return CommandResult.Fail("La tarifa no puede ser negativa.");
+        if (monthlyGoalHours is < 0) return CommandResult.Fail("El objetivo no puede ser negativo.");
+
+        var updated = proj with
+        {
+            Name = name?.Trim() ?? proj.Name,
+            Rate = rate ?? proj.Rate,
+            MonthlyGoalHours = monthlyGoalHours ?? proj.MonthlyGoalHours,
+            ColorHex = colorHex ?? proj.ColorHex,
+            CurrencyCode = currencyCode?.Trim() ?? proj.CurrencyCode,
+            Archived = archived ?? proj.Archived
+        };
+        _store.Save(s with { WorkProjects = s.WorkProjects.Select(p => p.Id == id ? updated : p).ToList() });
+        return CommandResult.Ok("Proyecto actualizado.");
     }
 
-    /// <summary>Anota horas trabajadas en un entorno un día (acumulativo). Horas &gt; 0.</summary>
-    public CommandResult AddWorkHours(string environmentId, DateOnly date, double hours)
+    /// <summary>Elimina un proyecto y TODAS sus anotaciones de horas.</summary>
+    public CommandResult RemoveWorkProject(string id)
+    {
+        var s = _store.Load();
+        if (s.WorkProjects.All(p => p.Id != id)) return CommandResult.Fail($"No existe el proyecto «{id}».");
+        _store.Save(s with
+        {
+            WorkProjects = s.WorkProjects.Where(p => p.Id != id).ToList(),
+            WorkLog = s.WorkLog.Where(e => e.ProjectId != id).ToList()
+        });
+        return CommandResult.Ok("Proyecto eliminado.");
+    }
+
+    /// <summary>Anota horas trabajadas en un proyecto un día (acumulativo). Horas &gt; 0.</summary>
+    public CommandResult AddWorkHours(string projectId, DateOnly date, double hours, string note = "")
     {
         if (hours <= 0) return CommandResult.Fail("Las horas deben ser mayores que cero.");
         var s = _store.Load();
-        if (s.FocusEnvironments.All(e => e.Id != environmentId)) return CommandResult.Fail($"No existe el entorno «{environmentId}».");
+        if (s.WorkProjects.All(p => p.Id != projectId)) return CommandResult.Fail($"No existe el proyecto «{projectId}».");
         var entry = new Ritmo.Core.Model.WorkLogEntry
         {
             Id = $"work-{Guid.NewGuid():N}"[..12],
-            EnvironmentId = environmentId, Date = date, Hours = hours
+            ProjectId = projectId, Date = date, Hours = hours, Note = (note ?? "").Trim()
         };
         _store.Save(s with { WorkLog = [.. s.WorkLog, entry] });
         return CommandResult.Ok($"Anotadas {hours:0.##} h el {date:dd/MM/yyyy}.");
+    }
+
+    /// <summary>Edita una anotación de horas existente (horas y/o fecha y/o nota). #84 V3</summary>
+    public CommandResult UpdateWorkLogEntry(string id, double? hours = null, DateOnly? date = null, string? note = null)
+    {
+        if (hours is <= 0) return CommandResult.Fail("Las horas deben ser mayores que cero.");
+        var s = _store.Load();
+        var entry = s.WorkLog.FirstOrDefault(e => e.Id == id);
+        if (entry is null) return CommandResult.Fail("No existe la anotación.");
+        var updated = entry with
+        {
+            Hours = hours ?? entry.Hours,
+            Date = date ?? entry.Date,
+            Note = note?.Trim() ?? entry.Note
+        };
+        _store.Save(s with { WorkLog = s.WorkLog.Select(e => e.Id == id ? updated : e).ToList() });
+        return CommandResult.Ok("Anotación actualizada.");
     }
 
     /// <summary>Elimina una anotación de horas por su id.</summary>

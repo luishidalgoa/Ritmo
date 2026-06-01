@@ -28,10 +28,13 @@ internal sealed class SettingsDto
     // Modo descanso (#135): manual + periodos programados.
     public bool RestActive { get; set; }
     public List<RestPeriodDto> RestPeriods { get; set; } = [];
-    // Seguimiento laboral (#84): tarifa por entorno + registro de horas + objetivo mensual.
-    public Dictionary<string, decimal> EnvironmentRates { get; set; } = [];
+    // Seguimiento laboral (#84 V3): proyectos + registro de horas.
+    public List<WorkProjectDto> WorkProjects { get; set; } = [];
     public List<WorkLogEntryDto> WorkLog { get; set; } = [];
-    public Dictionary<string, double> EnvironmentGoals { get; set; } = [];
+    // LEGACY (#84 V1/V2): tarifa/objetivo por ENTORNO. Se migran a proyectos en FromDto y dejan de
+    // escribirse. Se mantienen solo para leer settings.json antiguos.
+    public Dictionary<string, decimal>? EnvironmentRates { get; set; }
+    public Dictionary<string, double>? EnvironmentGoals { get; set; }
     public string? NavidromeServerUrl { get; set; }
     public string? NavidromeUser { get; set; }
     public bool NtfyEnabled { get; set; }
@@ -57,12 +60,26 @@ internal sealed class RestPeriodDto
     public string Label { get; set; } = "";
 }
 
+internal sealed class WorkProjectDto
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string ColorHex { get; set; } = "#1E88E5";
+    public decimal Rate { get; set; }
+    public double MonthlyGoalHours { get; set; }
+    public string CurrencyCode { get; set; } = "EUR";
+    public int Order { get; set; }
+    public bool Archived { get; set; }
+}
+
 internal sealed class WorkLogEntryDto
 {
     public string Id { get; set; } = "";
-    public string EnvironmentId { get; set; } = "";
+    public string ProjectId { get; set; } = "";
+    public string? EnvironmentId { get; set; }   // LEGACY (#84 V1/V2): migrado a ProjectId.
     public string Date { get; set; } = "2026-01-01";
     public double Hours { get; set; }
+    public string Note { get; set; } = "";
 }
 
 internal sealed class CategoryDto
@@ -259,14 +276,20 @@ internal static class SettingsMapper
             To = p.To.ToString(DateFormat, CultureInfo.InvariantCulture),
             Label = p.Label
         }).ToList(),
-        EnvironmentRates = s.EnvironmentRates.ToDictionary(kv => kv.Key, kv => kv.Value),
-        EnvironmentGoals = s.EnvironmentGoals.ToDictionary(kv => kv.Key, kv => kv.Value),
+        // #84 V3: solo se escriben proyectos; los mapas legacy por entorno ya no se persisten.
+        WorkProjects = s.WorkProjects.Select(p => new WorkProjectDto
+        {
+            Id = p.Id, Name = p.Name, ColorHex = p.ColorHex, Rate = p.Rate,
+            MonthlyGoalHours = p.MonthlyGoalHours, CurrencyCode = p.CurrencyCode,
+            Order = p.Order, Archived = p.Archived
+        }).ToList(),
         WorkLog = s.WorkLog.Select(w => new WorkLogEntryDto
         {
             Id = w.Id,
-            EnvironmentId = w.EnvironmentId,
+            ProjectId = w.ProjectId,
             Date = w.Date.ToString(DateFormat, CultureInfo.InvariantCulture),
-            Hours = w.Hours
+            Hours = w.Hours,
+            Note = w.Note
         }).ToList(),
         NavidromeServerUrl = s.NavidromeServerUrl,
         NavidromeUser = s.NavidromeUser,
@@ -396,15 +419,8 @@ internal static class SettingsMapper
             To = DateOnly.ParseExact(p.To, DateFormat, CultureInfo.InvariantCulture),
             Label = p.Label ?? ""
         }).ToList(),
-        EnvironmentRates = (d.EnvironmentRates ?? []).ToDictionary(kv => kv.Key, kv => kv.Value),
-        EnvironmentGoals = (d.EnvironmentGoals ?? []).ToDictionary(kv => kv.Key, kv => kv.Value),
-        WorkLog = (d.WorkLog ?? []).Select(w => new WorkLogEntry
-        {
-            Id = string.IsNullOrWhiteSpace(w.Id) ? $"work-{Guid.NewGuid():N}"[..12] : w.Id,
-            EnvironmentId = w.EnvironmentId ?? "",
-            Date = DateOnly.ParseExact(w.Date, DateFormat, CultureInfo.InvariantCulture),
-            Hours = w.Hours
-        }).ToList(),
+        WorkProjects = MigrateWorkProjects(d),
+        WorkLog = MigrateWorkLog(d),
         NavidromeServerUrl = d.NavidromeServerUrl,
         NavidromeUser = d.NavidromeUser,
         NtfyEnabled = d.NtfyEnabled,
@@ -418,6 +434,56 @@ internal static class SettingsMapper
         };
         return CategoryMigration.Apply(s, d.ViewConfig?.ColorsByKind);
     }
+
+    /// <summary>
+    /// Migración #84 V3: si el JSON trae proyectos nuevos, se usan. Si no, se DERIVAN de los datos
+    /// legacy por entorno (EnvironmentRates/EnvironmentGoals + entornos referenciados en el WorkLog):
+    /// un proyecto por cada entorno que tuviera tarifa, objetivo u horas anotadas, con id = id del
+    /// entorno (así el WorkLog legacy, que guardaba EnvironmentId, sigue casando como ProjectId).
+    /// </summary>
+    private static List<WorkProject> MigrateWorkProjects(SettingsDto d)
+    {
+        if (d.WorkProjects is { Count: > 0 })
+            return d.WorkProjects.Select(p => new WorkProject
+            {
+                Id = p.Id, Name = string.IsNullOrWhiteSpace(p.Name) ? p.Id : p.Name,
+                ColorHex = string.IsNullOrWhiteSpace(p.ColorHex) ? "#1E88E5" : p.ColorHex,
+                Rate = p.Rate, MonthlyGoalHours = p.MonthlyGoalHours,
+                CurrencyCode = string.IsNullOrWhiteSpace(p.CurrencyCode) ? "EUR" : p.CurrencyCode,
+                Order = p.Order, Archived = p.Archived
+            }).ToList();
+
+        // Legacy → derivar proyectos. Reúne todos los entornos con datos de seguimiento.
+        var rates = d.EnvironmentRates ?? [];
+        var goals = d.EnvironmentGoals ?? [];
+        var loggedEnvs = (d.WorkLog ?? [])
+            .Select(w => w.EnvironmentId).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!);
+        var envIds = rates.Keys.Concat(goals.Keys).Concat(loggedEnvs)
+            .Distinct().ToList();
+        if (envIds.Count == 0) return [];
+
+        var envNames = (d.FocusEnvironments ?? []).ToDictionary(e => e.Id, e => e.Name);
+        int order = 0;
+        return envIds.Select(id => new WorkProject
+        {
+            Id = id,   // mismo id que el entorno → el WorkLog legacy (EnvironmentId) casa como ProjectId
+            Name = envNames.TryGetValue(id, out var n) && !string.IsNullOrWhiteSpace(n) ? n : id,
+            Rate = rates.TryGetValue(id, out var r) ? r : 0,
+            MonthlyGoalHours = goals.TryGetValue(id, out var g) ? g : 0,
+            Order = order++
+        }).ToList();
+    }
+
+    private static List<WorkLogEntry> MigrateWorkLog(SettingsDto d)
+        => (d.WorkLog ?? []).Select(w => new WorkLogEntry
+        {
+            Id = string.IsNullOrWhiteSpace(w.Id) ? $"work-{Guid.NewGuid():N}"[..12] : w.Id,
+            // V3 usa ProjectId; si falta (JSON legacy), cae al EnvironmentId (mismo valor que el id de proyecto migrado).
+            ProjectId = string.IsNullOrWhiteSpace(w.ProjectId) ? (w.EnvironmentId ?? "") : w.ProjectId,
+            Date = DateOnly.ParseExact(w.Date, DateFormat, CultureInfo.InvariantCulture),
+            Hours = w.Hours,
+            Note = w.Note ?? ""
+        }).ToList();
 
     private static FocusEnvironment FromDto(FocusEnvironmentDto e) => new()
     {
