@@ -33,8 +33,11 @@ public static class WorkAutoCompute
             foreach (var s in linked.Where(s => s.Day == date.DayOfWeek))
             {
                 var key = SessionKey.For(s);
-                bool cancelled = exceptions.Any(x => x.SessionKey == key && x.Covers(date));
-                if (!cancelled) result[day - 1] += s.Duration.TotalHours;
+                var exc = exceptions.FirstOrDefault(x => x.SessionKey == key && x.Covers(date));
+                // Sin excepción: duración completa. No realizada (ActualHours null): 0.
+                // Parcial: las horas reales indicadas. #137 / #137b
+                if (exc is null) result[day - 1] += s.Duration.TotalHours;
+                else if (exc.ActualHours is { } h) result[day - 1] += h;
             }
         }
         return result;
@@ -55,6 +58,13 @@ public static class WorkAutoCompute
     {
         var key = SessionKey.For(s);
         return exceptions.Any(x => x.SessionKey == key && x.Covers(date));
+    }
+
+    /// <summary>Excepción aplicable a una sesión en una fecha (o null si no hay). #137b</summary>
+    public static SessionException? ExceptionFor(StudySession s, DateOnly date, IReadOnlyList<SessionException> exceptions)
+    {
+        var key = SessionKey.For(s);
+        return exceptions.FirstOrDefault(x => x.SessionKey == key && x.Covers(date));
     }
 
     /// <summary>

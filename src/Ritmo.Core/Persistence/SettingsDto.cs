@@ -81,6 +81,7 @@ internal sealed class SessionExceptionDto
     public string From { get; set; } = "2026-01-01";
     public string To { get; set; } = "2026-01-01";
     public string Reason { get; set; } = "";
+    public double? ActualHours { get; set; }   // null = no realizada; valor = parcial. #137b
 }
 
 internal sealed class WorkLogEntryDto
@@ -308,7 +309,7 @@ internal static class SettingsMapper
             Id = x.Id, SessionKey = x.SessionKey,
             From = x.From.ToString(DateFormat, CultureInfo.InvariantCulture),
             To = x.To.ToString(DateFormat, CultureInfo.InvariantCulture),
-            Reason = x.Reason
+            Reason = x.Reason, ActualHours = x.ActualHours
         }).ToList(),
         NavidromeServerUrl = s.NavidromeServerUrl,
         NavidromeUser = s.NavidromeUser,
@@ -457,7 +458,8 @@ internal static class SettingsMapper
             SessionKey = x.SessionKey ?? "",
             From = DateOnly.ParseExact(x.From, DateFormat, CultureInfo.InvariantCulture),
             To = DateOnly.ParseExact(x.To, DateFormat, CultureInfo.InvariantCulture),
-            Reason = x.Reason ?? ""
+            Reason = x.Reason ?? "",
+            ActualHours = x.ActualHours
         }).ToList()
         };
         return CategoryMigration.Apply(s, d.ViewConfig?.ColorsByKind);

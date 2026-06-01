@@ -693,13 +693,14 @@ public sealed partial class SchedulePage : Page
                     }
                 }
             };
-            // ¿Cancelada (#137) algún día de la semana visible? La atenuamos y tachamos el título.
-            bool anyCancelled = group.Members.Any(m =>
-            {
-                int mi = Array.IndexOf(Days, m.Day);
-                return mi >= 0 && Ritmo.Core.Model.WorkAutoCompute.IsCancelled(m, _weekStart.AddDays(mi), _sessionExceptions);
-            });
-            if (anyCancelled && visual.Child is StackPanel sp && sp.Children.Count > 0 && sp.Children[0] is TextBlock tb)
+            // Excepciones (#137/#137b) en la semana visible: NO realizada → atenuar + tachar;
+            // PARCIAL → atenuar un poco (sí se hizo, en parte).
+            var exc = group.Members
+                .Select(m => { int mi = Array.IndexOf(Days, m.Day); return mi >= 0 ? Ritmo.Core.Model.WorkAutoCompute.ExceptionFor(m, _weekStart.AddDays(mi), _sessionExceptions) : null; })
+                .FirstOrDefault(e => e is not null);
+            bool notDone = exc is { IsNotDone: true };
+            bool partial = exc is { IsNotDone: false };
+            if (notDone && visual.Child is StackPanel sp && sp.Children.Count > 0 && sp.Children[0] is TextBlock tb)
                 tb.TextDecorations = Windows.UI.Text.TextDecorations.Strikethrough;
 
             var card = new SessionCard
@@ -708,7 +709,7 @@ public sealed partial class SchedulePage : Page
                 VerticalAlignment = VerticalAlignment.Top,           // flota por su minuto real (#61)
                 Height = Math.Max(14, heightPx - 3),
                 Margin = new Thickness(2, topPx + 1.5, 2, 0),
-                Opacity = anyCancelled ? 0.4 : (s.IsTentative ? 0.6 : 1.0),
+                Opacity = notDone ? 0.4 : (partial ? 0.7 : (s.IsTentative ? 0.6 : 1.0)),
                 Tag = group
             };
 
@@ -1547,14 +1548,16 @@ public sealed partial class SchedulePage : Page
         var key = Ritmo.Core.Model.SessionKey.For(rep);
         var box = new StackPanel { Spacing = 4, Margin = new Thickness(0, 6, 0, 0) };
 
-        var markBtn = new HyperlinkButton { Content = "Marcar como no realizada…", Padding = new Thickness(0) };
+        var markBtn = new HyperlinkButton { Content = "Marcar no realizada / parcial…", Padding = new Thickness(0) };
         markBtn.Click += async (_, _) => { await MarkSessionNotDone(key); if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup); };
         box.Children.Add(markBtn);
 
         var existing = AppState.Load().SessionExceptions.Where(x => x.SessionKey == key).OrderBy(x => x.From).ToList();
         foreach (var x in existing)
         {
-            var txt = x.From == x.To ? $"No realizada el {x.From:dd/MM/yyyy}" : $"No realizada {x.From:dd/MM} – {x.To:dd/MM/yyyy}";
+            string estado = x.IsNotDone ? "No realizada" : $"Parcial ({x.ActualHours:0.##} h)";
+            var rango = x.From == x.To ? $"el {x.From:dd/MM/yyyy}" : $"{x.From:dd/MM} – {x.To:dd/MM/yyyy}";
+            var txt = $"{estado} {rango}";
             if (!string.IsNullOrWhiteSpace(x.Reason)) txt += $"  ({x.Reason})";
             var line = new TextBlock { Text = txt, FontSize = 12, Opacity = 0.7, VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(line, 0);
@@ -1572,19 +1575,34 @@ public sealed partial class SchedulePage : Page
         return box;
     }
 
-    /// <summary>Diálogo: elegir día o rango en que la sesión no se realiza (#137).</summary>
+    /// <summary>Diálogo: marcar la sesión como no realizada o parcial en un día/rango (#137/#137b).</summary>
     private async Task MarkSessionNotDone(string sessionKey)
     {
         var from = new CalendarDatePicker { Header = "Desde", Date = new DateTimeOffset(_weekStart.ToDateTime(TimeOnly.MinValue)), MinWidth = 150 };
         var to = new CalendarDatePicker { Header = "Hasta (vacío = un solo día)", MinWidth = 150 };
-        var reason = new TextBox { Header = "Motivo (opcional)", PlaceholderText = "p. ej. festivo, baja" };
+
+        var stateBox = new ComboBox { Header = "Qué pasó", HorizontalAlignment = HorizontalAlignment.Stretch };
+        stateBox.Items.Add(new ComboBoxItem { Content = "No la realicé", Tag = "none" });
+        stateBox.Items.Add(new ComboBoxItem { Content = "La realicé parcialmente", Tag = "partial" });
+        stateBox.SelectedIndex = 0;
+
+        // Horas reales (solo visible/relevante si «parcial»).
+        var hoursBox = new NumberBox { Header = "Horas que sí hice", Minimum = 0, SmallChange = 0.5,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline, Visibility = Visibility.Collapsed };
+        stateBox.SelectionChanged += (_, _) =>
+            hoursBox.Visibility = (stateBox.SelectedItem as ComboBoxItem)?.Tag as string == "partial" ? Visibility.Visible : Visibility.Collapsed;
+
+        var reason = new TextBox { Header = "Motivo (opcional)", PlaceholderText = "p. ej. festivo, baja, salí antes" };
+
         var inner = new StackPanel { Spacing = 12, Width = 320 };
         inner.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { from, to } });
+        inner.Children.Add(stateBox);
+        inner.Children.Add(hoursBox);
         inner.Children.Add(reason);
 
         var dlg = new ContentDialog
         {
-            XamlRoot = this.XamlRoot, Title = "Sesión no realizada",
+            XamlRoot = this.XamlRoot, Title = "Marcar excepción de la sesión",
             Content = inner, PrimaryButtonText = "Marcar", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Primary
         };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
@@ -1592,7 +1610,9 @@ public sealed partial class SchedulePage : Page
         var f = from.Date is { } fd ? DateOnly.FromDateTime(fd.Date) : _weekStart;
         var t = to.Date is { } td ? DateOnly.FromDateTime(td.Date) : f;
         if (t < f) t = f;
-        var r = AppState.Config.AddSessionException(sessionKey, f, t, reason.Text ?? "");
+        bool partial = (stateBox.SelectedItem as ComboBoxItem)?.Tag as string == "partial";
+        double? actual = partial ? (double.IsNaN(hoursBox.Value) ? 0 : hoursBox.Value) : null;
+        var r = AppState.Config.AddSessionException(sessionKey, f, t, reason.Text ?? "", actual);
         if (!r.Success) await new ContentDialog { XamlRoot = this.XamlRoot, Title = "Sesión", Content = r.Message, CloseButtonText = "Vale" }.ShowAsync();
     }
 

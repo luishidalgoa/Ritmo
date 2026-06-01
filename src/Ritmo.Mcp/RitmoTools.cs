@@ -343,16 +343,17 @@ public sealed class RitmoTools
         => Report(_config.SetSessionProject(sessionKey, string.IsNullOrWhiteSpace(projectId) ? null : projectId));
 
     [McpServerTool(Name = "add_session_exception")]
-    [Description("Marca una sesión recurrente como NO realizada en un rango de fechas (un día = from igual a to). Esos días no computan horas. Fechas yyyy-MM-dd; fin >= inicio.")]
+    [Description("Marca una sesión recurrente como NO realizada o PARCIAL en un rango de fechas (un día = from igual a to). actualHours negativo = no realizada (0 h); >= 0 = realizada parcialmente con esas horas. Fechas yyyy-MM-dd; fin >= inicio.")]
     public string AddSessionException(
         [Description("Clave de la sesión (ver get_config)")] string sessionKey,
         [Description("Fecha de inicio (yyyy-MM-dd)")] string from,
         [Description("Fecha de fin INCLUSIVE (yyyy-MM-dd)")] string to,
-        [Description("Motivo opcional")] string reason = "")
+        [Description("Motivo opcional")] string reason = "",
+        [Description("Horas reales si fue parcial; negativo = no realizada")] double actualHours = -1)
     {
         if (!TryDate(from, out var f)) return Err($"Fecha de inicio inválida: '{from}'.");
         if (!TryDate(to, out var t)) return Err($"Fecha de fin inválida: '{to}'.");
-        return Report(_config.AddSessionException(sessionKey, f, t, reason));
+        return Report(_config.AddSessionException(sessionKey, f, t, reason, actualHours < 0 ? null : actualHours));
     }
 
     [McpServerTool(Name = "remove_session_exception")]

@@ -1059,21 +1059,27 @@ public sealed class ConfigurationService
         return CommandResult.Ok(projectId is null ? "Sesión desvinculada del proyecto." : "Sesión vinculada al proyecto.");
     }
 
-    /// <summary>Marca una sesión como NO realizada en un rango de fechas (#137). From==To = un día.</summary>
-    public CommandResult AddSessionException(string sessionKey, DateOnly from, DateOnly to, string reason = "")
+    /// <summary>
+    /// Marca una sesión como NO realizada (actualHours=null) o PARCIAL (actualHours con valor) en un
+    /// rango de fechas (#137/#137b). From==To = un día. En parcial computa esas horas reales.
+    /// </summary>
+    public CommandResult AddSessionException(string sessionKey, DateOnly from, DateOnly to, string reason = "", double? actualHours = null)
     {
         if (string.IsNullOrWhiteSpace(sessionKey)) return CommandResult.Fail("Sesión inválida.");
         if (to < from) return CommandResult.Fail("La fecha de fin no puede ser anterior a la de inicio.");
+        if (actualHours is < 0) return CommandResult.Fail("Las horas no pueden ser negativas.");
         var s = _store.Load();
         var ex = new Ritmo.Core.Model.SessionException
         {
             Id = $"exc-{Guid.NewGuid():N}"[..12],
-            SessionKey = sessionKey, From = from, To = to, Reason = (reason ?? "").Trim()
+            SessionKey = sessionKey, From = from, To = to, Reason = (reason ?? "").Trim(),
+            ActualHours = actualHours
         };
         _store.Save(s with { SessionExceptions = [.. s.SessionExceptions, ex] });
+        string what = actualHours is { } h ? $"realizada parcialmente ({h:0.##} h)" : "no realizada";
         return CommandResult.Ok(from == to
-            ? $"Sesión marcada como no realizada el {from:dd/MM/yyyy}."
-            : $"Sesión marcada como no realizada del {from:dd/MM/yyyy} al {to:dd/MM/yyyy}.");
+            ? $"Sesión marcada como {what} el {from:dd/MM/yyyy}."
+            : $"Sesión marcada como {what} del {from:dd/MM/yyyy} al {to:dd/MM/yyyy}.");
     }
 
     /// <summary>Quita una excepción de sesión por su id (#137).</summary>

@@ -50,6 +50,24 @@ public class WorkAutoComputeTests
     }
 
     [Fact]
+    public void Una_excepcion_parcial_computa_las_horas_reales()
+    {
+        var schedule = new[] { Sess("Heladería", DayOfWeek.Monday, 16, 4, "p1") };   // 4 h/lunes
+        var key = SessionKey.For(schedule[0]);
+        // El lunes 10 solo hice 1.5 h (parcial), no las 4.
+        var exc = new[] { new SessionException { Id = "e1", SessionKey = key, From = new DateOnly(2026, 8, 10), To = new DateOnly(2026, 8, 10), ActualHours = 1.5 } };
+        // 4 lunes completos (16 h) + 1 parcial (1.5) = 17.5.
+        Assert.Equal(17.5, WorkAutoCompute.MonthAutoHours(schedule, exc, "p1", 2026, 8));
+        // Ese día computa 1.5, no 4.
+        Assert.Equal(1.5, WorkAutoCompute.DailyAutoHours(schedule, exc, "p1", 2026, 8)[9]);
+        // No está «cancelada» del todo: la excepción existe pero es parcial.
+        Assert.False(exc[0].IsNotDone);
+        var e = WorkAutoCompute.ExceptionFor(schedule[0], new DateOnly(2026, 8, 10), exc);
+        Assert.NotNull(e);
+        Assert.Equal(1.5, e!.ActualHours);
+    }
+
+    [Fact]
     public void Una_excepcion_de_rango_cancela_varios_dias()
     {
         var schedule = new[] { Sess("Heladería", DayOfWeek.Monday, 16, 4, "p1") };
