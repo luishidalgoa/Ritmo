@@ -1658,6 +1658,25 @@ public sealed partial class SchedulePage : Page
         behaviorBtn.Click += async (_, _) => await ShowSessionBehavior(rep.Title);
         content.Children.Add(behaviorBtn);
 
+        // Atajo a las tareas de esta sesión (#145): si el entorno de la sesión tiene un bloque de
+        // tareas vinculado, muestra cuántas tareas hay asociadas a ESTA sesión y permite abrirlas.
+        var stForTasks = AppState.Load();
+        var envForSession = stForTasks.ResolveEnvironment(rep.CategoryId);
+        var taskBlock = envForSession is null ? null : stForTasks.TaskBlocks.FirstOrDefault(b => b.EnvironmentId == envForSession.Id);
+        if (taskBlock is not null)
+        {
+            var sk = Ritmo.Core.Model.SessionKey.For(rep);
+            int pend = stForTasks.Tasks.Count(t => t.BlockId == taskBlock.Id && t.SessionKey == sk && !t.Done);
+            var tasksBtn = new HyperlinkButton
+            {
+                Content = pend > 0 ? $"Ver to-do de esta sesión ({pend})" : "Ver to-do de esta sesión",
+                Padding = new Thickness(0)
+            };
+            var blockId = taskBlock.Id;
+            tasksBtn.Click += (_, _) => Navigator.GoToTasks(this, blockId);
+            content.Children.Add(tasksBtn);
+        }
+
         AppendSessionNotes(rep.Title);   // post-its de la sesión (#73)
 
         // Solapamientos con el calendario en los días en que se repite la sesión.

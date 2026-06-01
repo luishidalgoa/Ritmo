@@ -682,9 +682,12 @@ public sealed partial class SettingsPage : Page
         var icon = new FontIcon { Glyph = ModuleGlyph(mod.Kind), FontSize = 16, VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(icon, 0);
 
+        // El módulo Tareas (#145) ahora resume el bloque vinculado del nuevo sistema, no el viejo.
+        string summary = mod.Kind == EnvironmentModuleKind.Tasks ? TasksModuleSummary(env) : mod.Summary;
+
         var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         texts.Children.Add(new TextBlock { Text = mod.Title, FontWeight = FontWeights.SemiBold, FontSize = 13 });
-        texts.Children.Add(new TextBlock { Text = mod.Summary, Opacity = 0.65, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis });
+        texts.Children.Add(new TextBlock { Text = summary, Opacity = 0.65, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis });
         Grid.SetColumn(texts, 1);
 
         // Pista a la derecha: chevron si es accionable, badge «Próximamente» si no.
@@ -708,10 +711,22 @@ public sealed partial class SettingsPage : Page
         };
         // Nombre accesible (lectores de pantalla / automatización): el contenido es un
         // Grid, así que sin esto el botón quedaría sin Name.
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(btn, $"{mod.Title}. {mod.Summary}");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(btn, $"{mod.Title}. {summary}");
         if (mod.Available)
             btn.Click += (_, _) => _ = EditEnvModule(env, mod.Kind);
         return btn;
+    }
+
+    /// <summary>Resumen del módulo Tareas leyendo el bloque vinculado del nuevo sistema (#145).</summary>
+    private static string TasksModuleSummary(FocusEnvironment env)
+    {
+        var s = AppState.Load();
+        var block = s.TaskBlocks.FirstOrDefault(b => b.EnvironmentId == env.Id);
+        if (block is null) return "Toca para abrir la lista de tareas del entorno";
+        var tasks = s.Tasks.Where(t => t.BlockId == block.Id).ToList();
+        if (tasks.Count == 0) return "Lista vacía · toca para añadir tareas";
+        int pending = tasks.Count(t => !t.Done);
+        return pending == 0 ? $"{tasks.Count} tareas · todas hechas" : $"{pending} pendientes · {tasks.Count} en total";
     }
 
     /// <summary>Abre la vista de detalle de un módulo del entorno (#76).</summary>
@@ -719,8 +734,14 @@ public sealed partial class SettingsPage : Page
     {
         // Herramientas externas (#78): de momento «abrir el workspace en el navegador».
         if (kind == EnvironmentModuleKind.Tools) { await OpenToolsModule(env); return; }
-        // Tareas (#125): lista de to-dos propia del entorno.
-        if (kind == EnvironmentModuleKind.Tasks) { await OpenTasksModule(env); return; }
+        // Tareas (#145): conectado con la funcionalidad «Tareas». Garantiza el bloque vinculado al
+        // entorno (migrando las tareas antiguas) y abre la página Tareas en ese bloque.
+        if (kind == EnvironmentModuleKind.Tasks)
+        {
+            var r = AppState.Config.EnsureEnvironmentTaskBlock(env.Id, env.Name);
+            Navigator.GoToTasks(this, r.Success ? r.Message : null);
+            return;
+        }
 
         // Concentración (#53) / Enlaces (#74): el editor restringido a ese módulo.
         var dlg = new EnvironmentDialog { XamlRoot = this.XamlRoot };

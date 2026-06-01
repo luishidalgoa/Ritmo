@@ -30,10 +30,17 @@ public sealed partial class TasksPage : Page
 
     private string? _selectedBlockId;
 
+    /// <summary>Bloque a seleccionar al abrir la página (lo fija Navigator.GoToTasks desde un entorno).</summary>
+    internal static string? PendingBlockId;
+
     public TasksPage()
     {
         InitializeComponent();
-        Loaded += (_, _) => Build();
+        Loaded += (_, _) =>
+        {
+            if (PendingBlockId is not null) { _selectedBlockId = PendingBlockId; PendingBlockId = null; }
+            Build();
+        };
     }
 
     /// <summary>Permite abrir la página con un bloque concreto seleccionado (p. ej. desde un entorno).</summary>

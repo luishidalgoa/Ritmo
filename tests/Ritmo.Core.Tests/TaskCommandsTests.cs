@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Ritmo.Core.Commands;
+using Ritmo.Core.Focus;
 using Ritmo.Core.Persistence;
 
 namespace Ritmo.Core.Tests;
@@ -120,6 +121,38 @@ public class TaskCommandsTests
         Assert.Equal("env-1", store.Load().TaskBlocks.First(b => b.Id == bid).EnvironmentId);
         svc.SetTaskBlockEnvironment(bid, null);
         Assert.Null(store.Load().TaskBlocks.First(b => b.Id == bid).EnvironmentId);
+    }
+
+    [Fact]
+    public void EnsureEnvironmentTaskBlock_crea_vincula_y_migra_tareas_viejas()
+    {
+        var store = new InMemorySettingsStore();
+        var env = new FocusEnvironment
+        {
+            Id = "e1", Name = "Trabajo",
+            Tasks = new[]
+            {
+                new EnvironmentTask { Id = "t1", Text = "Comprar", Order = 0 },
+                new EnvironmentTask { Id = "t2", Text = "Llamar", Done = true, Order = 1 }
+            }
+        };
+        store.Save(AppSettings.Default with { FocusEnvironments = new[] { env } });
+        var svc = new ConfigurationService(store);
+
+        var r = svc.EnsureEnvironmentTaskBlock("e1", "Trabajo");
+        Assert.True(r.Success);
+        var s = store.Load();
+        var block = s.TaskBlocks.Single();
+        Assert.Equal("e1", block.EnvironmentId);
+        Assert.Equal(2, s.Tasks.Count(t => t.BlockId == block.Id));
+        Assert.Contains(s.Tasks, t => t.Text == "Comprar" && !t.Done);
+        Assert.Contains(s.Tasks, t => t.Text == "Llamar" && t.Done);
+        Assert.Empty(s.FocusEnvironments.Single().Tasks);   // las viejas se vaciaron (migradas)
+
+        // Idempotente: segunda llamada devuelve el MISMO bloque, sin duplicar.
+        var r2 = svc.EnsureEnvironmentTaskBlock("e1", "Trabajo");
+        Assert.Equal(block.Id, r2.Message);
+        Assert.Single(store.Load().TaskBlocks);
     }
 
     [Fact]

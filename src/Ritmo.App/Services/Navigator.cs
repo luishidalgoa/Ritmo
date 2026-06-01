@@ -27,6 +27,20 @@ public static class Navigator
         FindAncestor<Frame>(from)?.Navigate(typeof(TimerPage));
     }
 
+    /// <summary>Lleva a «Tareas», opcionalmente con un bloque ya seleccionado (#145).</summary>
+    public static void GoToTasks(DependencyObject from, string? blockId = null)
+    {
+        TasksPage.PendingBlockId = blockId;
+
+        var nav = FindAncestor<NavigationView>(from);
+        if (nav is not null)
+        {
+            foreach (var mi in nav.MenuItems.OfType<NavigationViewItem>())
+                if ((string?)mi.Tag == "tasks") { nav.SelectedItem = mi; return; }
+        }
+        FindAncestor<Frame>(from)?.Navigate(typeof(TasksPage), blockId);
+    }
+
     private static T? FindAncestor<T>(DependencyObject start) where T : class
     {
         var cur = VisualTreeHelper.GetParent(start);

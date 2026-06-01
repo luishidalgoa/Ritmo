@@ -1292,6 +1292,56 @@ public sealed class ConfigurationService
         _store.Save(s with { Tasks = [.. others, .. reordered] });
         return CommandResult.Ok("Tarea movida.");
     }
+
+    /// <summary>
+    /// Garantiza que un entorno tenga un bloque de tareas vinculado (#145, conecta Ajustes→Entornos
+    /// con el nuevo sistema). Si no existe, lo crea y MIGRA las tareas antiguas del entorno
+    /// (EnvironmentTask) como tareas del bloque, vaciando las antiguas (sin pérdida, solo se mueven).
+    /// Devuelve el id del bloque.
+    /// </summary>
+    public CommandResult EnsureEnvironmentTaskBlock(string environmentId, string environmentName)
+    {
+        if (string.IsNullOrWhiteSpace(environmentId)) return CommandResult.Fail("Entorno inválido.");
+        var s = _store.Load();
+        var existing = s.TaskBlocks.FirstOrDefault(b => b.EnvironmentId == environmentId);
+        if (existing is not null) return CommandResult.Ok(existing.Id);
+
+        var env = s.FocusEnvironments.FirstOrDefault(e => e.Id == environmentId);
+        var blockId = $"block-{Guid.NewGuid():N}"[..12];
+        var block = new Ritmo.Core.Model.TaskBlock
+        {
+            Id = blockId,
+            Name = string.IsNullOrWhiteSpace(environmentName) ? (env?.Name ?? "Entorno") : environmentName.Trim(),
+            Order = s.TaskBlocks.Count == 0 ? 0 : s.TaskBlocks.Max(b => b.Order) + 1,
+            EnvironmentId = environmentId
+        };
+
+        // Migra las tareas antiguas del entorno al nuevo bloque (mismo texto/hecho/orden).
+        var migrated = new System.Collections.Generic.List<Ritmo.Core.Model.TaskItem>();
+        if (env is not null)
+        {
+            int i = 0;
+            foreach (var t in env.Tasks.OrderBy(t => t.Order))
+                migrated.Add(new Ritmo.Core.Model.TaskItem
+                {
+                    Id = $"task-{Guid.NewGuid():N}"[..12], BlockId = blockId,
+                    Text = t.Text, Done = t.Done, Order = i++
+                });
+        }
+        var newEnvs = env is null
+            ? s.FocusEnvironments
+            : s.FocusEnvironments.Select(e => e.Id == environmentId
+                ? e with { Tasks = new System.Collections.Generic.List<Ritmo.Core.Focus.EnvironmentTask>() }
+                : e).ToList();
+
+        _store.Save(s with
+        {
+            TaskBlocks = [.. s.TaskBlocks, block],
+            Tasks = [.. s.Tasks, .. migrated],
+            FocusEnvironments = newEnvs
+        });
+        return CommandResult.Ok(blockId);
+    }
 }
 
 /// <summary>Resumen del estado de la app (respuesta para IA / UI).</summary>

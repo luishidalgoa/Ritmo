@@ -335,28 +335,27 @@ public sealed partial class MainWindow : Window
             root.Children.Add(btn);
         }
 
-        // --- Tareas (#77) ---
+        // --- Tareas (#145): conectadas con la funcionalidad «Tareas» (bloque vinculado al entorno) ---
         root.Children.Add(new TextBlock { Text = "TAREAS", FontSize = 10, Opacity = 0.55,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new Thickness(0, 4, 0, 0) });
-        foreach (var task in env.Tasks.OrderBy(t => t.Done).ThenBy(t => t.Order))
-            root.Children.Add(TaskRow(env.Id, task));
-
-        var addBox = new TextBox { PlaceholderText = "Nueva tarea…", FontSize = 13 };
-        var addBtn = new Button { Content = new SymbolIcon(Symbol.Add), Padding = new Thickness(6) };
-        void AddTask()
+        var st = Services.AppState.Load();
+        var blk = st.TaskBlocks.FirstOrDefault(b => b.EnvironmentId == env.Id);
+        int pend = blk is null ? 0 : st.Tasks.Count(t => t.BlockId == blk.Id && !t.Done);
+        root.Children.Add(new TextBlock
         {
-            if (string.IsNullOrWhiteSpace(addBox.Text)) return;
-            Services.AppState.Config.AddEnvironmentTask(env.Id, addBox.Text);
-            BuildWorkEnvPanel();
-        }
-        addBtn.Click += (_, _) => AddTask();
-        addBox.KeyDown += (_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) AddTask(); };
-        var addRow = new Grid { ColumnSpacing = 4, Margin = new Thickness(0, 2, 0, 0) };
-        addRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        addRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        Grid.SetColumn(addBox, 0); Grid.SetColumn(addBtn, 1);
-        addRow.Children.Add(addBox); addRow.Children.Add(addBtn);
-        root.Children.Add(addRow);
+            Text = blk is null ? "Sin lista vinculada todavía." : (pend == 0 ? "Sin tareas pendientes." : $"{pend} pendientes."),
+            Opacity = 0.6, FontSize = 12
+        });
+        var openTasksBtn = new Button { Content = "Ver tareas", Margin = new Thickness(0, 4, 0, 0) };
+        openTasksBtn.Click += (_, _) =>
+        {
+            var r = Services.AppState.Config.EnsureEnvironmentTaskBlock(env.Id, env.Name);
+            TasksPage.PendingBlockId = r.Success ? r.Message : null;
+            foreach (var mi in Nav.MenuItems.OfType<NavigationViewItem>())
+                if ((string?)mi.Tag == "tasks") { Nav.SelectedItem = mi; break; }
+            RightPanel.IsPaneOpen = false;
+        };
+        root.Children.Add(openTasksBtn);
 
         // El seguimiento laboral (#84) se movió del panel del entorno a su propia página
         // «Trabajo» (#84 V3), porque ahora los proyectos son un concepto independiente.
