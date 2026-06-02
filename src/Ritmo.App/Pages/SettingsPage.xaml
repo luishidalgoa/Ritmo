@@ -201,6 +201,23 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
+
+                    <!-- Gestión de Google Tasks (#64): el Client ID va embebido; el usuario solo conecta -->
+                    <Border x:Name="GoogleManageCard"
+                            Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="✅  Google Tasks" FontWeight="SemiBold" FontSize="15" />
+                            <TextBlock x:Name="GoogleStatus" Opacity="0.8" FontSize="12" TextWrapping="Wrap" Text="No conectado." />
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Button x:Name="GoogleConnectBtn" Content="Conectar" Click="GoogleConnectBtn_Click"
+                                        Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="GoogleDisconnectBtn" Content="Desconectar" Click="GoogleDisconnectBtn_Click"
+                                        Visibility="Collapsed" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
 
@@ -373,29 +390,6 @@
                                Text="Durante la concentración, Ritmo minimiza al instante las ventanas en webs bloqueadas del entorno. Para un bloqueo a nivel de RED (que impida cargarlas), instala la extensión de navegador. La lista de webs se configura en cada entorno." />
                     <Button x:Name="PrepareBlockerBtn" Content="Preparar extensión de bloqueo…"
                             Click="PrepareBlockerBtn_Click" HorizontalAlignment="Left" />
-                </StackPanel>
-            </Border>
-
-            <!-- Sincronización con Google Tasks (#64) -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                    CornerRadius="8" Padding="20">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="Google Tasks (sincronización)" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock x:Name="GoogleStatus" Opacity="0.8" FontSize="13" TextWrapping="Wrap" Text="No conectado." />
-                    <StackPanel x:Name="GoogleConnectFields" Spacing="8">
-                        <TextBox x:Name="GoogleClientIdBox" Header="ID de cliente"
-                                 PlaceholderText="…apps.googleusercontent.com" />
-                        <PasswordBox x:Name="GoogleSecretBox" Header="Secreto de cliente (app de escritorio)" />
-                        <TextBlock Text="Se guardan en tu equipo (el secreto, en el almacén seguro de Windows); nunca en el repositorio."
-                                   Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button x:Name="GoogleConnectBtn" Content="Conectar" Click="GoogleConnectBtn_Click"
-                                Style="{ThemeResource AccentButtonStyle}" />
-                        <Button x:Name="GoogleDisconnectBtn" Content="Desconectar" Click="GoogleDisconnectBtn_Click"
-                                Visibility="Collapsed" />
-                    </StackPanel>
                 </StackPanel>
             </Border>
 

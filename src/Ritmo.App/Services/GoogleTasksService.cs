@@ -33,15 +33,25 @@ public static class GoogleTasksService
     private const string VaultSecret = "client_secret";
     private const string ApiBase = "https://tasks.googleapis.com/tasks/v1";
 
+    // Client ID OAuth de la app Ritmo (PÚBLICO; los Client IDs no son secretos y van embebidos,
+    // igual que el de Spotify). Así el usuario solo pulsa «Conectar», sin pegar credenciales. #64
+    public const string DefaultClientId = "273778944021-i8e8nac1tjpqne3bem1q5smchepj249v.apps.googleusercontent.com";
+
     private static readonly HttpClient Http = new();
     private static string? _accessToken;
     private static DateTimeOffset _accessExpiry;
 
-    /// <summary>Client ID público guardado en la config (lo pega el usuario en Ajustes).</summary>
-    public static string? ClientId => AppState.Load().GoogleClientId;
+    /// <summary>Client ID a usar: el embebido por defecto (o un override en la config, si lo hubiera).</summary>
+    public static string ClientId => AppState.Load().GoogleClientId is { Length: > 0 } id ? id : DefaultClientId;
 
-    /// <summary>¿Hay sesión guardada (Client ID + refresh token)?</summary>
-    public static bool HasSession => !string.IsNullOrWhiteSpace(ClientId) && GetVault(VaultRefresh) is not null;
+    /// <summary>¿Hay un refresh token guardado (sesión iniciada)?</summary>
+    public static bool HasSession => GetVault(VaultRefresh) is not null;
+
+    /// <summary>¿Está guardado el secreto de cliente (necesario para el intercambio de tokens)?</summary>
+    public static bool HasStoredSecret => GetVault(VaultSecret) is not null;
+
+    /// <summary>Guarda el secreto de cliente en el almacén seguro (fallback de configuración única).</summary>
+    public static void StoreClientSecret(string secret) => StoreVault(VaultSecret, secret ?? "");
 
     // ---------- Almacén seguro ----------
 
@@ -74,11 +84,11 @@ public static class GoogleTasksService
         catch { }
     }
 
+    /// <summary>Cierra sesión: borra el refresh token (conserva el secreto para reconectar fácil).</summary>
     public static void SignOut()
     {
         _accessToken = null; _accessExpiry = default;
         RemoveVault(VaultRefresh);
-        RemoveVault(VaultSecret);
     }
 
     // ---------- Autorización (PKCE) ----------
@@ -87,10 +97,11 @@ public static class GoogleTasksService
     /// Lanza el navegador para iniciar sesión en Google, captura el callback en loopback y canjea el
     /// código por tokens. Persiste el secreto y el refresh token. Devuelve true si quedó autorizado.
     /// </summary>
-    public static async Task<bool> AuthorizeAsync(string clientId, string clientSecret, CancellationToken ct = default)
+    public static async Task<bool> AuthorizeAsync(CancellationToken ct = default)
     {
+        var clientId = ClientId;
+        var clientSecret = GetVault(VaultSecret) ?? "";   // el usuario lo guardó una vez; embebido el Client ID
         if (string.IsNullOrWhiteSpace(clientId)) return false;
-        StoreVault(VaultSecret, clientSecret ?? "");   // necesario para el intercambio/refresh
 
         var verifier = GoogleAuth.NewVerifier();
         var challenge = GoogleAuth.Challenge(verifier);

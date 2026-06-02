@@ -98,37 +98,53 @@ public sealed partial class SettingsPage : Page
     private void LoadGoogleState()
     {
         bool connected = Services.GoogleTasksService.HasSession;
-        var id = AppState.Load().GoogleClientId;
-        if (!string.IsNullOrWhiteSpace(id)) GoogleClientIdBox.Text = id;
-        GoogleStatus.Text = connected ? "Conectado a Google Tasks." : "No conectado.";
-        GoogleConnectFields.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
+        GoogleStatus.Text = connected ? "✓ Conectado a Google Tasks." : "No conectado.";
         GoogleConnectBtn.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         GoogleDisconnectBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async void GoogleConnectBtn_Click(object sender, RoutedEventArgs e)
     {
-        var id = (GoogleClientIdBox.Text ?? "").Trim();
-        var secret = GoogleSecretBox.Password ?? "";
-        if (id.Length == 0) { GoogleStatus.Text = "Pega el ID de cliente."; return; }
+        // El Client ID va embebido en la app (público). El secreto de cliente (no confidencial para
+        // apps de escritorio) se guarda cifrado una sola vez; si faltara, se pide esta única vez.
+        if (!Services.GoogleTasksService.HasStoredSecret)
+        {
+            var box = new PasswordBox();
+            var ask = new ContentDialog
+            {
+                Title = "Conectar Google Tasks (configuración única)",
+                Content = new StackPanel
+                {
+                    Spacing = 8,
+                    Children =
+                    {
+                        new TextBlock { TextWrapping = TextWrapping.Wrap, Text = "Pega una vez el «secreto de cliente» de la app de Google Cloud. Se guarda cifrado en este equipo; después bastará con pulsar Conectar." },
+                        box
+                    }
+                },
+                PrimaryButtonText = "Guardar y conectar", CloseButtonText = "Cancelar",
+                XamlRoot = this.XamlRoot, DefaultButton = ContentDialogButton.Primary
+            };
+            if (await ask.ShowAsync() != ContentDialogResult.Primary) return;
+            var sec = box.Password ?? "";
+            if (sec.Length == 0) return;
+            Services.GoogleTasksService.StoreClientSecret(sec);
+        }
 
         GoogleConnectBtn.IsEnabled = false;
         GoogleStatus.Text = "Conectando… autoriza en el navegador.";
         try
         {
-            AppState.Config.SetGoogleClientId(id);   // guarda el ID que escribió el usuario
-            bool ok = await Services.GoogleTasksService.AuthorizeAsync(id, secret);
+            bool ok = await Services.GoogleTasksService.AuthorizeAsync();
             if (!ok)
             {
-                GoogleStatus.Text = "No se pudo conectar. Revisa el ID/secreto y que tu cuenta esté como «usuario de prueba» en Google.";
+                GoogleStatus.Text = "No se pudo conectar. Revisa que tu cuenta esté como «usuario de prueba» en Google Cloud.";
                 return;
             }
             string extra = "";
             try { var lists = await Services.GoogleTasksService.GetTaskListsAsync(); extra = $" · {lists.Count} lista(s)"; }
             catch { }
-            GoogleSecretBox.Password = "";
             GoogleStatus.Text = "✓ Conectado a Google Tasks" + extra + ".";
-            GoogleConnectFields.Visibility = Visibility.Collapsed;
             GoogleConnectBtn.Visibility = Visibility.Collapsed;
             GoogleDisconnectBtn.Visibility = Visibility.Visible;
         }
@@ -139,9 +155,6 @@ public sealed partial class SettingsPage : Page
     private void GoogleDisconnectBtn_Click(object sender, RoutedEventArgs e)
     {
         Services.GoogleTasksService.SignOut();
-        AppState.Config.SetGoogleClientId(null);
-        GoogleClientIdBox.Text = "";
-        GoogleSecretBox.Password = "";
         LoadGoogleState();
     }
 
