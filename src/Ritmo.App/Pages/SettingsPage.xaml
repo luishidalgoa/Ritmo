@@ -9,57 +9,41 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
+    <!--
+        #153 — Orden coherente por DOMINIO, con cabeceras de grupo:
+          ▸ Tu plan       → Fases · Horario · Categorías · Descanso
+          ▸ Concentración → Pomodoro · Entornos · Entorno por tipo · Bloqueo de webs
+          ▸ Integraciones → Conexiones (ntfy/Google) + música/calendario (fusión #123+#107)
+          ▸ Notas
+          ▸ La aplicación → Apariencia · Actualizaciones · Copia de seguridad · Segundo plano
+        Las cabeceras de grupo (estilo acento, mayúsculas) son la columna vertebral visual.
+    -->
     <ScrollViewer Padding="24">
         <StackPanel Spacing="16" MaxWidth="680" HorizontalAlignment="Left">
             <TextBlock x:Uid="SetTitle" Text="Ajustes" FontSize="28" FontWeight="SemiBold" />
 
-            <!-- Pomodoro -->
+            <!-- ===================== GRUPO: TU PLAN ===================== -->
+            <TextBlock x:Uid="SetGroupPlan" Text="TU PLAN" FontSize="13" FontWeight="SemiBold" CharacterSpacing="70"
+                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="2,8,0,-2" />
+
+            <!-- Fases del plan (#46) -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
-                <StackPanel Spacing="14">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Pomodoro" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <ContentControl x:Name="PomodoroHelp" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <Grid ColumnSpacing="16" RowSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <NumberBox x:Name="FocusBox" x:Uid="SetFocusMin" Grid.Row="0" Grid.Column="0" Header="Concentración (min)"
-                                   Minimum="1" Maximum="180" SmallChange="5" SpinButtonPlacementMode="Inline" />
-                        <NumberBox x:Name="ShortBox" x:Uid="SetShortMin" Grid.Row="0" Grid.Column="1" Header="Descanso corto (min)"
-                                   Minimum="0" Maximum="60" SmallChange="1" SpinButtonPlacementMode="Inline" />
-                        <NumberBox x:Name="LongBox" x:Uid="SetLongMin" Grid.Row="1" Grid.Column="0" Header="Descanso largo (min)"
-                                   Minimum="0" Maximum="120" SmallChange="5" SpinButtonPlacementMode="Inline" />
-                        <NumberBox x:Name="CyclesBox" x:Uid="SetCycles" Grid.Row="1" Grid.Column="1" Header="Focos por descanso largo"
-                                   Minimum="1" Maximum="12" SmallChange="1" SpinButtonPlacementMode="Inline" />
-                    </Grid>
-                    <TextBlock x:Uid="SetPomodoroHelp" Opacity="0.7" FontSize="12" TextWrapping="Wrap"
-                               Text="Estos valores son el ritmo «Por defecto de la app». Crea ritmos con nombre para reutilizarlos al configurar cada entorno." />
-
-                    <!-- Ritmos propios (#96) -->
+                <StackPanel Spacing="12">
                     <Grid>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock x:Uid="SetMyRhythms" Text="Mis ritmos" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <ContentControl x:Name="RhythmsHelp" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <Button x:Name="AddRhythmBtn" Click="AddRhythmBtn_Click" HorizontalAlignment="Right"
-                                AutomationProperties.Name="Nuevo ritmo">
+                        <TextBlock x:Uid="SetPhases" Text="Fases del plan" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button x:Name="AddPhaseBtn" Click="AddPhaseBtn_Click" HorizontalAlignment="Right"
+                                AutomationProperties.Name="Nueva fase">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE710;" FontSize="13" />
-                                <TextBlock x:Uid="SetNewRhythm" Text="Nuevo ritmo" />
+                                <TextBlock x:Uid="SetNewPhase" Text="Nueva fase" />
                             </StackPanel>
                         </Button>
                     </Grid>
-                    <StackPanel x:Name="RhythmsList" Spacing="6" />
-                    <TextBlock x:Name="RhythmsEmpty" x:Uid="SetNoRhythms" Opacity="0.6" FontSize="12" Visibility="Collapsed"
-                               Text="Aún no has creado ritmos propios. Usa «Nuevo ritmo» para añadir uno." />
+                    <TextBlock x:Uid="SetPhasesDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                               Text="Cada fase tiene su propio horario y un rango de fechas (p. ej. «Fase 1», «Fase 2»). El Horario muestra la fase vigente según la fecha; puedes ver otras desde el selector del Horario." />
+                    <StackPanel x:Name="PhasesList" Spacing="8" />
                 </StackPanel>
             </Border>
 
@@ -144,22 +128,130 @@
                 </StackPanel>
             </Border>
 
-            <!-- Conexiones (#123): se DESCUBREN/añaden en el modal; aquí se VEN y GESTIONAN
-                 directamente las que ya están creadas (estilo conectores de Claude). -->
+            <!-- ===================== GRUPO: CONCENTRACIÓN ===================== -->
+            <TextBlock x:Uid="SetGroupFocus" Text="CONCENTRACIÓN" FontSize="13" FontWeight="SemiBold" CharacterSpacing="70"
+                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="2,12,0,-2" />
+
+            <!-- Pomodoro -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Pomodoro" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <ContentControl x:Name="PomodoroHelp" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Grid ColumnSpacing="16" RowSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <NumberBox x:Name="FocusBox" x:Uid="SetFocusMin" Grid.Row="0" Grid.Column="0" Header="Concentración (min)"
+                                   Minimum="1" Maximum="180" SmallChange="5" SpinButtonPlacementMode="Inline" />
+                        <NumberBox x:Name="ShortBox" x:Uid="SetShortMin" Grid.Row="0" Grid.Column="1" Header="Descanso corto (min)"
+                                   Minimum="0" Maximum="60" SmallChange="1" SpinButtonPlacementMode="Inline" />
+                        <NumberBox x:Name="LongBox" x:Uid="SetLongMin" Grid.Row="1" Grid.Column="0" Header="Descanso largo (min)"
+                                   Minimum="0" Maximum="120" SmallChange="5" SpinButtonPlacementMode="Inline" />
+                        <NumberBox x:Name="CyclesBox" x:Uid="SetCycles" Grid.Row="1" Grid.Column="1" Header="Focos por descanso largo"
+                                   Minimum="1" Maximum="12" SmallChange="1" SpinButtonPlacementMode="Inline" />
+                    </Grid>
+                    <TextBlock x:Uid="SetPomodoroHelp" Opacity="0.7" FontSize="12" TextWrapping="Wrap"
+                               Text="Estos valores son el ritmo «Por defecto de la app». Crea ritmos con nombre para reutilizarlos al configurar cada entorno." />
+
+                    <!-- Ritmos propios (#96) -->
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Uid="SetMyRhythms" Text="Mis ritmos" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <ContentControl x:Name="RhythmsHelp" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Button x:Name="AddRhythmBtn" Click="AddRhythmBtn_Click" HorizontalAlignment="Right"
+                                AutomationProperties.Name="Nuevo ritmo">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE710;" FontSize="13" />
+                                <TextBlock x:Uid="SetNewRhythm" Text="Nuevo ritmo" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <StackPanel x:Name="RhythmsList" Spacing="6" />
+                    <TextBlock x:Name="RhythmsEmpty" x:Uid="SetNoRhythms" Opacity="0.6" FontSize="12" Visibility="Collapsed"
+                               Text="Aún no has creado ritmos propios. Usa «Nuevo ritmo» para añadir uno." />
+                </StackPanel>
+            </Border>
+
+            <!-- Entornos de concentración (#53) -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
                     <Grid>
+                        <TextBlock x:Uid="SetEnvironments" Text="Entornos de concentración" FontSize="18" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <Button x:Name="AddEnvBtn" Click="AddEnvBtn_Click" HorizontalAlignment="Right"
+                                AutomationProperties.Name="Añadir entorno">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE710;" FontSize="13" />
+                                <TextBlock x:Uid="SetAddEnv" Text="Añadir entorno" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <TextBlock x:Uid="SetEnvironmentsDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                               Text="Qué ocurre al concentrarte: música, apps a cerrar, No molestar… El marcado como predeterminado (★) se usa cuando un bloque no tiene un entorno propio asignado." />
+                    <StackPanel x:Name="EnvList" Spacing="8" />
+                    <TextBlock x:Name="EnvEmpty" x:Uid="SetEnvEmpty" Text="Aún no hay entornos. Añade uno para personalizar tu concentración."
+                               Opacity="0.6" FontSize="13" Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+
+            <!-- Entorno por tipo de bloque (#70) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Uid="SetEnvPerType" Text="Entorno por tipo de bloque" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Uid="SetEnvPerTypeDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                               Text="Elige qué entorno usar al concentrarte en cada tipo de bloque del horario. «Por defecto» usa el entorno predeterminado (★)." />
+                    <StackPanel x:Name="KindEnvList" Spacing="8" />
+                    <TextBlock x:Name="KindEnvHint" x:Uid="SetKindEnvHint" Opacity="0.6" FontSize="13" TextWrapping="Wrap"
+                               Visibility="Collapsed"
+                               Text="Crea al menos un entorno arriba para poder asignarlo a un tipo de bloque." />
+                </StackPanel>
+            </Border>
+
+            <!-- Bloqueo de webs (extensión de navegador, #8) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Uid="SetWebBlock" Text="Bloqueo de webs (avanzado)" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Uid="SetWebBlockDesc" TextWrapping="Wrap" Opacity="0.8" FontSize="13"
+                               Text="Durante la concentración, Ritmo minimiza al instante las ventanas en webs bloqueadas del entorno. Para un bloqueo a nivel de RED (que impida cargarlas), instala la extensión de navegador. La lista de webs se configura en cada entorno." />
+                    <Button x:Name="PrepareBlockerBtn" x:Uid="SetPrepareBlocker" Content="Preparar extensión de bloqueo…"
+                            Click="PrepareBlockerBtn_Click" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===================== GRUPO: CONEXIONES E INTEGRACIONES (fusión #123 + #107) ===================== -->
+            <TextBlock x:Uid="SetGroupIntegrations" Text="CONEXIONES E INTEGRACIONES" FontSize="13" FontWeight="SemiBold" CharacterSpacing="70"
+                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="2,12,0,-2" />
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="12">
+
+                    <!-- Conectores que se DESCUBREN/añaden en el modal (ntfy / Google); aquí se gestionan -->
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Spacing="2">
-                            <TextBlock x:Uid="SetConnections" Text="Conexiones" FontSize="18" FontWeight="SemiBold" />
-                            <TextBlock x:Uid="SetConnectionsDesc" Text="Apps externas conectadas a Ritmo. Añade nuevas desde «Añadir conexión»."
-                                       Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
-                        </StackPanel>
+                        <TextBlock x:Uid="SetConnectionsDesc" Grid.Column="0" VerticalAlignment="Center"
+                                   Text="Apps externas conectadas a Ritmo. Añade nuevas desde «Añadir conexión»."
+                                   Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
                         <Button x:Uid="SetAddConnection" Grid.Column="1" Content="Añadir conexión" Click="ConnectionsBtn_Click"
                                 VerticalAlignment="Center" />
                     </Grid>
@@ -248,77 +340,8 @@
                         </StackPanel>
                     </Border>
 
-                </StackPanel>
-            </Border>
-
-            <!-- Fases del plan (#46) -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                    CornerRadius="8" Padding="20">
-                <StackPanel Spacing="12">
-                    <Grid>
-                        <TextBlock x:Uid="SetPhases" Text="Fases del plan" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <Button x:Name="AddPhaseBtn" Click="AddPhaseBtn_Click" HorizontalAlignment="Right"
-                                AutomationProperties.Name="Nueva fase">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE710;" FontSize="13" />
-                                <TextBlock x:Uid="SetNewPhase" Text="Nueva fase" />
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-                    <TextBlock x:Uid="SetPhasesDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                               Text="Cada fase tiene su propio horario y un rango de fechas (p. ej. «Fase 1», «Fase 2»). El Horario muestra la fase vigente según la fecha; puedes ver otras desde el selector del Horario." />
-                    <StackPanel x:Name="PhasesList" Spacing="8" />
-                </StackPanel>
-            </Border>
-
-            <!-- Entornos de concentración (#53) -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                    CornerRadius="8" Padding="20">
-                <StackPanel Spacing="12">
-                    <Grid>
-                        <TextBlock x:Uid="SetEnvironments" Text="Entornos de concentración" FontSize="18" FontWeight="SemiBold"
-                                   VerticalAlignment="Center" />
-                        <Button x:Name="AddEnvBtn" Click="AddEnvBtn_Click" HorizontalAlignment="Right"
-                                AutomationProperties.Name="Añadir entorno">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE710;" FontSize="13" />
-                                <TextBlock x:Uid="SetAddEnv" Text="Añadir entorno" />
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-                    <TextBlock x:Uid="SetEnvironmentsDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                               Text="Qué ocurre al concentrarte: música, apps a cerrar, No molestar… El marcado como predeterminado (★) se usa cuando un bloque no tiene un entorno propio asignado." />
-                    <StackPanel x:Name="EnvList" Spacing="8" />
-                    <TextBlock x:Name="EnvEmpty" x:Uid="SetEnvEmpty" Text="Aún no hay entornos. Añade uno para personalizar tu concentración."
-                               Opacity="0.6" FontSize="13" Visibility="Collapsed" />
-                </StackPanel>
-            </Border>
-
-            <!-- Entorno por tipo de bloque (#70) -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                    CornerRadius="8" Padding="20">
-                <StackPanel Spacing="12">
-                    <TextBlock x:Uid="SetEnvPerType" Text="Entorno por tipo de bloque" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock x:Uid="SetEnvPerTypeDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                               Text="Elige qué entorno usar al concentrarte en cada tipo de bloque del horario. «Por defecto» usa el entorno predeterminado (★)." />
-                    <StackPanel x:Name="KindEnvList" Spacing="8" />
-                    <TextBlock x:Name="KindEnvHint" x:Uid="SetKindEnvHint" Opacity="0.6" FontSize="13" TextWrapping="Wrap"
-                               Visibility="Collapsed"
-                               Text="Crea al menos un entorno arriba para poder asignarlo a un tipo de bloque." />
-                </StackPanel>
-            </Border>
-
-            <!-- Apps vinculadas (#107) -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                    CornerRadius="8" Padding="20">
-                <StackPanel Spacing="12">
-                    <TextBlock x:Uid="SetLinkedApps" Text="Apps vinculadas" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock x:Uid="SetLinkedAppsDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                               Text="Conecta servicios externos una vez aquí; luego los usas en tus entornos." />
+                    <!-- Separador entre conectores y las apps vinculadas (música/calendario, #107) -->
+                    <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4,0,2" />
 
                     <TextBlock x:Uid="SetMusicHeader" Text="MÚSICA" FontSize="11" FontWeight="SemiBold" Opacity="0.55" />
                     <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
@@ -376,23 +399,37 @@
                 </StackPanel>
             </Border>
 
-            <!-- Actualizaciones (#124, Fase 3) -->
+            <!-- ===================== GRUPO: NOTAS ===================== -->
+            <TextBlock x:Uid="SetGroupNotes" Text="NOTAS" FontSize="13" FontWeight="SemiBold" CharacterSpacing="70"
+                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="2,12,0,-2" />
+
+            <!-- Notas y enlaces rápidos (#55) -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock x:Uid="SetUpdates" Text="Actualizaciones" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock x:Name="VersionText" Opacity="0.7" FontSize="13" />
-                    <TextBlock x:Uid="SetUpdatesDesc" Text="Ritmo se actualiza solo desde GitHub (App Installer). Aquí puedes comprobarlo manualmente."
-                               Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
-                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                        <Button x:Name="CheckUpdateBtn" x:Uid="SetCheckUpdate" Content="Buscar actualizaciones" Click="CheckUpdateBtn_Click" />
-                        <Button x:Name="InstallUpdateBtn" x:Uid="SetInstallNow" Content="Instalar ahora" Click="InstallUpdateBtn_Click"
-                                Style="{ThemeResource AccentButtonStyle}" Visibility="Collapsed" />
-                        <TextBlock x:Name="UpdateStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="13" TextWrapping="Wrap" />
-                    </StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Uid="SetNotesDesc" Grid.Column="0" VerticalAlignment="Center"
+                                   Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                                   Text="Notas fijadas (admiten Markdown). Aparecen en la pantalla «Hoy». Los enlaces ahora viven en cada entorno de trabajo." />
+                        <Button x:Name="AddNoteBtn" Grid.Column="1" Click="AddNoteBtn_Click" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE710;" FontSize="13" />
+                                <TextBlock x:Uid="SetAddNote" Text="Añadir nota" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <StackPanel x:Name="NotesList" Spacing="8" />
                 </StackPanel>
             </Border>
+
+            <!-- ===================== GRUPO: LA APLICACIÓN ===================== -->
+            <TextBlock x:Uid="SetGroupApp" Text="LA APLICACIÓN" FontSize="13" FontWeight="SemiBold" CharacterSpacing="70"
+                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="2,12,0,-2" />
 
             <!-- Apariencia -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -420,37 +457,21 @@
                 </StackPanel>
             </Border>
 
-            <!-- Bloqueo de webs (extensión de navegador, #8) -->
-            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                    CornerRadius="8" Padding="20">
-                <StackPanel Spacing="10">
-                    <TextBlock x:Uid="SetWebBlock" Text="Bloqueo de webs (avanzado)" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock x:Uid="SetWebBlockDesc" TextWrapping="Wrap" Opacity="0.8" FontSize="13"
-                               Text="Durante la concentración, Ritmo minimiza al instante las ventanas en webs bloqueadas del entorno. Para un bloqueo a nivel de RED (que impida cargarlas), instala la extensión de navegador. La lista de webs se configura en cada entorno." />
-                    <Button x:Name="PrepareBlockerBtn" x:Uid="SetPrepareBlocker" Content="Preparar extensión de bloqueo…"
-                            Click="PrepareBlockerBtn_Click" HorizontalAlignment="Left" />
-                </StackPanel>
-            </Border>
-
-            <!-- Notas y enlaces rápidos (#55) -->
+            <!-- Actualizaciones (#124, Fase 3) -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
-                    <Grid>
-                        <TextBlock x:Uid="SetNotes" Text="Notas" FontSize="18" FontWeight="SemiBold"
-                                   VerticalAlignment="Center" />
-                        <Button x:Name="AddNoteBtn" Click="AddNoteBtn_Click" HorizontalAlignment="Right">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE710;" FontSize="13" />
-                                <TextBlock x:Uid="SetAddNote" Text="Añadir nota" />
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-                    <TextBlock x:Uid="SetNotesDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
-                               Text="Notas fijadas (admiten Markdown). Aparecen en la pantalla «Hoy». Los enlaces ahora viven en cada entorno de trabajo." />
-                    <StackPanel x:Name="NotesList" Spacing="8" />
+                    <TextBlock x:Uid="SetUpdates" Text="Actualizaciones" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Name="VersionText" Opacity="0.7" FontSize="13" />
+                    <TextBlock x:Uid="SetUpdatesDesc" Text="Ritmo se actualiza solo desde GitHub (App Installer). Aquí puedes comprobarlo manualmente."
+                               Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <Button x:Name="CheckUpdateBtn" x:Uid="SetCheckUpdate" Content="Buscar actualizaciones" Click="CheckUpdateBtn_Click" />
+                        <Button x:Name="InstallUpdateBtn" x:Uid="SetInstallNow" Content="Instalar ahora" Click="InstallUpdateBtn_Click"
+                                Style="{ThemeResource AccentButtonStyle}" Visibility="Collapsed" />
+                        <TextBlock x:Name="UpdateStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="13" TextWrapping="Wrap" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
@@ -501,7 +522,7 @@
             </Border>
 
             <!-- Guardar -->
-            <StackPanel Orientation="Horizontal" Spacing="12">
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
                 <Button x:Name="SaveBtn" x:Uid="SetSave" Click="SaveBtn_Click" Style="{StaticResource AccentButtonStyle}" Content="Guardar cambios" />
                 <TextBlock x:Name="SaveStatus" VerticalAlignment="Center" Opacity="0.8" />
             </StackPanel>

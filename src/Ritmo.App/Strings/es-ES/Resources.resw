@@ -68,6 +68,11 @@
   <data name="SettingsLanguageHint.Text" xml:space="preserve"><value>El cambio de idioma se aplica al reiniciar la app.</value></data>
 
   <data name="SetTitle.Text" xml:space="preserve"><value>Ajustes</value></data>
+  <data name="SetGroupPlan.Text" xml:space="preserve"><value>TU PLAN</value></data>
+  <data name="SetGroupFocus.Text" xml:space="preserve"><value>CONCENTRACIÓN</value></data>
+  <data name="SetGroupIntegrations.Text" xml:space="preserve"><value>CONEXIONES E INTEGRACIONES</value></data>
+  <data name="SetGroupNotes.Text" xml:space="preserve"><value>NOTAS</value></data>
+  <data name="SetGroupApp.Text" xml:space="preserve"><value>LA APLICACIÓN</value></data>
   <data name="SetSchedule.Text" xml:space="preserve"><value>Horario</value></data>
   <data name="SetScheduleDesc.Text" xml:space="preserve"><value>Rango de horas que se muestra en la cuadrícula.</value></data>
   <data name="SetCategories.Text" xml:space="preserve"><value>Categorías</value></data>

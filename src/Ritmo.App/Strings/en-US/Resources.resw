@@ -68,6 +68,11 @@
   <data name="SettingsLanguageHint.Text" xml:space="preserve"><value>Language changes apply after restarting the app.</value></data>
 
   <data name="SetTitle.Text" xml:space="preserve"><value>Settings</value></data>
+  <data name="SetGroupPlan.Text" xml:space="preserve"><value>YOUR PLAN</value></data>
+  <data name="SetGroupFocus.Text" xml:space="preserve"><value>FOCUS</value></data>
+  <data name="SetGroupIntegrations.Text" xml:space="preserve"><value>CONNECTIONS &amp; INTEGRATIONS</value></data>
+  <data name="SetGroupNotes.Text" xml:space="preserve"><value>NOTES</value></data>
+  <data name="SetGroupApp.Text" xml:space="preserve"><value>THE APP</value></data>
   <data name="SetSchedule.Text" xml:space="preserve"><value>Schedule</value></data>
   <data name="SetScheduleDesc.Text" xml:space="preserve"><value>Range of hours shown in the grid.</value></data>
   <data name="SetCategories.Text" xml:space="preserve"><value>Categories</value></data>
