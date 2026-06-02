@@ -123,8 +123,13 @@ public sealed partial class SessionDialog : ContentDialog
     private void UpdateOneOffVisibility()
     {
         bool on = OneOffSwitch.IsOn;
-        DaysPanel.Visibility = on ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
+        // Los días de la semana se muestran SIEMPRE (#147): en recurrente eligen en qué días existe;
+        // en extraordinaria eligen en qué días de la semana se repite DENTRO del rango de fechas.
+        DaysPanel.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
         OneOffDatesPanel.Visibility = on ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        DayHint.Text = on
+            ? "Marca los días de la semana en que se repite dentro del rango (sin marcar = todos los días)."
+            : "Marca varios para crearlo en todos a la vez.";
         if (on && StartDatePicker.Date is null)   // al activar sin fechas, por defecto hoy
         {
             var today = new DateTimeOffset(DateTime.Today);

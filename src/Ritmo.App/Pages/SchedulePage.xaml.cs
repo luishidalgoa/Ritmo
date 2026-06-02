@@ -1514,8 +1514,13 @@ public sealed partial class SchedulePage : Page
     /// <summary>Crea una sesión provisional por cada día del rango de fechas del diálogo (#131).</summary>
     private void AddOneOffsForRange(SessionDialog dlg)
     {
+        // Filtra por los días de la semana marcados (#147): así una extraordinaria en un rango se
+        // repite solo en esos días (p. ej. martes y miércoles), no todos los días seguidos.
+        // Sin días marcados = todos los días del rango (compatibilidad).
+        var days = dlg.SelectedDays;
         for (var date = dlg.StartDate; date <= dlg.EndDate; date = date.AddDays(1))
         {
+            if (days.Count > 0 && !days.Contains(date.DayOfWeek)) continue;
             var ss = dlg.ToSession(date.DayOfWeek);
             AppState.Config.AddOneOffSession(date, ss.Title, ss.Start, ss.Duration, ss.CategoryId, ss.PreAlerts, ss.IsTentative, ss.ProjectId);
         }
