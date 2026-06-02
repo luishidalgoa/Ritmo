@@ -43,6 +43,10 @@ public sealed partial class SchedulePage : Page
     private string? GroupPhase(Ritmo.Core.Scheduling.SessionGroup g)
         => _sessionPhase.TryGetValue(g.Representative, out var ph) ? ph : _activePhaseName;
 
+    /// <summary>Nombres de todas las fases (para el selector «Fase» del diálogo). #148</summary>
+    private static IReadOnlyList<string> AllPhaseNames()
+        => AppState.Load().Plan.OrderedPhases.Select(p => p.Name).ToList();
+
     private static DateOnly MondayOf(DateOnly d) => d.AddDays(-(((int)d.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7));
 
     // Geometría de la rejilla (debe coincidir con BuildGrid).
@@ -1320,6 +1324,7 @@ public sealed partial class SchedulePage : Page
         dlg.SetCategories(AppState.Load().Categories);   // categorías dinámicas (#83)
         dlg.SetProjects(AppState.Load().WorkProjects);   // vínculo a proyecto (#137)
         dlg.SetKnownTitles(AllTitles());
+        dlg.SetPhases(AllPhaseNames(), _activePhaseName);   // #148: fase si se reconvierte a recurrente
         dlg.LoadFrom(one.AsSession());
         dlg.PreselectDays([one.Date.DayOfWeek]);   // por si se reconvierte a recurrente
         dlg.SetOneOff(true);
@@ -1334,7 +1339,7 @@ public sealed partial class SchedulePage : Page
                 AddOneOffsForRange(dlg);   // provisional: una por cada día del rango (#131)
             else
                 foreach (var d in dlg.SelectedDays)
-                    AppState.Config.AddSession(_activePhaseName, dlg.ToSession(d));   // reconvertida a recurrente
+                    AppState.Config.AddSession(dlg.SelectedPhase ?? _activePhaseName, dlg.ToSession(d));   // a la fase elegida (#148)
             ApplyProjectToCategory(dlg, dlg.ToSession(one.Date.DayOfWeek).CategoryId);   // vínculo por categoría (#137)
         }
         else if (result == ContentDialogResult.None)   // Eliminar
@@ -1522,6 +1527,7 @@ public sealed partial class SchedulePage : Page
         dlg.SetCategories(settings.Categories);   // categorías dinámicas (#83)
         dlg.SetProjects(settings.WorkProjects);   // vínculo a proyecto (#137)
         dlg.SetKnownTitles(AllTitles());
+        dlg.SetPhases(AllPhaseNames(), _activePhaseName);   // #148: elegir la fase de la sesión nueva
         dlg.LoadDefaults(day, start, settings.ViewConfig.DefaultPreAlertMinutes);   // aviso por defecto configurable (#48)
         // Fecha por defecto del rango provisional: el día pulsado (o el lunes visible). #131
         var defDate = day is { } dd ? _weekStart.AddDays(Math.Max(0, Array.IndexOf(Days, dd))) : _weekStart;
@@ -1541,7 +1547,7 @@ public sealed partial class SchedulePage : Page
                 {
                     var ss = dlg.ToSession(d);
                     cat = ss.CategoryId;
-                    AppState.Config.AddSession(_activePhaseName, ss);
+                    AppState.Config.AddSession(dlg.SelectedPhase ?? _activePhaseName, ss);   // #148: a la fase elegida
                 }
             if (cat is not null) ApplyProjectToCategory(dlg, cat);   // vínculo por categoría (#137)
             Build();
@@ -1607,6 +1613,7 @@ public sealed partial class SchedulePage : Page
         dlg.SetCategories(AppState.Load().Categories);   // categorías dinámicas (#83)
         dlg.SetProjects(AppState.Load().WorkProjects);   // vínculo a proyecto (#137)
         dlg.SetKnownTitles(AllTitles());
+        dlg.SetPhases(AllPhaseNames(), phaseName);   // #148: por defecto su fase; cambiarla la MUEVE
         dlg.LoadFrom(rep);
         dlg.PreselectDays(groupDays);   // todos los días del grupo marcados
         dlg.SetOneOffDates(_weekStart, _weekStart);   // por si se convierte a provisional (#131)
@@ -1633,7 +1640,14 @@ public sealed partial class SchedulePage : Page
                 // Reemplaza el grupo por una sesión recurrente en cada día marcado.
                 var rebuilt = dlg.SelectedDays.Select(d => dlg.ToSession(d)).ToList();
                 edited = rebuilt.FirstOrDefault();
-                AppState.Config.ReplaceSessions(phaseName, [.. kept, .. rebuilt]);
+                var target = dlg.SelectedPhase ?? phaseName;
+                if (target == phaseName)
+                    AppState.Config.ReplaceSessions(phaseName, [.. kept, .. rebuilt]);
+                else   // #148: cambió de fase → quitar de la vieja y añadir a la nueva (mover)
+                {
+                    AppState.Config.ReplaceSessions(phaseName, kept);
+                    foreach (var rs in rebuilt) AppState.Config.AddSession(target, rs);
+                }
             }
             // El vínculo a proyecto se aplica a TODA la categoría (#137): si cambió, propágalo.
             ApplyProjectToCategory(dlg, edited?.CategoryId ?? rep.CategoryId);

@@ -21,6 +21,9 @@
         <ComboBox x:Name="TitleBox" Header="Título" IsEditable="True" HorizontalAlignment="Stretch"
                   PlaceholderText="p. ej. Concentración (elige uno existente o escribe)" />
 
+        <!-- Fase a la que pertenece la sesión recurrente (#148). Oculto en extraordinarias. -->
+        <ComboBox x:Name="PhaseBox" Header="Fase" HorizontalAlignment="Stretch" Visibility="Collapsed" />
+
         <!-- Recurrente: días de la semana. Provisional: rango de fechas (ver OneOffDatesPanel). -->
         <StackPanel x:Name="DaysPanel" Spacing="6">
             <TextBlock Text="Días" FontWeight="SemiBold" />

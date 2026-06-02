@@ -86,6 +86,22 @@ public sealed partial class SessionDialog : ContentDialog
     public IReadOnlyList<DayOfWeek> SelectedDays =>
         _dayToggles.Where(t => t.btn.IsChecked == true).Select(t => t.day).ToList();
 
+    /// <summary>Fase elegida para la sesión (#148); null si no hay fases configuradas.</summary>
+    public string? SelectedPhase => (PhaseBox.SelectedItem as ComboBoxItem)?.Content as string;
+
+    /// <summary>Rellena el selector de «Fase» y preselecciona una. Permite elegir/mover de fase. #148</summary>
+    public void SetPhases(IReadOnlyList<string> names, string? selected)
+    {
+        PhaseBox.Items.Clear();
+        foreach (var n in names) PhaseBox.Items.Add(new ComboBoxItem { Content = n });
+        int idx = 0;
+        if (selected is not null)
+            for (int i = 0; i < PhaseBox.Items.Count; i++)
+                if (PhaseBox.Items[i] is ComboBoxItem it && (string)it.Content == selected) { idx = i; break; }
+        if (PhaseBox.Items.Count > 0) PhaseBox.SelectedIndex = idx;
+        UpdateOneOffVisibility();
+    }
+
     /// <summary>¿Es una sesión extraordinaria con fecha(s) concreta(s)? (#103/#131)</summary>
     public bool IsOneOff => OneOffSwitch.IsOn;
 
@@ -127,6 +143,8 @@ public sealed partial class SessionDialog : ContentDialog
         // en extraordinaria eligen en qué días de la semana se repite DENTRO del rango de fechas.
         DaysPanel.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
         OneOffDatesPanel.Visibility = on ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        // La fase solo aplica a sesiones recurrentes (las extraordinarias no van en fases). #148
+        PhaseBox.Visibility = (!on && PhaseBox.Items.Count > 0) ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         DayHint.Text = on
             ? "Marca los días de la semana en que se repite dentro del rango (sin marcar = todos los días)."
             : "Marca varios para crearlo en todos a la vez.";
