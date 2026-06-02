@@ -355,6 +355,11 @@ public sealed partial class TimerPage : Page
             TaskbarSilencer.Restore();     // volver a permitir parpadeos/badge (#31)
             if (_createdDesktop) { VirtualDesktops.CloseCurrent(); _createdDesktop = false; }   // cerrar el escritorio de concentración
         }
+        // Bloqueo blando de webs distractoras mientras dura la concentración (#8/#33): minimiza
+        // las ventanas de navegador cuya pestaña activa esté en una web bloqueada del entorno.
+        if (_focus.IsActive && _activeEnv is { BlockedWebsites.Count: > 0 })
+            DistractionGuard.Sweep(_activeEnv.BlockedWebsites);
+
         DndBadge.Visibility = _focus.IsActive ? Visibility.Visible : Visibility.Collapsed;
     }
 
