@@ -49,6 +49,7 @@ internal sealed class SettingsDto
     public string? LastSeenVersion { get; set; }
     public List<CalendarFeedDto> CalendarFeeds { get; set; } = [];
     public List<OverlapPriorityDto> OverlapPriorities { get; set; } = [];
+    public List<SessionPriorityDto>? SessionPriorities { get; set; } = [];   // #149
 }
 
 internal sealed class CalendarFeedDto
@@ -138,6 +139,11 @@ internal sealed class OverlapPriorityDto
 {
     public string EventKey { get; set; } = "";
     public bool PreferCalendar { get; set; }
+}
+
+internal sealed class SessionPriorityDto   // #149
+{
+    public string SessionKey { get; set; } = "";
 }
 
 internal sealed class MusicDto
@@ -364,7 +370,9 @@ internal static class SettingsMapper
         LastSeenVersion = s.LastSeenVersion,
         CalendarFeeds = s.CalendarFeeds.Select(f => new CalendarFeedDto { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
         OverlapPriorities = s.OverlapPriorities
-            .Select(p => new OverlapPriorityDto { EventKey = p.EventKey, PreferCalendar = p.PreferCalendar }).ToList()
+            .Select(p => new OverlapPriorityDto { EventKey = p.EventKey, PreferCalendar = p.PreferCalendar }).ToList(),
+        SessionPriorities = s.SessionPriorities
+            .Select(p => new SessionPriorityDto { SessionKey = p.SessionKey }).ToList()
     };
 
     private static FocusEnvironmentDto ToDto(FocusEnvironment e) => new()
@@ -500,6 +508,9 @@ internal static class SettingsMapper
         OverlapPriorities = d.OverlapPriorities
             .Where(p => !string.IsNullOrWhiteSpace(p.EventKey))
             .Select(p => new OverlapPriority { EventKey = p.EventKey, PreferCalendar = p.PreferCalendar }).ToList(),
+        SessionPriorities = (d.SessionPriorities ?? [])
+            .Where(p => !string.IsNullOrWhiteSpace(p.SessionKey))
+            .Select(p => new SessionPriority { SessionKey = p.SessionKey }).ToList(),
         SessionExceptions = (d.SessionExceptions ?? []).Select(x => new SessionException
         {
             Id = string.IsNullOrWhiteSpace(x.Id) ? $"exc-{Guid.NewGuid():N}"[..12] : x.Id,

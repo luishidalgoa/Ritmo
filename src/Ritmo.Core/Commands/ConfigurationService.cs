@@ -797,6 +797,25 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Prioridad eliminada.");
     }
 
+    // ---------- Prioridad en solapamientos sesión↔sesión (#149) ----------
+
+    /// <summary>
+    /// Marca o desmarca una sesión como prioritaria en sus solapes (#149). Idempotente:
+    /// <paramref name="priority"/> = true la añade (si no estaba); false la quita. Varias
+    /// sesiones pueden ser prioritarias a la vez. Solo afecta a cómo se pinta.
+    /// </summary>
+    public CommandResult SetSessionPriority(string sessionKey, bool priority)
+    {
+        if (string.IsNullOrWhiteSpace(sessionKey)) return CommandResult.Fail("Falta la sesión del solapamiento.");
+        var s = _store.Load();
+        bool had = s.SessionPriorities.Any(p => p.SessionKey == sessionKey);
+        if (had == priority) return CommandResult.Ok("Sin cambios.");
+        var others = s.SessionPriorities.Where(p => p.SessionKey != sessionKey).ToList();
+        if (priority) others.Add(new SessionPriority { SessionKey = sessionKey });
+        _store.Save(s with { SessionPriorities = others });
+        return CommandResult.Ok(priority ? "Sesión priorizada." : "Prioridad quitada.");
+    }
+
     /// <summary>Asocia una categoría de bloque a un entorno (debe existir).</summary>
     public CommandResult MapEnvironmentToKind(string categoryId, string environmentId)
     {

@@ -86,7 +86,10 @@ public sealed partial class SchedulePage : Page
 
     // Panel de detalle y resolución de solapamientos (#114).
     private IReadOnlyList<StudySession> _sessions = [];        // sesiones de la fase visible (para detectar conflictos)
-    private IReadOnlyList<OverlapPriority> _priorities = [];   // decisiones de prioridad guardadas
+    private IReadOnlyList<OverlapPriority> _priorities = [];   // decisiones de prioridad horario↔calendario
+    private IReadOnlyList<Ritmo.Core.Model.SessionPriority> _sessionPriorities = [];   // prioridad sesión↔sesión (#149)
+    // Estado de prioridad por sesión en la semana visible (clave -> Normal/Priority/Receded). #149
+    private readonly Dictionary<string, Ritmo.Core.Scheduling.ConflictState> _conflictState = new();
     private IReadOnlyList<OneOffSession> _oneOffs = [];        // sesiones provisionales (con fecha) (#103)
     private IReadOnlyList<Ritmo.Core.Model.SessionException> _sessionExceptions = [];   // sesiones no realizadas (#137)
     private IReadOnlyList<StudyNote> _notes = [];             // notas (post-its de sesión, #73)
@@ -550,6 +553,7 @@ public sealed partial class SchedulePage : Page
         _startHour = startH;
         _sessions = schedule.Sessions;
         _priorities = settings.OverlapPriorities;
+        _sessionPriorities = settings.SessionPriorities;   // #149
         _oneOffs = settings.OneOffSessions;
         _sessionExceptions = settings.SessionExceptions;   // #137
         _notes = settings.Notes;
@@ -691,13 +695,26 @@ public sealed partial class SchedulePage : Page
             oneOffById[ss] = o.Id;
         }
 
+        // Estado de prioridad sesión↔sesión (#149): clave estable por ocurrencia
+        // (recurrente: día|clave; extraordinaria: "one:"+id) -> Normal/Priority/Receded.
+        _conflictState.Clear();
+        var prioKeys = _sessionPriorities.Select(p => p.SessionKey).ToHashSet();
+        string KeyOf(StudySession x) => oneOffById.TryGetValue(x, out var oid) ? "one:" + oid : MemberKey(x);
+
         foreach (var dayGrp in schedule.Sessions.Concat(oneOffById.Keys).GroupBy(x => x.Day))
-            foreach (var a in Ritmo.Core.Scheduling.OverlapLanes.Assign(dayGrp.ToList()))
+        {
+            var dayList = dayGrp.ToList();
+            foreach (var a in Ritmo.Core.Scheduling.OverlapLanes.Assign(dayList))
                 if (a.LaneCount > 1)
                 {
                     if (oneOffById.TryGetValue(a.Session, out var oid)) _oneOffLane[oid] = (a.Lane, a.LaneCount);
                     else { laneInfo[a.Session] = (a.Lane, a.LaneCount); overlapping.Add(a.Session); }
                 }
+
+            var withKeys = dayList.Select(x => (x, KeyOf(x))).ToList();
+            foreach (var kv in Ritmo.Core.Scheduling.SessionPriorityResolver.Resolve(withKeys, prioKeys))
+                _conflictState[kv.Key] = kv.Value;
+        }
 
         // No fusionar (#137b) las sesiones con una excepción ESTA semana: así una sesión no realizada
         // o parcial un día concreto se tacha/atenúa SOLO ese día, no toda la tira de días contiguos.
@@ -757,6 +774,10 @@ public sealed partial class SchedulePage : Page
             bool notDone = exc is { IsNotDone: true };
             bool partial = exc is { IsNotDone: false };
 
+            // Prioridad sesión↔sesión (#149): si esta sesión choca con otra(s), se destaca con ★
+            // cuando es prioritaria, o recede (se atenúa) si lo es alguna de sus pares.
+            var cstate = _conflictState.GetValueOrDefault(MemberKey(s), Ritmo.Core.Scheduling.ConflictState.Normal);
+
             // Altura final clicable (#139): mínimo cómodo aunque la sesión sea muy corta.
             double cardHeight = Math.Max(MinCardHeight, heightPx - 3);
 
@@ -770,16 +791,18 @@ public sealed partial class SchedulePage : Page
                 Padding = new Thickness(6, 3, 6, 3),
                 BorderBrush = ring ? new SolidColorBrush(accentColor) : null,
                 BorderThickness = ring ? new Thickness(2) : new Thickness(0),
-                Child = BuildCardContent(s, cardHeight, notDone)
+                Child = WithPriorityStar(BuildCardContent(s, cardHeight, notDone), cstate, ScheduleColors.TextFor(s.CategoryId))
             };
 
+            double cardOpacity = notDone ? 0.4 : (partial ? 0.7 : (s.IsTentative ? 0.6 : 1.0));
+            if (cstate == Ritmo.Core.Scheduling.ConflictState.Receded) cardOpacity *= 0.45;   // #149: cede ante la prioritaria
             var card = new SessionCard
             {
                 Content = visual,
                 VerticalAlignment = VerticalAlignment.Top,           // flota por su minuto real (#61)
                 Height = cardHeight,
                 Margin = new Thickness(2, topPx + 1.5, 2, 0),
-                Opacity = notDone ? 0.4 : (partial ? 0.7 : (s.IsTentative ? 0.6 : 1.0)),
+                Opacity = cardOpacity,
                 Tag = group
             };
 
@@ -1278,6 +1301,11 @@ public sealed partial class SchedulePage : Page
             content.Children.Add(new TextBlock { Text = "✦ solo esta semana", FontSize = 9,
                 FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = accentBrush });
 
+            // Prioridad sesión↔sesión (#149): destacar (★) o atenuar la extraordinaria según su solape.
+            var cstate = _conflictState.GetValueOrDefault("one:" + one.Id, Ritmo.Core.Scheduling.ConflictState.Normal);
+            double oneOpacity = one.IsTentative ? 0.6 : 1.0;
+            if (cstate == Ritmo.Core.Scheduling.ConflictState.Receded) oneOpacity *= 0.45;
+
             var card = new Border
             {
                 Background = ScheduleColors.For(one.CategoryId),
@@ -1288,8 +1316,8 @@ public sealed partial class SchedulePage : Page
                 Margin = new Thickness(2, topPx + 1.5, 2, 0),
                 BorderBrush = accentBrush,
                 BorderThickness = new Thickness(2),   // borde de acento = distinta de las recurrentes
-                Opacity = one.IsTentative ? 0.6 : 1.0,
-                Child = content
+                Opacity = oneOpacity,
+                Child = WithPriorityStar(content, cstate, ScheduleColors.TextFor(one.CategoryId))
             };
             var captured = one;
             var capturedCol = dayCol; var capturedTop = topPx;
@@ -1335,6 +1363,14 @@ public sealed partial class SchedulePage : Page
         del.Click += (_, _) => { PushUndo(); AppState.Config.RemoveOneOffSession(one.Id); CloseDetail(); };   // #136
         actions.Children.Add(edit); actions.Children.Add(del);
         content.Children.Add(actions);
+
+        // Solapes sesión↔sesión (#149): prioridad entre esta extraordinaria y lo que choque ese día.
+        var sres = BuildSessionConflictResolver(one.AsSession(), "one:" + one.Id, one.Date);
+        if (sres is not null)
+        {
+            content.Children.Add(SectionLabel("PRIORIDAD ENTRE SESIONES"));
+            content.Children.Add(sres);
+        }
 
         DetailPanel.Visibility = Visibility.Visible;
     }
@@ -1784,7 +1820,98 @@ public sealed partial class SchedulePage : Page
             foreach (var r in resolvers) content.Children.Add(r);
         }
 
+        // Solapes sesión↔sesión (#149): mismo resolver de prioridad que el del calendario, por día.
+        var sessResolvers = new List<FrameworkElement>();
+        foreach (var day in group.Members.Select(m => m.Day).Distinct().OrderBy(d => Array.IndexOf(Days, d)))
+        {
+            int di = Array.IndexOf(Days, day);
+            if (di < 0) continue;
+            var occ = rep with { Day = day };
+            var r = BuildSessionConflictResolver(occ, MemberKey(occ), _weekStart.AddDays(di));
+            if (r is not null) sessResolvers.Add(r);
+        }
+        if (sessResolvers.Count > 0)
+        {
+            content.Children.Add(SectionLabel("PRIORIDAD ENTRE SESIONES"));
+            foreach (var r in sessResolvers) content.Children.Add(r);
+        }
+
         DetailPanel.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Si la ocurrencia <paramref name="self"/> choca ese día con otras sesiones (recurrentes o
+    /// extraordinarias), construye el resolver de prioridad sesión↔sesión (#149). Sin conflicto → null.
+    /// </summary>
+    private FrameworkElement? BuildSessionConflictResolver(StudySession self, string selfKey, DateOnly date)
+    {
+        var peers = new List<(StudySession s, string key)>();
+        foreach (var other in _sessions.Where(o => o.Day == self.Day))
+        {
+            var okey = MemberKey(other);
+            if (okey == selfKey) continue;
+            if (!ScheduleMath.TimesOverlap(self.Start, self.Duration, other.Start, other.Duration)) continue;
+            peers.Add((other, okey));
+        }
+        foreach (var o in _oneOffs.Where(o => o.Date == date))
+        {
+            var okey = "one:" + o.Id;
+            if (okey == selfKey) continue;
+            var os = o.AsSession();
+            if (!ScheduleMath.TimesOverlap(self.Start, self.Duration, os.Start, os.Duration)) continue;
+            peers.Add((os, okey));
+        }
+        return peers.Count == 0 ? null : BuildSessionOverlapResolver(self, selfKey, peers, date);
+    }
+
+    /// <summary>
+    /// Bloque «ver todas y priorizar» de un solape sesión↔sesión (#149). Es el equivalente del
+    /// resolver horario↔calendario: lista las sesiones que chocan ese día con un toggle por cada
+    /// una para marcarla prioritaria. Pueden marcarse varias; las no marcadas se atenúan.
+    /// </summary>
+    private FrameworkElement BuildSessionOverlapResolver(
+        StudySession self, string selfKey, IReadOnlyList<(StudySession s, string key)> peers, DateOnly date)
+    {
+        var prioKeys = _sessionPriorities.Select(p => p.SessionKey).ToHashSet();
+        var es = new System.Globalization.CultureInfo("es-ES");
+        var box = new StackPanel { Spacing = 8 };
+        box.Children.Add(new TextBlock { Text = Capitalize(date.ToString("dddd d", es)), FontSize = 11, Opacity = 0.6 });
+
+        var all = new List<(StudySession s, string key)> { (self, selfKey) };
+        all.AddRange(peers);
+        foreach (var (s, key) in all)
+        {
+            bool isPrio = prioKeys.Contains(key);
+            var row = ConflictRow(ScheduleColors.For(s.CategoryId), $"Sesión · {s.Title}",
+                $"{s.Start:HH\\:mm}–{s.End:HH\\:mm}", winner: isPrio);
+            var toggle = ChoiceButton(isPrio ? "★ Prioritaria" : "Prioridad", isPrio);
+            toggle.FontSize = 12;
+            toggle.VerticalAlignment = VerticalAlignment.Center;
+            toggle.Margin = new Thickness(8, 0, 0, 0);
+            var capKey = key; var capPrio = isPrio;
+            toggle.Click += (_, _) => { AppState.Config.SetSessionPriority(capKey, !capPrio); ReopenAfterPriority(); };
+
+            var g = new Grid();
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(row, 0); Grid.SetColumn(toggle, 1);
+            g.Children.Add(row); g.Children.Add(toggle);
+            box.Children.Add(g);
+        }
+        box.Children.Add(new TextBlock
+        {
+            Text = "Marca las prioritarias. Las no marcadas se atenúan; pueden ser varias.",
+            FontSize = 12, Opacity = 0.7, TextWrapping = TextWrapping.Wrap
+        });
+
+        return new Border
+        {
+            Padding = new Thickness(12), CornerRadius = new CornerRadius(8),
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorSecondaryBrush"],
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+            BorderThickness = new Thickness(1),
+            Child = box
+        };
     }
 
     /// <summary>
@@ -2091,6 +2218,7 @@ public sealed partial class SchedulePage : Page
     {
         if (_selectedEvent is not null) ShowEventDetail(_selectedEvent);
         else if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup);
+        else if (_selectedOneOff is not null) ShowOneOffDetail(_selectedOneOff);   // #149
     }
 
     /// <summary>Cierra el panel y quita el resaltado.</summary>
@@ -2345,6 +2473,24 @@ public sealed partial class SchedulePage : Page
 
     private static TextBlock SectionLabel(string text)
         => new() { Text = text, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Opacity = 0.55, Margin = new Thickness(0, 6, 0, 0) };
+
+    /// <summary>
+    /// Envuelve el contenido de una tarjeta con una estrella ★ en la esquina cuando la sesión
+    /// es PRIORITARIA en un solape (#149). Para Normal/Receded devuelve el contenido tal cual.
+    /// </summary>
+    private static FrameworkElement WithPriorityStar(FrameworkElement body, Ritmo.Core.Scheduling.ConflictState state, Brush textColor)
+    {
+        if (state != Ritmo.Core.Scheduling.ConflictState.Priority) return body;
+        var grid = new Grid();
+        grid.Children.Add(body);
+        grid.Children.Add(new TextBlock
+        {
+            Text = "★", FontSize = 11, Foreground = textColor,
+            HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, -2, -2, 0), IsHitTestVisible = false
+        });
+        return grid;
+    }
 
     private FrameworkElement ConflictRow(Brush color, string title, string time, bool winner)
     {

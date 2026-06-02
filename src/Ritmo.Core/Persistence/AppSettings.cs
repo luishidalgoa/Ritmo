@@ -114,6 +114,13 @@ public sealed record AppSettings
     public IReadOnlyList<OverlapPriority> OverlapPriorities { get; init; } = [];
 
     /// <summary>
+    /// Sesiones marcadas como prioritarias en sus solapes sesión↔sesión (#149): cuando
+    /// varias chocan en una franja, estas se destacan y las no marcadas recede. Solo
+    /// afecta a cómo se pinta.
+    /// </summary>
+    public IReadOnlyList<SessionPriority> SessionPriorities { get; init; } = [];
+
+    /// <summary>
     /// Mapeo opcional categoría de bloque (id) → id de entorno, para asociar automáticamente
     /// (p. ej. un bloque "Reunión" usa el entorno "Reunión"). #70
     /// </summary>
