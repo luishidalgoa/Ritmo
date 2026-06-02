@@ -212,6 +212,12 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — Release v1.1.1
+
+- **«Hecho por»: foto real del autor.** La tarjeta de autor usa la foto del portfolio
+  (`PersonPicture.ProfilePicture`); si no carga (sin red) cae a las iniciales «LH». Parche
+  sobre v1.1.0; sin diapositiva de «Novedades» (retoque visual).
+
 ### 2026-06-03 — 🚀 Release v1.1.0 «Ritmo en tu idioma… y mucho más»
 
 - **Release v1.1.0.** Primera versión publicada desde la v1.0.3, con 65 commits de mejoras. Diapositiva
