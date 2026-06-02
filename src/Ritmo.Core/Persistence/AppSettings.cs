@@ -93,6 +93,10 @@ public sealed record AppSettings
     public string? NtfyServerUrl { get; init; }
     public string? NtfyTopic { get; init; }
 
+    /// <summary>Client ID OAuth de Google (#64) para sincronizar Google Tasks. Es PÚBLICO (apps de
+    /// escritorio con PKCE no usan secreto confidencial); el refresh token va en el almacén seguro.</summary>
+    public string? GoogleClientId { get; init; }
+
     /// <summary>
     /// Última versión de la app cuyas «Novedades» vio el usuario (p. ej. "1.0.1.0").
     /// Null = nunca las ha visto. Al actualizar la app, si la versión actual es mayor

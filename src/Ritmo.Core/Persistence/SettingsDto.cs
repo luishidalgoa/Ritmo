@@ -45,6 +45,7 @@ internal sealed class SettingsDto
     public bool NtfyEnabled { get; set; }
     public string? NtfyServerUrl { get; set; }
     public string? NtfyTopic { get; set; }
+    public string? GoogleClientId { get; set; }   // #64: OAuth público para Google Tasks
     public string? LastSeenVersion { get; set; }
     public List<CalendarFeedDto> CalendarFeeds { get; set; } = [];
     public List<OverlapPriorityDto> OverlapPriorities { get; set; } = [];
@@ -354,6 +355,7 @@ internal static class SettingsMapper
         NtfyEnabled = s.NtfyEnabled,
         NtfyServerUrl = s.NtfyServerUrl,
         NtfyTopic = s.NtfyTopic,
+        GoogleClientId = s.GoogleClientId,
         LastSeenVersion = s.LastSeenVersion,
         CalendarFeeds = s.CalendarFeeds.Select(f => new CalendarFeedDto { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
         OverlapPriorities = s.OverlapPriorities
@@ -487,6 +489,7 @@ internal static class SettingsMapper
         NtfyEnabled = d.NtfyEnabled,
         NtfyServerUrl = d.NtfyServerUrl,
         NtfyTopic = d.NtfyTopic,
+        GoogleClientId = d.GoogleClientId,
         LastSeenVersion = d.LastSeenVersion,
         CalendarFeeds = d.CalendarFeeds.Select(f => new CalendarFeed { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
         OverlapPriorities = d.OverlapPriorities

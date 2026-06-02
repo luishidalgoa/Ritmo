@@ -690,6 +690,15 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Tema actualizado.");
     }
 
+    /// <summary>Guarda el Client ID OAuth de Google (público, apps de escritorio con PKCE) para
+    /// sincronizar Google Tasks (#64). Vacío = lo borra/desconecta.</summary>
+    public CommandResult SetGoogleClientId(string? clientId)
+    {
+        var id = (clientId ?? "").Trim();
+        _store.Save(_store.Load() with { GoogleClientId = id.Length == 0 ? null : id });
+        return CommandResult.Ok(id.Length == 0 ? "Google desconectado." : "Client ID de Google guardado.");
+    }
+
     /// <summary>Guarda la conexión GLOBAL a Navidrome (servidor + usuario). La
     /// contraseña se guarda aparte en el almacén seguro del host. #107</summary>
     public CommandResult SetNavidromeConnection(string serverUrl, string user)
