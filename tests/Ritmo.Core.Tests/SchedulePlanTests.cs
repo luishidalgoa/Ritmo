@@ -36,6 +36,37 @@ public class SchedulePhaseTests
         Assert.True(p.IsActiveOn(new DateOnly(2030, 1, 1)));
         Assert.False(p.IsActiveOn(new DateOnly(2026, 5, 1)));
     }
+
+    [Fact]
+    public void ActivePhasesInWeek_devuelve_todas_las_solapadas()
+    {
+        // Fase 1: jun→oct. Curso: solo este mes. Semana dentro de ambas → las dos. (#148)
+        var plan = new SchedulePlan
+        {
+            Phases = new[]
+            {
+                Phase("Fase 1", new DateOnly(2026, 6, 1), new DateOnly(2026, 10, 31)),
+                Phase("Curso Smart City", new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 30)),
+                Phase("Antigua", new DateOnly(2026, 1, 1), new DateOnly(2026, 3, 31))
+            }
+        };
+        var week = new DateOnly(2026, 6, 8);   // lunes dentro de junio
+        var names = plan.ActivePhasesInWeek(week).Select(p => p.Name).ToList();
+        Assert.Equal(2, names.Count);
+        Assert.Contains("Fase 1", names);
+        Assert.Contains("Curso Smart City", names);
+        Assert.DoesNotContain("Antigua", names);
+    }
+
+    [Fact]
+    public void ActivePhasesInWeek_excluye_las_que_no_tocan_la_semana()
+    {
+        var plan = new SchedulePlan
+        {
+            Phases = new[] { Phase("Curso", new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 30)) }
+        };
+        Assert.Empty(plan.ActivePhasesInWeek(new DateOnly(2026, 7, 6)));   // semana de julio
+    }
 }
 
 public class SchedulePlanTests

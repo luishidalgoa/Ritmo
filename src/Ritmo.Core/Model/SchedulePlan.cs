@@ -25,6 +25,20 @@ public sealed record SchedulePlan
               .FirstOrDefault();
 
     /// <summary>
+    /// Todas las fases que cubren ALGÚN día de la semana [weekStart, weekStart+6] (#148). A
+    /// diferencia de <see cref="GetActivePhase"/> (una sola), aquí pueden devolverse varias
+    /// solapadas: el horario las muestra juntas. Ordenadas por fecha de inicio.
+    /// </summary>
+    public IReadOnlyList<SchedulePhase> ActivePhasesInWeek(DateOnly weekStart)
+    {
+        var weekEnd = weekStart.AddDays(6);
+        return Phases
+            .Where(p => p.ValidFrom <= weekEnd && (p.ValidTo is null || p.ValidTo >= weekStart))
+            .OrderBy(p => p.ValidFrom)
+            .ToList();
+    }
+
+    /// <summary>
     /// La próxima fase que empieza estrictamente DESPUÉS de la fecha dada
     /// (para "tu Fase 2 empieza el 1 de noviembre"). Null si no hay ninguna futura.
     /// </summary>

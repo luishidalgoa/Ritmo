@@ -27,11 +27,21 @@ public sealed partial class SchedulePage : Page
     private static readonly string[] DayNames =
         { "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO" };
 
-    private string? _activePhaseName;
+    private string? _activePhaseName;   // fase por defecto para sesiones NUEVAS (la más reciente activa)
     private string? _viewedPhaseName;   // fase elegida en el selector (null = automática por fecha) (#46)
     private bool _loadingPhaseSel;
     private IReadOnlyList<CalendarEvent> _calEvents = [];   // eventos del calendario de la semana mostrada (#112)
     private DateOnly _weekStart = MondayOf(DateOnly.FromDateTime(DateTime.Now));   // lunes de la semana mostrada (#113)
+
+    // #148: varias fases solapadas a la vez. Mapa sesión→fase (por referencia, las instancias son
+    // distintas por fase) + filtros de visibilidad (fases y calendarios que el usuario oculta).
+    private readonly Dictionary<StudySession, string> _sessionPhase = new(ReferenceEqualityComparer.Instance);
+    private readonly HashSet<string> _hiddenPhases = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _hiddenCalendars = new(StringComparer.Ordinal);
+
+    /// <summary>Fase a la que pertenece un grupo pintado (#148); usa el mapa por referencia.</summary>
+    private string? GroupPhase(Ritmo.Core.Scheduling.SessionGroup g)
+        => _sessionPhase.TryGetValue(g.Representative, out var ph) ? ph : _activePhaseName;
 
     private static DateOnly MondayOf(DateOnly d) => d.AddDays(-(((int)d.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7));
 
@@ -301,16 +311,17 @@ public sealed partial class SchedulePage : Page
             CloseDetail();   // cierra el panel + repinta
             return;
         }
-        if (_selectedGroup is not null && _activePhaseName is not null)
+        var delPhase = _selectedGroup is not null ? GroupPhase(_selectedGroup) : null;   // #148: su fase
+        if (_selectedGroup is not null && delPhase is not null)
         {
-            var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+            var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == delPhase);
             if (phase is null) return;
             var rep = _selectedGroup.Representative;
             var groupDays = _selectedGroup.Members.Select(m => m.Day).ToHashSet();
             bool Belongs(StudySession x) => SameBlock(x, rep) && groupDays.Contains(x.Day);
             var kept = phase.Schedule.Sessions.Where(x => !Belongs(x)).ToList();
             PushUndo();   // #136
-            AppState.Config.ReplaceSessions(_activePhaseName, kept);
+            AppState.Config.ReplaceSessions(delPhase, kept);
             AppState.Config.PruneOrphanSessionData();   // #138 limpia excepciones huérfanas
             CloseDetail();
         }
@@ -407,9 +418,10 @@ public sealed partial class SchedulePage : Page
         _startTopPx = ScheduleGeometry.TopPixels(group.Representative.Start, _startHour, HourHeight);
         _startHeightPx = ScheduleGeometry.HeightPixels(group.Representative.Duration, HourHeight);
 
-        // Conservadas (no del grupo) + topes de no-solape, calculados una vez.
+        // Conservadas (no del grupo) + topes de no-solape, calculados una vez. La fase es la del
+        // grupo arrastrado (#148), no la "activa": así el no-solape se calcula contra su propia fase.
         var settings = AppState.Load();
-        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == GroupPhase(group));
         var rep = group.Representative;
         var groupDays = group.Members.Select(m => m.Day).ToHashSet();
         _keptForDrag = phase is null ? []
@@ -497,22 +509,27 @@ public sealed partial class SchedulePage : Page
         // si una fase cubre algún día de la semana, se usa; si no, no hay fase (rejilla
         // vacía) — así al pasar el límite de una fase, el horario "corta". Una fase
         // elegida a mano en el selector tiene prioridad.
-        SchedulePhase? phase = _viewedPhaseName is not null
-            ? settings.Plan.Phases.FirstOrDefault(p => p.Name == _viewedPhaseName)
-            : null;
-        if (phase is null)
-            for (int d = 0; d < 7 && phase is null; d++)
-                phase = settings.Plan.GetActivePhase(_weekStart.AddDays(d));
-        BuildPhaseSelector(settings, phase);
-        var schedule = phase?.Schedule ?? new WeeklySchedule();   // sin fase -> rejilla vacía
-        _activePhaseName = phase?.Name;
-        AddBtn.IsEnabled = phase is not null;
+        // #148: el horario muestra la UNIÓN de TODAS las fases que cubren la semana (menos las
+        // ocultas por el filtro). Cada sesión recuerda su fase (mapa por referencia) para editarse
+        // en la suya. La fase por defecto para sesiones NUEVAS es la más reciente activa.
+        var phasesInWeek = settings.Plan.ActivePhasesInWeek(_weekStart);
+        var visiblePhases = phasesInWeek.Where(p => !_hiddenPhases.Contains(p.Name)).ToList();
 
-        PhaseInfo.Text = phase is not null
-            ? $"{phase.Name}  ·  {phase.ValidFrom:dd/MM/yyyy} → {(phase.ValidTo?.ToString("dd/MM/yyyy") ?? "indefinida")}"
-            : settings.Plan.Phases.Count > 0
-                ? "Sin fase para esta semana"
-                : "Sin fase configurada";
+        _sessionPhase.Clear();
+        var unionSessions = new List<StudySession>();
+        foreach (var p in visiblePhases)
+            foreach (var s in p.Schedule.Sessions) { unionSessions.Add(s); _sessionPhase[s] = p.Name; }
+
+        _activePhaseName = phasesInWeek.OrderByDescending(p => p.ValidFrom).FirstOrDefault()?.Name;
+        BuildPhaseFilter(settings, phasesInWeek);
+        var schedule = new WeeklySchedule { Sessions = unionSessions };   // unión (vacío = rejilla vacía)
+        AddBtn.IsEnabled = phasesInWeek.Count > 0;
+
+        PhaseInfo.Text = phasesInWeek.Count == 0
+            ? (settings.Plan.Phases.Count > 0 ? "Sin fase para esta semana" : "Sin fase configurada")
+            : (visiblePhases.Count == phasesInWeek.Count
+                ? string.Join("  ·  ", phasesInWeek.Select(p => p.Name))
+                : $"{visiblePhases.Count}/{phasesInWeek.Count} fases · " + string.Join("  ·  ", visiblePhases.Select(p => p.Name)));
 
         int startH = settings.ViewConfig.DayStart.Hour;
         int endH = settings.ViewConfig.DayEnd.Hour;
@@ -669,9 +686,15 @@ public sealed partial class SchedulePage : Page
         }
         bool Standalone(StudySession x) => overlapping.Contains(x) || hasExceptionThisWeek.Contains(x);
 
-        // Grupos a pintar: fusionar solo las que NO son "standalone"; cada standalone, una tarjeta de un día.
-        var mergeable = schedule.Sessions.Where(x => !Standalone(x)).ToList();
-        var groups = new List<Ritmo.Core.Scheduling.SessionGroup>(Ritmo.Core.Scheduling.SessionMerge.Merge(mergeable, Days));
+        // Grupos a pintar: la fusión es POR FASE (#148) para que un grupo nunca mezcle sesiones de
+        // dos fases (así al editarlo se edita en su fase). El solape/standalone se calcula sobre la
+        // UNIÓN (arriba), así una sesión de Fase 1 y otra del Curso a la misma hora salen en carriles.
+        var groups = new List<Ritmo.Core.Scheduling.SessionGroup>();
+        foreach (var byPhase in schedule.Sessions.Where(x => !Standalone(x))
+                                        .GroupBy(x => _sessionPhase.TryGetValue(x, out var ph) ? ph : ""))
+        {
+            groups.AddRange(Ritmo.Core.Scheduling.SessionMerge.Merge(byPhase.ToList(), Days));
+        }
         foreach (var ov in schedule.Sessions.Where(Standalone))
         {
             int di = Array.IndexOf(Days, ov.Day);
@@ -1000,33 +1023,42 @@ public sealed partial class SchedulePage : Page
 
     // ---------- Navegación entre semanas (#113) ----------
 
-    // ---------- Selector de fase del plan (ver pasadas/futuras, #46) ----------
+    // ---------- Filtro de visibilidad: qué fases y calendarios se muestran (#148) ----------
 
-    private void BuildPhaseSelector(Ritmo.Core.Persistence.AppSettings settings, SchedulePhase? current)
+    private void BuildPhaseFilter(Ritmo.Core.Persistence.AppSettings settings, IReadOnlyList<SchedulePhase> phasesInWeek)
     {
-        _loadingPhaseSel = true;
-        PhaseSelector.Items.Clear();
-        PhaseSelector.Items.Add(new ComboBoxItem { Content = "Automática (por fecha)", Tag = "" });
-        foreach (var p in settings.Plan.OrderedPhases)
-            PhaseSelector.Items.Add(new ComboBoxItem { Content = p.Name, Tag = p.Name });
+        var calendars = settings.CalendarFeeds.Select(f => f.Name).Distinct().ToList();
+        // El filtro tiene sentido si hay varias fases activas o algún calendario suscrito.
+        bool useful = phasesInWeek.Count > 1 || calendars.Count > 0;
+        FilterBtn.Visibility = useful ? Visibility.Visible : Visibility.Collapsed;
+        if (!useful) return;
 
-        int idx = 0;
-        if (_viewedPhaseName is not null)
-            for (int i = 0; i < PhaseSelector.Items.Count; i++)
-                if (PhaseSelector.Items[i] is ComboBoxItem it && (string)it.Tag == _viewedPhaseName) { idx = i; break; }
-        PhaseSelector.SelectedIndex = idx;
-        // Solo tiene sentido elegir si hay más de una fase.
-        PhaseSelector.Visibility = settings.Plan.Phases.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        _loadingPhaseSel = false;
-    }
-
-    private void PhaseSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_loadingPhaseSel) return;
-        var tag = (PhaseSelector.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
-        _viewedPhaseName = string.IsNullOrEmpty(tag) ? null : tag;
-        CloseDetail(internalRefresh: true);   // la selección previa puede no aplicar a otra fase
-        Build();
+        var panel = new StackPanel { Spacing = 4, Padding = new Thickness(8), MinWidth = 220 };
+        if (phasesInWeek.Count > 0)
+        {
+            panel.Children.Add(new TextBlock { Text = "FASES", FontSize = 11, Opacity = 0.6, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+            foreach (var p in phasesInWeek)
+            {
+                var name = p.Name;
+                var cb = new CheckBox { Content = name, IsChecked = !_hiddenPhases.Contains(name), MinWidth = 0 };
+                cb.Checked += (_, _) => { _hiddenPhases.Remove(name); Build(); };
+                cb.Unchecked += (_, _) => { _hiddenPhases.Add(name); Build(); };
+                panel.Children.Add(cb);
+            }
+        }
+        if (calendars.Count > 0)
+        {
+            panel.Children.Add(new TextBlock { Text = "CALENDARIOS", FontSize = 11, Opacity = 0.6, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new Thickness(0, 6, 0, 0) });
+            foreach (var c in calendars)
+            {
+                var name = c;
+                var cb = new CheckBox { Content = name, IsChecked = !_hiddenCalendars.Contains(name), MinWidth = 0 };
+                cb.Checked += (_, _) => { _hiddenCalendars.Remove(name); Build(); };
+                cb.Unchecked += (_, _) => { _hiddenCalendars.Add(name); Build(); };
+                panel.Children.Add(cb);
+            }
+        }
+        FilterBtn.Flyout = new Flyout { Content = new ScrollViewer { Content = panel, MaxHeight = 420 } };
     }
 
     // ---------- Navegador de calendario: saltar por mes/año (#119) ----------
@@ -1098,6 +1130,7 @@ public sealed partial class SchedulePage : Page
             if (dayCol < 0) continue;
 
             var cal = string.IsNullOrEmpty(ev.Calendar) ? "Calendario" : ev.Calendar!;
+            if (_hiddenCalendars.Contains(cal)) continue;   // #148: oculto por el filtro
             var color = CalPalette[CalColorIndex(cal)];   // color estable por nombre de calendario
 
             // Posición por píxel (igual que los bloques): el evento cae en su minuto real. #61
@@ -1358,9 +1391,10 @@ public sealed partial class SchedulePage : Page
     /// </summary>
     private async Task ApplyResize(Ritmo.Core.Scheduling.SessionGroup group, int c0, int newSpan)
     {
-        if (_activePhaseName is null) { Build(); return; }
+        var phaseName = GroupPhase(group);   // #148: editar en la fase de ESTE grupo
+        if (phaseName is null) { Build(); return; }
         var settings = AppState.Load();
-        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == phaseName);
         if (phase is null) { Build(); return; }
 
         var rep = group.Representative;
@@ -1374,7 +1408,7 @@ public sealed partial class SchedulePage : Page
         if (Collides(rebuilt, kept)) { Build(); return; }   // no pisar otra sesión (#88)
 
         PushUndo();   // #136
-        AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
+        AppState.Config.ReplaceSessions(phaseName, [.. kept, .. rebuilt]);
         await Task.CompletedTask;
         Build();
     }
@@ -1385,11 +1419,12 @@ public sealed partial class SchedulePage : Page
     /// </summary>
     private async Task ApplyMove(Ritmo.Core.Scheduling.SessionGroup group, int dayDelta, int slotDelta)
     {
-        if (_activePhaseName is null) { Build(); return; }
+        var phaseName = GroupPhase(group);   // #148: editar en la fase de ESTE grupo
+        if (phaseName is null) { Build(); return; }
         if (dayDelta == 0 && slotDelta == 0) { Build(); return; }   // no se movió de verdad
 
         var settings = AppState.Load();
-        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == phaseName);
         if (phase is null) { Build(); return; }
 
         var rep = group.Representative;
@@ -1410,7 +1445,7 @@ public sealed partial class SchedulePage : Page
         if (Collides(moved, kept)) { Build(); return; }   // no pisar otra sesión (#88)
 
         PushUndo();   // #136
-        AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. moved]);
+        AppState.Config.ReplaceSessions(phaseName, [.. kept, .. moved]);
         await Task.CompletedTask;
         Build();
     }
@@ -1421,9 +1456,10 @@ public sealed partial class SchedulePage : Page
     /// </summary>
     private async Task ApplyVerticalResize(Ritmo.Core.Scheduling.SessionGroup group, int newSpanRows)
     {
-        if (_activePhaseName is null) { Build(); return; }
+        var phaseName = GroupPhase(group);   // #148: editar en la fase de ESTE grupo
+        if (phaseName is null) { Build(); return; }
         var settings = AppState.Load();
-        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == phaseName);
         if (phase is null) { Build(); return; }
 
         var rep = group.Representative;
@@ -1437,7 +1473,7 @@ public sealed partial class SchedulePage : Page
         if (Collides(resized, kept)) { Build(); return; }   // chocaría con algo debajo (#90)
 
         PushUndo();   // #136
-        AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. resized]);
+        AppState.Config.ReplaceSessions(phaseName, [.. kept, .. resized]);
         await Task.CompletedTask;
         Build();
     }
@@ -1445,9 +1481,10 @@ public sealed partial class SchedulePage : Page
     /// <summary>Redimensión en esquina: cambia días Y duración a la vez.</summary>
     private async Task ApplyResizeBoth(Ritmo.Core.Scheduling.SessionGroup group, int c0, int daySpan, int rowSpan)
     {
-        if (_activePhaseName is null) { Build(); return; }
+        var phaseName = GroupPhase(group);   // #148: editar en la fase de ESTE grupo
+        if (phaseName is null) { Build(); return; }
         var settings = AppState.Load();
-        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == phaseName);
         if (phase is null) { Build(); return; }
 
         var rep = group.Representative;
@@ -1462,7 +1499,7 @@ public sealed partial class SchedulePage : Page
         if (Collides(rebuilt, kept)) { Build(); return; }
 
         PushUndo();   // #136
-        AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
+        AppState.Config.ReplaceSessions(phaseName, [.. kept, .. rebuilt]);
         await Task.CompletedTask;
         Build();
     }
@@ -1550,9 +1587,10 @@ public sealed partial class SchedulePage : Page
     /// </summary>
     private async Task ShowEditGroup(Ritmo.Core.Scheduling.SessionGroup group)
     {
-        if (_activePhaseName is null) return;
+        var phaseName = GroupPhase(group);   // #148: editar en la fase de ESTE grupo
+        if (phaseName is null) return;
         var settings = AppState.Load();
-        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        var phase = settings.Plan.Phases.FirstOrDefault(p => p.Name == phaseName);
         if (phase is null) return;
 
         var rep = group.Representative;
@@ -1586,7 +1624,7 @@ public sealed partial class SchedulePage : Page
             {
                 // Convertir a extraordinaria (#103/#131): quitar el grupo recurrente y crear una
                 // sesión provisional por cada día del rango de fechas elegido.
-                AppState.Config.ReplaceSessions(_activePhaseName, kept);
+                AppState.Config.ReplaceSessions(phaseName, kept);
                 AppState.Config.PruneOrphanSessionData();   // #138 el grupo recurrente ya no existe
                 AddOneOffsForRange(dlg);
             }
@@ -1595,7 +1633,7 @@ public sealed partial class SchedulePage : Page
                 // Reemplaza el grupo por una sesión recurrente en cada día marcado.
                 var rebuilt = dlg.SelectedDays.Select(d => dlg.ToSession(d)).ToList();
                 edited = rebuilt.FirstOrDefault();
-                AppState.Config.ReplaceSessions(_activePhaseName, [.. kept, .. rebuilt]);
+                AppState.Config.ReplaceSessions(phaseName, [.. kept, .. rebuilt]);
             }
             // El vínculo a proyecto se aplica a TODA la categoría (#137): si cambió, propágalo.
             ApplyProjectToCategory(dlg, edited?.CategoryId ?? rep.CategoryId);
@@ -1603,7 +1641,7 @@ public sealed partial class SchedulePage : Page
         else if (result == ContentDialogResult.None)   // Eliminar todo el grupo
         {
             PushUndo();   // #136
-            AppState.Config.ReplaceSessions(_activePhaseName, kept);
+            AppState.Config.ReplaceSessions(phaseName, kept);
             AppState.Config.PruneOrphanSessionData();   // #138 limpia excepciones huérfanas
         }
         else
@@ -1644,7 +1682,7 @@ public sealed partial class SchedulePage : Page
         var days = group.Members.Select(m => m.Day).Distinct()
                         .OrderBy(d => Array.IndexOf(Days, d)).Select(ShortDay);
         meta.Children.Add(MetaLine("Se repite: " + string.Join(" · ", days)));
-        if (_activePhaseName is not null) meta.Children.Add(MetaLine("Fase: " + _activePhaseName));
+        if (GroupPhase(group) is { } gph) meta.Children.Add(MetaLine("Fase: " + gph));
         content.Children.Add(meta);
 
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -2096,13 +2134,9 @@ public sealed partial class SchedulePage : Page
     /// <summary>Sesiones de la fase activa que están en la selección (#142).</summary>
     private bool IsSelected(StudySession s) => _multiSel.Contains(MemberKey(s));
 
-    /// <summary>Lista de las sesiones seleccionadas en la fase activa (#142).</summary>
+    /// <summary>Sesiones seleccionadas, de CUALQUIER fase visible (#148: la unión las muestra todas).</summary>
     private List<StudySession> SelectedSessions()
-    {
-        if (_activePhaseName is null) return new List<StudySession>();
-        var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
-        return phase is null ? new List<StudySession>() : phase.Schedule.Sessions.Where(IsSelected).ToList();
-    }
+        => _sessionPhase.Keys.Where(IsSelected).ToList();
 
     /// <summary>Configura «qué se abre al concentrarme» para cada tipo de sesión (título) de la selección. #142</summary>
     private async Task BulkBehavior()
@@ -2127,15 +2161,20 @@ public sealed partial class SchedulePage : Page
         AfterBulk();
     }
 
-    /// <summary>Aplica una transformación a las sesiones seleccionadas de la fase activa y guarda.</summary>
+    /// <summary>Aplica una transformación a las sesiones seleccionadas, EN CADA fase que toquen (#148).</summary>
     private void ApplyToSelected(Func<StudySession, StudySession> transform)
     {
-        if (_activePhaseName is null) return;
-        var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
-        if (phase is null) return;
+        var s = AppState.Load();
+        var affected = _sessionPhase.Where(kv => IsSelected(kv.Key)).Select(kv => kv.Value).Distinct().ToList();
+        if (affected.Count == 0) return;
         PushUndo();   // #136
-        var updated = phase.Schedule.Sessions.Select(x => IsSelected(x) ? transform(x) : x).ToList();
-        AppState.Config.ReplaceSessions(_activePhaseName, updated);
+        foreach (var pn in affected)
+        {
+            var phase = s.Plan.Phases.FirstOrDefault(p => p.Name == pn);
+            if (phase is null) continue;
+            var updated = phase.Schedule.Sessions.Select(x => IsSelected(x) ? transform(x) : x).ToList();
+            AppState.Config.ReplaceSessions(pn, updated);
+        }
     }
 
     /// <summary>Tras una acción en bloque que cambia los datos: limpia la selección y repinta.</summary>
@@ -2185,13 +2224,11 @@ public sealed partial class SchedulePage : Page
 
     private async Task BulkMarkNotDone()
     {
-        if (_activePhaseName is null || _multiSel.Count == 0) return;
-        var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
-        if (phase is null) return;
+        var sel = SelectedSessions();
+        if (sel.Count == 0) return;
         PushUndo();   // #136
-        foreach (var x in phase.Schedule.Sessions)
+        foreach (var x in sel)   // la excepción se identifica por SessionKey (independiente de la fase)
         {
-            if (!IsSelected(x)) continue;
             int di = Array.IndexOf(Days, x.Day);
             if (di < 0) continue;
             var date = _weekStart.AddDays(di);
@@ -2203,17 +2240,21 @@ public sealed partial class SchedulePage : Page
 
     private async Task BulkDelete()
     {
-        if (_activePhaseName is null || _multiSel.Count == 0) return;
+        if (_multiSel.Count == 0) return;
         var dlg = new ContentDialog { Title = "Borrar sesiones",
             Content = $"¿Borrar las {_multiSel.Count} sesiones seleccionadas? (puedes deshacer con Ctrl+Z)",
             PrimaryButtonText = "Borrar", CloseButtonText = "Cancelar", XamlRoot = this.XamlRoot,
             DefaultButton = ContentDialogButton.Close };
         if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
-        var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
-        if (phase is null) return;
+        var s = AppState.Load();
+        var affected = _sessionPhase.Where(kv => IsSelected(kv.Key)).Select(kv => kv.Value).Distinct().ToList();
         PushUndo();   // #136
-        var kept = phase.Schedule.Sessions.Where(x => !IsSelected(x)).ToList();
-        AppState.Config.ReplaceSessions(_activePhaseName, kept);
+        foreach (var pn in affected)   // borrar en CADA fase que toquen (#148)
+        {
+            var phase = s.Plan.Phases.FirstOrDefault(p => p.Name == pn);
+            if (phase is null) continue;
+            AppState.Config.ReplaceSessions(pn, phase.Schedule.Sessions.Where(x => !IsSelected(x)).ToList());
+        }
         AppState.Config.PruneOrphanSessionData();   // #138
         AfterBulk();
     }
