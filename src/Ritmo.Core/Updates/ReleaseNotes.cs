@@ -95,6 +95,24 @@ public static class ReleaseNotes
                 "Al concentrarte, Ritmo deja de parpadear en la barra de tareas para no distraerte.",
             ]
         },
+        new ReleaseNote
+        {
+            Version = "1.1.0.0",
+            Title = "Ritmo en tu idioma… y mucho más",
+            Emoji = "🌍",
+            Highlights =
+            [
+                "Ritmo ahora habla inglés: cámbialo en Ajustes → Apariencia → Idioma.",
+                "Bloquea las webs que te distraen mientras te concentras (y, con la extensión de navegador, también a nivel de red).",
+                "Sincroniza tus tareas con Google Tasks en ambos sentidos.",
+                "Publica tu horario en Google Calendar y muestra tus eventos de Google en «Hoy».",
+                "Isla flotante de concentración: arrástrala donde quieras, compáctala y abre las notas desde ella.",
+                "Toma notas de la sesión sin salir de la concentración; ahora también puedes asignarlas a una categoría de bloque.",
+                "Atajo a las notas desde el navbar, agrupadas por hoy / generales / otras.",
+                "Ajustes reorganizados por temas (Tu plan · Concentración · Conexiones · Notas · La app), más fáciles de recorrer.",
+                "Nueva pestaña «Hecho por» con quién hay detrás de Ritmo.",
+            ]
+        },
     ];
 
     /// <summary>Novedades en inglés (#48 i18n). Mismas versiones/emojis que <see cref="All"/>, traducidas.</summary>
@@ -164,6 +182,24 @@ public static class ReleaseNotes
                 "An accidental change to the schedule? Undo with Ctrl+Z and redo with Ctrl+Y.",
                 "Hover over the \"?\" on fields: there are now explanations with examples on the new stuff.",
                 "While you focus, Ritmo stops flashing in the taskbar so it doesn't distract you.",
+            ]
+        },
+        new ReleaseNote
+        {
+            Version = "1.1.0.0",
+            Title = "Ritmo in your language… and much more",
+            Emoji = "🌍",
+            Highlights =
+            [
+                "Ritmo now speaks English: switch it in Settings → Appearance → Language.",
+                "Block distracting sites while you focus (and, with the browser extension, at the network level too).",
+                "Sync your tasks with Google Tasks both ways.",
+                "Publish your schedule to Google Calendar and show your Google events in \"Today\".",
+                "Floating focus island: drag it anywhere, make it compact, and open your notes from it.",
+                "Take session notes without leaving focus; you can now also assign them to a block category.",
+                "Notes shortcut from the navbar, grouped by today / general / other.",
+                "Settings reorganized by topic (Your plan · Focus · Connections · Notes · The app), easier to skim.",
+                "New \"Made by\" tab showing who's behind Ritmo.",
             ]
         },
     ];

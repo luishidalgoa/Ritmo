@@ -212,6 +212,27 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — 🚀 Release v1.1.0 «Ritmo en tu idioma… y mucho más»
+
+- **Release v1.1.0.** Primera versión publicada desde la v1.0.3, con 65 commits de mejoras. Diapositiva
+  de «Novedades» 1.1.0.0 (ES/EN) que resume lo grande: idioma inglés, bloqueo de webs, sync con Google
+  Tasks, Google Calendar (publicar + leer), isla movible, notas, Ajustes reorganizados y «Hecho por».
+- **«Hecho por» — nueva pestaña de créditos del autor.** Página `AboutPage` en el navbar (footer): bio,
+  enlaces (portfolio / GitHub / código del proyecto), «Sobre Ritmo», «¿Hablamos?» y el «Stack técnico».
+  Localizada ES/EN.
+- **#48 — Ajustes reorganizados por dominio + cabeceras de grupo.** Las 15 secciones se agrupan en
+  Tu plan · Concentración · Conexiones e integraciones · Notas · La aplicación, con cabeceras de acento.
+  «Conexiones» y «Apps vinculadas» se fusionan en una sola tarjeta de integraciones.
+- **#153 — Notas: atajo desde la isla + el navbar y asignar por categoría.** Botón de notas en la isla
+  flotante (abre las notas de la sesión activa); item «Notas» en el navbar con panel agrupado
+  (hoy/generales/otras); y una nota puede asociarse a una **categoría** de bloque (aplica a todas las
+  sesiones de ese tipo), no solo a un título. `StudyNote.CategoryId` + `AppliesTo`. Núcleo 615/615.
+- **#48 — i18n: la app habla inglés.** Infraestructura de idioma (ES/EN) con selector en Ajustes →
+  Apariencia → Idioma; traducidas la navegación, Novedades, las ayudas (glosario), y la pantalla de
+  Ajustes completa — incluidos los textos dinámicos del code-behind (estados de Google/Navidrome/ntfy,
+  versión, fases, entornos, categorías, diálogos…). El modelo/lógica del núcleo siguen siendo
+  agnósticos (mensajes de validación en español, capa compartida).
+
 ### 2026-06-01
 
 - **#31 — Ocultar distintivos/parpadeos de la barra de tareas al concentrarse.** El ajuste «Ocultar
