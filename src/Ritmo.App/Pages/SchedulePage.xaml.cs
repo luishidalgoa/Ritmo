@@ -108,7 +108,9 @@ public sealed partial class SchedulePage : Page
     private bool _hoverValid;                                  // ¿hay una celda válida bajo el ratón?
 
     // Tarjetas en carril (solape el mismo día, #130): se re-disponen al cambiar el ancho de columna.
-    private readonly List<(SessionCard card, int lane, int count, double topPx)> _laneCards = new();
+    private readonly List<(FrameworkElement card, int lane, int count, double topPx)> _laneCards = new();
+    // Carril asignado a cada one-off (por su Id) cuando choca con otra sesión (#149).
+    private readonly Dictionary<string, (int lane, int count)> _oneOffLane = new();
 
     // Eventos de calendario que solapan una sesión (#143): se estrechan a la mitad derecha de la
     // columna (la sesión queda clicable a la izquierda); su ancho se recalcula al redimensionar.
@@ -674,11 +676,28 @@ public sealed partial class SchedulePage : Page
         // Solape (#130): por cada día, las sesiones que coinciden en el tiempo se reparten en
         // CARRILES lado a lado (no se fusionan); las demás mantienen la fusión visual (#86).
         _laneCards.Clear();
+        _oneOffLane.Clear();
         var laneInfo = new Dictionary<StudySession, (int lane, int count)>(ReferenceEqualityComparer.Instance);
         var overlapping = new HashSet<StudySession>(ReferenceEqualityComparer.Instance);
-        foreach (var dayGrp in schedule.Sessions.GroupBy(x => x.Day))
+
+        // Las sesiones EXTRAORDINARIAS de esta semana también entran en el cálculo de carriles (#149):
+        // si una one-off choca con otra sesión, ambas se reparten en carriles comprimidos.
+        var oneOffById = new Dictionary<StudySession, string>(ReferenceEqualityComparer.Instance);
+        var weekEndLanes = _weekStart.AddDays(6);
+        foreach (var o in _oneOffs)
+        {
+            if (o.Date < _weekStart || o.Date > weekEndLanes) continue;
+            var ss = o.AsSession() with { Day = o.Date.DayOfWeek };
+            oneOffById[ss] = o.Id;
+        }
+
+        foreach (var dayGrp in schedule.Sessions.Concat(oneOffById.Keys).GroupBy(x => x.Day))
             foreach (var a in Ritmo.Core.Scheduling.OverlapLanes.Assign(dayGrp.ToList()))
-                if (a.LaneCount > 1) { laneInfo[a.Session] = (a.Lane, a.LaneCount); overlapping.Add(a.Session); }
+                if (a.LaneCount > 1)
+                {
+                    if (oneOffById.TryGetValue(a.Session, out var oid)) _oneOffLane[oid] = (a.Lane, a.LaneCount);
+                    else { laneInfo[a.Session] = (a.Lane, a.LaneCount); overlapping.Add(a.Session); }
+                }
 
         // No fusionar (#137b) las sesiones con una excepción ESTA semana: así una sesión no realizada
         // o parcial un día concreto se tacha/atenúa SOLO ese día, no toda la tira de días contiguos.
@@ -952,12 +971,14 @@ public sealed partial class SchedulePage : Page
         return grid;
     }
 
-    /// <summary>Coloca una tarjeta solapada en su carril: 1/n del ancho de la columna, desplazada. #130</summary>
-    private void ApplyLaneLayout(SessionCard card, int lane, int count, double topPx)
+    /// <summary>Coloca una tarjeta solapada en su carril: 1/n del ancho de la columna, desplazada.
+    /// Vale para sesiones recurrentes (SessionCard) y extraordinarias (Border). #130/#149</summary>
+    private void ApplyLaneLayout(FrameworkElement card, int lane, int count, double topPx)
     {
         double usable = _dayColWidth - 4;                 // 2 px de margen a cada lado de la columna
         double laneW = usable / count;
         card.Width = Math.Max(20, laneW - 1);             // pequeño hueco entre carriles
+        card.HorizontalAlignment = HorizontalAlignment.Left;
         card.Margin = new Thickness(2 + lane * laneW, topPx + 1.5, 0, 0);
     }
 
@@ -1276,6 +1297,12 @@ public sealed partial class SchedulePage : Page
             card.PointerPressed += (_, e) => BeginOneOffDrag(card, captured, capturedCol, capturedTop, e);   // #126
             Grid.SetRow(card, 1); Grid.SetRowSpan(card, totalRows);
             Grid.SetColumn(card, dayCol + 1);
+            // #149: si esta extraordinaria choca con otra sesión, se estrecha a su carril.
+            if (_oneOffLane.TryGetValue(one.Id, out var ol) && ol.count > 1)
+            {
+                ApplyLaneLayout(card, ol.lane, ol.count, capturedTop);
+                _laneCards.Add((card, ol.lane, ol.count, capturedTop));
+            }
             g.Children.Add(card);
         }
     }
