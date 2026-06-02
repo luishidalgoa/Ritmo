@@ -57,6 +57,7 @@ public sealed partial class SettingsPage : Page
         BuildRhythms();
         BuildNotes();
         LoadNavidromeState(s);
+        LoadGoogleState();   // sync Google Tasks (#64)
         BuildCalendarFeeds();
         PomodoroHelp.Content = HelpHint.Icon("pomodoro");   // ayuda (#93)
         RhythmsHelp.Content = HelpHint.Icon("rhythm");      // ayuda (#96)
@@ -90,6 +91,58 @@ public sealed partial class SettingsPage : Page
             XamlRoot = this.XamlRoot
         };
         await dlg.ShowAsync();
+    }
+
+    // ---------- Sincronización con Google Tasks (#64) ----------
+
+    private void LoadGoogleState()
+    {
+        bool connected = Services.GoogleTasksService.HasSession;
+        var id = AppState.Load().GoogleClientId;
+        if (!string.IsNullOrWhiteSpace(id)) GoogleClientIdBox.Text = id;
+        GoogleStatus.Text = connected ? "Conectado a Google Tasks." : "No conectado.";
+        GoogleConnectFields.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
+        GoogleConnectBtn.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
+        GoogleDisconnectBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void GoogleConnectBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var id = (GoogleClientIdBox.Text ?? "").Trim();
+        var secret = GoogleSecretBox.Password ?? "";
+        if (id.Length == 0) { GoogleStatus.Text = "Pega el ID de cliente."; return; }
+
+        GoogleConnectBtn.IsEnabled = false;
+        GoogleStatus.Text = "Conectando… autoriza en el navegador.";
+        try
+        {
+            AppState.Config.SetGoogleClientId(id);   // guarda el ID que escribió el usuario
+            bool ok = await Services.GoogleTasksService.AuthorizeAsync(id, secret);
+            if (!ok)
+            {
+                GoogleStatus.Text = "No se pudo conectar. Revisa el ID/secreto y que tu cuenta esté como «usuario de prueba» en Google.";
+                return;
+            }
+            string extra = "";
+            try { var lists = await Services.GoogleTasksService.GetTaskListsAsync(); extra = $" · {lists.Count} lista(s)"; }
+            catch { }
+            GoogleSecretBox.Password = "";
+            GoogleStatus.Text = "✓ Conectado a Google Tasks" + extra + ".";
+            GoogleConnectFields.Visibility = Visibility.Collapsed;
+            GoogleConnectBtn.Visibility = Visibility.Collapsed;
+            GoogleDisconnectBtn.Visibility = Visibility.Visible;
+        }
+        catch (Exception ex) { GoogleStatus.Text = "⚠ Error: " + ex.Message; }
+        finally { GoogleConnectBtn.IsEnabled = true; }
+    }
+
+    private void GoogleDisconnectBtn_Click(object sender, RoutedEventArgs e)
+    {
+        Services.GoogleTasksService.SignOut();
+        AppState.Config.SetGoogleClientId(null);
+        GoogleClientIdBox.Text = "";
+        GoogleSecretBox.Password = "";
+        LoadGoogleState();
     }
 
     // ---------- Tema de la app (#48) ----------
