@@ -35,15 +35,21 @@ public sealed partial class TimeOfDayPicker : UserControl
         nameof(MinuteStep), typeof(int), typeof(TimeOfDayPicker), new PropertyMetadata(5));
     public int MinuteStep { get => (int)GetValue(MinuteStepProperty); set => SetValue(MinuteStepProperty, value); }
 
-    /// <summary>Etiqueta opcional encima del control (p. ej. "Inicio" / "Fin").</summary>
-    public string? Header
+    /// <summary>
+    /// Etiqueta opcional encima del control (p. ej. "Inicio" / "Fin"). Es una DependencyProperty
+    /// para que x:Uid pueda localizarla desde los .resw (#48 i18n).
+    /// </summary>
+    public static readonly DependencyProperty HeaderProperty = DependencyProperty.Register(
+        nameof(Header), typeof(string), typeof(TimeOfDayPicker),
+        new PropertyMetadata(null, OnHeaderChanged));
+    public string? Header { get => (string?)GetValue(HeaderProperty); set => SetValue(HeaderProperty, value); }
+
+    private static void OnHeaderChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        get => HeaderText.Text;
-        set
-        {
-            HeaderText.Text = value ?? "";
-            HeaderText.Visibility = string.IsNullOrEmpty(value) ? Visibility.Collapsed : Visibility.Visible;
-        }
+        var ctrl = (TimeOfDayPicker)d;
+        var value = e.NewValue as string;
+        ctrl.HeaderText.Text = value ?? "";
+        ctrl.HeaderText.Visibility = string.IsNullOrEmpty(value) ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private TimeSpan? _minExclusive;

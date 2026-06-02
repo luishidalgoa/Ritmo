@@ -65,4 +65,125 @@
   <data name="SettingsLanguage.Header" xml:space="preserve"><value>Language</value></data>
   <data name="SettingsLangSystem.Content" xml:space="preserve"><value>Follow system</value></data>
   <data name="SettingsLanguageHint.Text" xml:space="preserve"><value>Language changes apply after restarting the app.</value></data>
+
+  <data name="SetTitle.Text" xml:space="preserve"><value>Settings</value></data>
+  <data name="SetSchedule.Text" xml:space="preserve"><value>Schedule</value></data>
+  <data name="SetScheduleDesc.Text" xml:space="preserve"><value>Range of hours shown in the grid.</value></data>
+  <data name="SetCategories.Text" xml:space="preserve"><value>Categories</value></data>
+  <data name="SetCategoriesDesc.Text" xml:space="preserve"><value>Define your block categories: their name, their color in the schedule grid, and whether they trigger focus mode when they start.</value></data>
+  <data name="SetRest.Text" xml:space="preserve"><value>Rest</value></data>
+  <data name="SetRestDesc.Text" xml:space="preserve"><value>Pauses the schedule's reminders. Useful for holidays or breaks: the schedule is still visible, but no reminders sound.</value></data>
+  <data name="SetConnections.Text" xml:space="preserve"><value>Connections</value></data>
+  <data name="SetConnectionsDesc.Text" xml:space="preserve"><value>External apps connected to Ritmo. Add new ones from «Add connection».</value></data>
+  <data name="SetAddConnection.Content" xml:space="preserve"><value>Add connection</value></data>
+  <data name="SetPhases.Text" xml:space="preserve"><value>Plan phases</value></data>
+  <data name="SetPhasesDesc.Text" xml:space="preserve"><value>Each phase has its own schedule and a date range (e.g. «Phase 1», «Phase 2»). The Schedule shows the phase in effect for the date; you can view others from the Schedule selector.</value></data>
+  <data name="SetEnvironments.Text" xml:space="preserve"><value>Focus environments</value></data>
+  <data name="SetEnvironmentsDesc.Text" xml:space="preserve"><value>What happens when you focus: music, apps to close, Do Not Disturb… The one marked as default (★) is used when a block has no environment of its own assigned.</value></data>
+  <data name="SetEnvPerType.Text" xml:space="preserve"><value>Environment per block type</value></data>
+  <data name="SetEnvPerTypeDesc.Text" xml:space="preserve"><value>Choose which environment to use when focusing on each block type of the schedule. «Default» uses the default environment (★).</value></data>
+  <data name="SetLinkedApps.Text" xml:space="preserve"><value>Linked apps</value></data>
+  <data name="SetLinkedAppsDesc.Text" xml:space="preserve"><value>Connect external services once here; then use them in your environments.</value></data>
+  <data name="SetUpdates.Text" xml:space="preserve"><value>Updates</value></data>
+  <data name="SetUpdatesDesc.Text" xml:space="preserve"><value>Ritmo updates itself from GitHub (App Installer). Here you can check manually.</value></data>
+  <data name="SetAppearance.Text" xml:space="preserve"><value>Appearance</value></data>
+  <data name="SetTheme.Header" xml:space="preserve"><value>Theme</value></data>
+  <data name="SetWebBlock.Text" xml:space="preserve"><value>Web blocking (advanced)</value></data>
+  <data name="SetWebBlockDesc.Text" xml:space="preserve"><value>During focus, Ritmo instantly minimizes windows on the environment's blocked sites. For NETWORK-level blocking (preventing them from loading), install the browser extension. The site list is configured per environment.</value></data>
+  <data name="SetPrepareBlocker.Content" xml:space="preserve"><value>Prepare blocking extension…</value></data>
+  <data name="SetNotes.Text" xml:space="preserve"><value>Notes</value></data>
+  <data name="SetNotesDesc.Text" xml:space="preserve"><value>Pinned notes (Markdown supported). They appear on the «Today» screen. Links now live in each work environment.</value></data>
+  <data name="SetBackup.Text" xml:space="preserve"><value>Backup</value></data>
+  <data name="SetBackupDesc.Text" xml:space="preserve"><value>Export all your configuration (schedule, phases, environments, notes, settings) to a file, or import it to restore it. Importing replaces the current configuration.</value></data>
+  <data name="SetBgStartup.Text" xml:space="preserve"><value>Background &amp; startup</value></data>
+  <data name="SetBgStartupDesc.Text" xml:space="preserve"><value>When you close the window, Ritmo stays in the background so the schedule reminders still sound. Reopen it from the Start menu or use «Quit» to close it completely.</value></data>
+  <data name="SetAutostart.Header" xml:space="preserve"><value>Start Ritmo when you sign in to Windows</value></data>
+  <data name="SetSave.Content" xml:space="preserve"><value>Save changes</value></data>
+  <data name="SetFocusMin.Header" xml:space="preserve"><value>Focus (min)</value></data>
+  <data name="SetShortMin.Header" xml:space="preserve"><value>Short break (min)</value></data>
+  <data name="SetLongMin.Header" xml:space="preserve"><value>Long break (min)</value></data>
+  <data name="SetCycles.Header" xml:space="preserve"><value>Focuses per long break</value></data>
+  <data name="SetAddCategory.Content" xml:space="preserve"><value>Add category</value></data>
+  <data name="SetScheduledPeriods.Text" xml:space="preserve"><value>Scheduled periods</value></data>
+  <data name="SetAddPeriod.Content" xml:space="preserve"><value>Add period</value></data>
+  <data name="SetNewPhase.Text" xml:space="preserve"><value>New phase</value></data>
+  <data name="SetAddEnv.Text" xml:space="preserve"><value>Add environment</value></data>
+  <data name="SetAddNote.Text" xml:space="preserve"><value>Add note</value></data>
+  <data name="SetExport.Text" xml:space="preserve"><value>Export configuration</value></data>
+  <data name="SetImport.Text" xml:space="preserve"><value>Import configuration</value></data>
+  <data name="SetExit.Text" xml:space="preserve"><value>Quit Ritmo (stops reminders)</value></data>
+  <data name="SetCheckUpdate.Content" xml:space="preserve"><value>Check for updates</value></data>
+  <data name="SetInstallNow.Content" xml:space="preserve"><value>Install now</value></data>
+
+  <!-- #48 i18n - second pass: static Settings chrome -->
+  <data name="SetPomodoroHelp.Text" xml:space="preserve"><value>These values are the «App default» rhythm. Create named rhythms to reuse them when setting up each environment.</value></data>
+  <data name="SetMyRhythms.Text" xml:space="preserve"><value>My rhythms</value></data>
+  <data name="SetNewRhythm.Text" xml:space="preserve"><value>New rhythm</value></data>
+  <data name="SetNoRhythms.Text" xml:space="preserve"><value>You haven't created your own rhythms yet. Use «New rhythm» to add one.</value></data>
+  <data name="SetFrom.Header" xml:space="preserve"><value>From</value></data>
+  <data name="SetTo.Header" xml:space="preserve"><value>To</value></data>
+  <data name="SetGranularity.Header" xml:space="preserve"><value>Grid granularity</value></data>
+  <data name="SetGran60.Content" xml:space="preserve"><value>1 hour</value></data>
+  <data name="SetGran30.Content" xml:space="preserve"><value>30 minutes</value></data>
+  <data name="SetGran15.Content" xml:space="preserve"><value>15 minutes</value></data>
+  <data name="SetGranularityNote.Text" xml:space="preserve"><value>Only changes the background guide lines. Blocks are still placed by their real time (e.g. 16:40).</value></data>
+  <data name="SetDayPreview.Header" xml:space="preserve"><value>Day preview when starting focus</value></data>
+  <data name="SetDayPreview.OnContent" xml:space="preserve"><value>Yes</value></data>
+  <data name="SetDayPreview.OffContent" xml:space="preserve"><value>No</value></data>
+  <data name="SetDayPreviewNote.Text" xml:space="preserve"><value>When you press «Start» on the timer, it shows a summary of today's blocks before you focus.</value></data>
+  <data name="SetDefaultPreAlert.Header" xml:space="preserve"><value>Default pre-alert</value></data>
+  <data name="SetPreAlertNone.Content" xml:space="preserve"><value>None</value></data>
+  <data name="SetPreAlert1.Content" xml:space="preserve"><value>1 minute before</value></data>
+  <data name="SetPreAlert5.Content" xml:space="preserve"><value>5 minutes before</value></data>
+  <data name="SetPreAlert10.Content" xml:space="preserve"><value>10 minutes before</value></data>
+  <data name="SetPreAlert15.Content" xml:space="preserve"><value>15 minutes before</value></data>
+  <data name="SetPreAlert30.Content" xml:space="preserve"><value>30 minutes before</value></data>
+  <data name="SetPreAlert60.Content" xml:space="preserve"><value>1 hour before</value></data>
+  <data name="SetPreAlert120.Content" xml:space="preserve"><value>2 hours before</value></data>
+  <data name="SetPreAlertNote.Text" xml:space="preserve"><value>Which alert pre-fills a new session. Doesn't change sessions already created.</value></data>
+  <data name="SetRestNow.Header" xml:space="preserve"><value>Rest mode (now)</value></data>
+  <data name="SetRestNow.OnContent" xml:space="preserve"><value>Yes</value></data>
+  <data name="SetRestNow.OffContent" xml:space="preserve"><value>No</value></data>
+  <data name="SetNoPeriods.Text" xml:space="preserve"><value>No scheduled rest periods.</value></data>
+  <data name="SetNoConnections.Text" xml:space="preserve"><value>You haven't connected any app yet. Press «Add connection» to start.</value></data>
+  <data name="SetNtfyTitle.Text" xml:space="preserve"><value>📱  Mobile notifications (ntfy)</value></data>
+  <data name="SetNtfyEnabled.Header" xml:space="preserve"><value>Send alerts to my phone</value></data>
+  <data name="SetNtfyEnabled.OnContent" xml:space="preserve"><value>On</value></data>
+  <data name="SetNtfyEnabled.OffContent" xml:space="preserve"><value>Paused</value></data>
+  <data name="SetNtfyServer.Header" xml:space="preserve"><value>Server</value></data>
+  <data name="SetNtfyGen.Content" xml:space="preserve"><value>Generate</value></data>
+  <data name="SetNtfyCopy.Content" xml:space="preserve"><value>Copy</value></data>
+  <data name="SetNtfyGuide.Content" xml:space="preserve"><value>📲  How to connect my phone</value></data>
+  <data name="SetNtfySave.Content" xml:space="preserve"><value>Save connection</value></data>
+  <data name="SetNtfyTest.Content" xml:space="preserve"><value>Send test</value></data>
+  <data name="SetRemove.Content" xml:space="preserve"><value>Remove</value></data>
+  <data name="SetGTasksTitle.Text" xml:space="preserve"><value>✅  Google Tasks</value></data>
+  <data name="SetConnect.Content" xml:space="preserve"><value>Connect</value></data>
+  <data name="SetSyncNow.Content" xml:space="preserve"><value>Sync now</value></data>
+  <data name="SetDisconnect.Content" xml:space="preserve"><value>Disconnect</value></data>
+  <data name="SetGTasksHelp.Text" xml:space="preserve"><value>Syncs your blocks/tasks with your Google Tasks lists (both ways). If a task changed in Google, Google wins; otherwise, what you have in Ritmo wins.</value></data>
+  <data name="SetGCalTitle.Text" xml:space="preserve"><value>📅  Google Calendar</value></data>
+  <data name="SetGCalPublish.Content" xml:space="preserve"><value>Publish my schedule</value></data>
+  <data name="SetGCalUnpublish.Content" xml:space="preserve"><value>Unpublish</value></data>
+  <data name="SetGCalReconnect.Content" xml:space="preserve"><value>Reconnect (grant Calendar permission)</value></data>
+  <data name="SetGCalHelp.Text" xml:space="preserve"><value>One-way: creates/updates the events of your sessions (recurring and one-off) in your own «Ritmo» Google Calendar. Publish again after changing the schedule.</value></data>
+  <data name="SetGCalShow.Header" xml:space="preserve"><value>Show my Google events in Schedule/Today</value></data>
+  <data name="SetGCalShow.OnContent" xml:space="preserve"><value>Yes</value></data>
+  <data name="SetGCalShow.OffContent" xml:space="preserve"><value>No</value></data>
+  <data name="SetEnvEmpty.Text" xml:space="preserve"><value>No environments yet. Add one to customize your focus.</value></data>
+  <data name="SetKindEnvHint.Text" xml:space="preserve"><value>Create at least one environment above to assign it to a block type.</value></data>
+  <data name="SetMusicHeader.Text" xml:space="preserve"><value>MUSIC</value></data>
+  <data name="SetNavidromeHelp.Text" xml:space="preserve"><value>Connect your Navidrome server. In each environment you just pick a playlist. The password is stored in the Windows secure vault, never in the backup.</value></data>
+  <data name="SetNavServer.Header" xml:space="preserve"><value>Server URL</value></data>
+  <data name="SetNavUser.Header" xml:space="preserve"><value>Username</value></data>
+  <data name="SetNavPass.Header" xml:space="preserve"><value>Password</value></data>
+  <data name="SetCalendarHeader.Text" xml:space="preserve"><value>CALENDAR</value></data>
+  <data name="SetCalName.PlaceholderText" xml:space="preserve"><value>Name</value></data>
+  <data name="SetCalAdd.Content" xml:space="preserve"><value>Add</value></data>
+  <data name="SetThemeSystem.Content" xml:space="preserve"><value>Follow system</value></data>
+  <data name="SetThemeLight.Content" xml:space="preserve"><value>Light</value></data>
+  <data name="SetThemeDark.Content" xml:space="preserve"><value>Dark</value></data>
+  <data name="SetThemeNote.Text" xml:space="preserve"><value>«Follow system» uses the Windows theme. The change applies instantly.</value></data>
+  <data name="SetAutostart.OnContent" xml:space="preserve"><value>Yes</value></data>
+  <data name="SetAutostart.OffContent" xml:space="preserve"><value>No</value></data>
 </root>

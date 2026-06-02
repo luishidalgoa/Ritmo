@@ -11,7 +11,7 @@
 
     <ScrollViewer Padding="24">
         <StackPanel Spacing="16" MaxWidth="680" HorizontalAlignment="Left">
-            <TextBlock Text="Ajustes" FontSize="28" FontWeight="SemiBold" />
+            <TextBlock x:Uid="SetTitle" Text="Ajustes" FontSize="28" FontWeight="SemiBold" />
 
             <!-- Pomodoro -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -31,34 +31,34 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <NumberBox x:Name="FocusBox" Grid.Row="0" Grid.Column="0" Header="Concentración (min)"
+                        <NumberBox x:Name="FocusBox" x:Uid="SetFocusMin" Grid.Row="0" Grid.Column="0" Header="Concentración (min)"
                                    Minimum="1" Maximum="180" SmallChange="5" SpinButtonPlacementMode="Inline" />
-                        <NumberBox x:Name="ShortBox" Grid.Row="0" Grid.Column="1" Header="Descanso corto (min)"
+                        <NumberBox x:Name="ShortBox" x:Uid="SetShortMin" Grid.Row="0" Grid.Column="1" Header="Descanso corto (min)"
                                    Minimum="0" Maximum="60" SmallChange="1" SpinButtonPlacementMode="Inline" />
-                        <NumberBox x:Name="LongBox" Grid.Row="1" Grid.Column="0" Header="Descanso largo (min)"
+                        <NumberBox x:Name="LongBox" x:Uid="SetLongMin" Grid.Row="1" Grid.Column="0" Header="Descanso largo (min)"
                                    Minimum="0" Maximum="120" SmallChange="5" SpinButtonPlacementMode="Inline" />
-                        <NumberBox x:Name="CyclesBox" Grid.Row="1" Grid.Column="1" Header="Focos por descanso largo"
+                        <NumberBox x:Name="CyclesBox" x:Uid="SetCycles" Grid.Row="1" Grid.Column="1" Header="Focos por descanso largo"
                                    Minimum="1" Maximum="12" SmallChange="1" SpinButtonPlacementMode="Inline" />
                     </Grid>
-                    <TextBlock Opacity="0.7" FontSize="12" TextWrapping="Wrap"
+                    <TextBlock x:Uid="SetPomodoroHelp" Opacity="0.7" FontSize="12" TextWrapping="Wrap"
                                Text="Estos valores son el ritmo «Por defecto de la app». Crea ritmos con nombre para reutilizarlos al configurar cada entorno." />
 
                     <!-- Ritmos propios (#96) -->
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="Mis ritmos" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock x:Uid="SetMyRhythms" Text="Mis ritmos" FontWeight="SemiBold" VerticalAlignment="Center" />
                             <ContentControl x:Name="RhythmsHelp" VerticalAlignment="Center" />
                         </StackPanel>
                         <Button x:Name="AddRhythmBtn" Click="AddRhythmBtn_Click" HorizontalAlignment="Right"
                                 AutomationProperties.Name="Nuevo ritmo">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE710;" FontSize="13" />
-                                <TextBlock Text="Nuevo ritmo" />
+                                <TextBlock x:Uid="SetNewRhythm" Text="Nuevo ritmo" />
                             </StackPanel>
                         </Button>
                     </Grid>
                     <StackPanel x:Name="RhythmsList" Spacing="6" />
-                    <TextBlock x:Name="RhythmsEmpty" Opacity="0.6" FontSize="12" Visibility="Collapsed"
+                    <TextBlock x:Name="RhythmsEmpty" x:Uid="SetNoRhythms" Opacity="0.6" FontSize="12" Visibility="Collapsed"
                                Text="Aún no has creado ritmos propios. Usa «Nuevo ritmo» para añadir uno." />
                 </StackPanel>
             </Border>
@@ -68,34 +68,34 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="14">
-                    <TextBlock Text="Horario" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock Text="Rango de horas que se muestra en la cuadrícula." Opacity="0.7" FontSize="13" />
+                    <TextBlock x:Uid="SetSchedule" Text="Horario" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Uid="SetScheduleDesc" Text="Rango de horas que se muestra en la cuadrícula." Opacity="0.7" FontSize="13" />
                     <StackPanel Orientation="Horizontal" Spacing="16">
-                        <ctrl:TimeOfDayPicker x:Name="DayStartPicker" Header="Desde" MinuteStep="30" Width="120" />
-                        <ctrl:TimeOfDayPicker x:Name="DayEndPicker" Header="Hasta" MinuteStep="30" Width="120" />
+                        <ctrl:TimeOfDayPicker x:Name="DayStartPicker" x:Uid="SetFrom" Header="Desde" MinuteStep="30" Width="120" />
+                        <ctrl:TimeOfDayPicker x:Name="DayEndPicker" x:Uid="SetTo" Header="Hasta" MinuteStep="30" Width="120" />
                     </StackPanel>
-                    <ComboBox x:Name="GranularityBox" Header="Granularidad de la rejilla" Width="240">
-                        <ComboBoxItem Content="1 hora" Tag="60" />
-                        <ComboBoxItem Content="30 minutos" Tag="30" />
-                        <ComboBoxItem Content="15 minutos" Tag="15" />
+                    <ComboBox x:Name="GranularityBox" x:Uid="SetGranularity" Header="Granularidad de la rejilla" Width="240">
+                        <ComboBoxItem x:Uid="SetGran60" Content="1 hora" Tag="60" />
+                        <ComboBoxItem x:Uid="SetGran30" Content="30 minutos" Tag="30" />
+                        <ComboBoxItem x:Uid="SetGran15" Content="15 minutos" Tag="15" />
                     </ComboBox>
-                    <TextBlock Text="Solo cambia las líneas-guía de fondo. Los bloques se siguen colocando por su hora real (p. ej. 16:40)."
+                    <TextBlock x:Uid="SetGranularityNote" Text="Solo cambia las líneas-guía de fondo. Los bloques se siguen colocando por su hora real (p. ej. 16:40)."
                                Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
-                    <ToggleSwitch x:Name="DayPreviewToggle" Header="Vista previa del día al iniciar concentración"
+                    <ToggleSwitch x:Name="DayPreviewToggle" x:Uid="SetDayPreview" Header="Vista previa del día al iniciar concentración"
                                   OnContent="Sí" OffContent="No" Margin="0,4,0,0" />
-                    <TextBlock Text="Al pulsar «Iniciar» en el temporizador, muestra un resumen de los bloques de hoy antes de concentrarte."
+                    <TextBlock x:Uid="SetDayPreviewNote" Text="Al pulsar «Iniciar» en el temporizador, muestra un resumen de los bloques de hoy antes de concentrarte."
                                Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
-                    <ComboBox x:Name="DefaultPreAlertBox" Header="Aviso previo por defecto" Width="240" Margin="0,4,0,0">
-                        <ComboBoxItem Content="Ninguno" Tag="0" />
-                        <ComboBoxItem Content="1 minuto antes" Tag="1" />
-                        <ComboBoxItem Content="5 minutos antes" Tag="5" />
-                        <ComboBoxItem Content="10 minutos antes" Tag="10" />
-                        <ComboBoxItem Content="15 minutos antes" Tag="15" />
-                        <ComboBoxItem Content="30 minutos antes" Tag="30" />
-                        <ComboBoxItem Content="1 hora antes" Tag="60" />
-                        <ComboBoxItem Content="2 horas antes" Tag="120" />
+                    <ComboBox x:Name="DefaultPreAlertBox" x:Uid="SetDefaultPreAlert" Header="Aviso previo por defecto" Width="240" Margin="0,4,0,0">
+                        <ComboBoxItem x:Uid="SetPreAlertNone" Content="Ninguno" Tag="0" />
+                        <ComboBoxItem x:Uid="SetPreAlert1" Content="1 minuto antes" Tag="1" />
+                        <ComboBoxItem x:Uid="SetPreAlert5" Content="5 minutos antes" Tag="5" />
+                        <ComboBoxItem x:Uid="SetPreAlert10" Content="10 minutos antes" Tag="10" />
+                        <ComboBoxItem x:Uid="SetPreAlert15" Content="15 minutos antes" Tag="15" />
+                        <ComboBoxItem x:Uid="SetPreAlert30" Content="30 minutos antes" Tag="30" />
+                        <ComboBoxItem x:Uid="SetPreAlert60" Content="1 hora antes" Tag="60" />
+                        <ComboBoxItem x:Uid="SetPreAlert120" Content="2 horas antes" Tag="120" />
                     </ComboBox>
-                    <TextBlock Text="Con qué aviso se pre-rellena una sesión nueva. No cambia las sesiones ya creadas."
+                    <TextBlock x:Uid="SetPreAlertNote" Text="Con qué aviso se pre-rellena una sesión nueva. No cambia las sesiones ya creadas."
                                Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
@@ -107,13 +107,13 @@
                 <StackPanel Spacing="12">
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="Categorías" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock x:Uid="SetCategories" Text="Categorías" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
                             <ContentControl x:Name="CategoriesHelp" VerticalAlignment="Center" />
                         </StackPanel>
-                        <Button x:Name="AddCategoryBtn" Content="Añadir categoría" HorizontalAlignment="Right"
+                        <Button x:Name="AddCategoryBtn" x:Uid="SetAddCategory" Content="Añadir categoría" HorizontalAlignment="Right"
                                 Click="AddCategoryBtn_Click" />
                     </Grid>
-                    <TextBlock Text="Define tus categorías de bloque: su nombre, su color en la rejilla del horario y si al empezar disparan el modo concentración."
+                    <TextBlock x:Uid="SetCategoriesDesc" Text="Define tus categorías de bloque: su nombre, su color en la rejilla del horario y si al empezar disparan el modo concentración."
                                Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
                     <StackPanel x:Name="ColorsHost" Spacing="6" />
                 </StackPanel>
@@ -125,21 +125,21 @@
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Descanso" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock x:Uid="SetRest" Text="Descanso" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <ContentControl x:Name="RestHelp" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock Text="Pausa los avisos del horario. Útil para vacaciones o pausas: el horario se sigue viendo, pero no suenan avisos."
+                    <TextBlock x:Uid="SetRestDesc" Text="Pausa los avisos del horario. Útil para vacaciones o pausas: el horario se sigue viendo, pero no suenan avisos."
                                Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
-                    <ToggleSwitch x:Name="RestToggle" Header="Modo descanso (ahora)"
+                    <ToggleSwitch x:Name="RestToggle" x:Uid="SetRestNow" Header="Modo descanso (ahora)"
                                   OffContent="No" OnContent="Sí" Toggled="RestToggle_Toggled" />
 
                     <Grid Margin="0,4,0,0">
-                        <TextBlock Text="Periodos programados" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <Button x:Name="AddRestPeriodBtn" Content="Añadir periodo" HorizontalAlignment="Right"
+                        <TextBlock x:Uid="SetScheduledPeriods" Text="Periodos programados" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button x:Name="AddRestPeriodBtn" x:Uid="SetAddPeriod" Content="Añadir periodo" HorizontalAlignment="Right"
                                 Click="AddRestPeriodBtn_Click" />
                     </Grid>
                     <StackPanel x:Name="RestPeriodsHost" Spacing="6" />
-                    <TextBlock x:Name="RestPeriodsEmpty" Text="No hay periodos de descanso programados."
+                    <TextBlock x:Name="RestPeriodsEmpty" x:Uid="SetNoPeriods" Text="No hay periodos de descanso programados."
                                Opacity="0.6" FontSize="13" Visibility="Collapsed" />
                 </StackPanel>
             </Border>
@@ -156,15 +156,15 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Spacing="2">
-                            <TextBlock Text="Conexiones" FontSize="18" FontWeight="SemiBold" />
-                            <TextBlock Text="Apps externas conectadas a Ritmo. Añade nuevas desde «Añadir conexión»."
+                            <TextBlock x:Uid="SetConnections" Text="Conexiones" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock x:Uid="SetConnectionsDesc" Text="Apps externas conectadas a Ritmo. Añade nuevas desde «Añadir conexión»."
                                        Opacity="0.7" FontSize="13" TextWrapping="Wrap" />
                         </StackPanel>
-                        <Button Grid.Column="1" Content="Añadir conexión" Click="ConnectionsBtn_Click"
+                        <Button x:Uid="SetAddConnection" Grid.Column="1" Content="Añadir conexión" Click="ConnectionsBtn_Click"
                                 VerticalAlignment="Center" />
                     </Grid>
 
-                    <TextBlock x:Name="NoConnectionsText" Visibility="Collapsed" Opacity="0.6" FontSize="13" TextWrapping="Wrap"
+                    <TextBlock x:Name="NoConnectionsText" x:Uid="SetNoConnections" Visibility="Collapsed" Opacity="0.6" FontSize="13" TextWrapping="Wrap"
                                Text="Aún no has conectado ninguna app. Pulsa «Añadir conexión» para empezar." />
 
                     <!-- Gestión de la conexión ntfy (solo visible si está creada) -->
@@ -173,10 +173,10 @@
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                             CornerRadius="8" Padding="16">
                         <StackPanel Spacing="10">
-                            <TextBlock Text="📱  Notificaciones al móvil (ntfy)" FontWeight="SemiBold" FontSize="15" />
-                            <ToggleSwitch x:Name="NtfyEnabledToggle" Header="Enviar avisos al móvil"
+                            <TextBlock x:Uid="SetNtfyTitle" Text="📱  Notificaciones al móvil (ntfy)" FontWeight="SemiBold" FontSize="15" />
+                            <ToggleSwitch x:Name="NtfyEnabledToggle" x:Uid="SetNtfyEnabled" Header="Enviar avisos al móvil"
                                           OnContent="Activado" OffContent="Pausado" />
-                            <TextBox x:Name="NtfyServerBox" Header="Servidor" PlaceholderText="https://ntfy.sh" />
+                            <TextBox x:Name="NtfyServerBox" x:Uid="SetNtfyServer" Header="Servidor" PlaceholderText="https://ntfy.sh" />
                             <Grid ColumnSpacing="8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -184,20 +184,20 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBox x:Name="NtfyTopicBox" Grid.Column="0" Header="Topic" />
-                                <Button x:Name="NtfyGenBtn" Grid.Column="1" Content="Generar" Click="NtfyGenBtn_Click"
+                                <Button x:Name="NtfyGenBtn" x:Uid="SetNtfyGen" Grid.Column="1" Content="Generar" Click="NtfyGenBtn_Click"
                                         VerticalAlignment="Bottom" ToolTipService.ToolTip="Generar un topic aleatorio" />
-                                <Button x:Name="NtfyCopyBtn" Grid.Column="2" Content="Copiar" Click="NtfyCopyBtn_Click"
+                                <Button x:Name="NtfyCopyBtn" x:Uid="SetNtfyCopy" Grid.Column="2" Content="Copiar" Click="NtfyCopyBtn_Click"
                                         VerticalAlignment="Bottom" ToolTipService.ToolTip="Copiar el topic al portapapeles" />
                             </Grid>
 
                             <!-- Guía visual (carrusel) de cómo suscribir el móvil al topic -->
-                            <Button Click="NtfyGuideBtn_Click" HorizontalAlignment="Left"
+                            <Button x:Uid="SetNtfyGuide" Click="NtfyGuideBtn_Click" HorizontalAlignment="Left"
                                     Content="📲  Cómo conectar mi móvil" />
 
                             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                <Button Content="Guardar conexión" Click="NtfySaveBtn_Click" Style="{StaticResource AccentButtonStyle}" />
-                                <Button x:Name="NtfyTestBtn" Content="Enviar prueba" Click="NtfyTestBtn_Click" />
-                                <Button Content="Eliminar" Click="NtfyRemoveBtn_Click" />
+                                <Button x:Uid="SetNtfySave" Content="Guardar conexión" Click="NtfySaveBtn_Click" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="NtfyTestBtn" x:Uid="SetNtfyTest" Content="Enviar prueba" Click="NtfyTestBtn_Click" />
+                                <Button x:Uid="SetRemove" Content="Eliminar" Click="NtfyRemoveBtn_Click" />
                                 <TextBlock x:Name="NtfyStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="12" TextWrapping="Wrap" />
                             </StackPanel>
                         </StackPanel>
@@ -209,17 +209,17 @@
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                             CornerRadius="8" Padding="16">
                         <StackPanel Spacing="10">
-                            <TextBlock Text="✅  Google Tasks" FontWeight="SemiBold" FontSize="15" />
+                            <TextBlock x:Uid="SetGTasksTitle" Text="✅  Google Tasks" FontWeight="SemiBold" FontSize="15" />
                             <TextBlock x:Name="GoogleStatus" Opacity="0.8" FontSize="12" TextWrapping="Wrap" Text="No conectado." />
                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                <Button x:Name="GoogleConnectBtn" Content="Conectar" Click="GoogleConnectBtn_Click"
+                                <Button x:Name="GoogleConnectBtn" x:Uid="SetConnect" Content="Conectar" Click="GoogleConnectBtn_Click"
                                         Style="{StaticResource AccentButtonStyle}" />
-                                <Button x:Name="GoogleSyncBtn" Content="Sincronizar ahora" Click="GoogleSyncBtn_Click"
+                                <Button x:Name="GoogleSyncBtn" x:Uid="SetSyncNow" Content="Sincronizar ahora" Click="GoogleSyncBtn_Click"
                                         Visibility="Collapsed" Style="{StaticResource AccentButtonStyle}" />
-                                <Button x:Name="GoogleDisconnectBtn" Content="Desconectar" Click="GoogleDisconnectBtn_Click"
+                                <Button x:Name="GoogleDisconnectBtn" x:Uid="SetDisconnect" Content="Desconectar" Click="GoogleDisconnectBtn_Click"
                                         Visibility="Collapsed" />
                             </StackPanel>
-                            <TextBlock Text="Sincroniza tus bloques/tareas con tus listas de Google Tasks (en ambos sentidos). Si una tarea cambió en Google, gana Google; si no, gana lo que tengas en Ritmo."
+                            <TextBlock x:Uid="SetGTasksHelp" Text="Sincroniza tus bloques/tareas con tus listas de Google Tasks (en ambos sentidos). Si una tarea cambió en Google, gana Google; si no, gana lo que tengas en Ritmo."
                                        Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
@@ -230,20 +230,20 @@
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                             CornerRadius="8" Padding="16">
                         <StackPanel Spacing="10">
-                            <TextBlock Text="📅  Google Calendar" FontWeight="SemiBold" FontSize="15" />
+                            <TextBlock x:Uid="SetGCalTitle" Text="📅  Google Calendar" FontWeight="SemiBold" FontSize="15" />
                             <TextBlock x:Name="GoogleCalStatus" Opacity="0.8" FontSize="12" TextWrapping="Wrap"
                                        Text="Publica tus sesiones en un calendario «Ritmo» de Google." />
                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                <Button x:Name="GoogleCalPublishBtn" Content="Publicar mi horario" Click="GoogleCalPublishBtn_Click"
+                                <Button x:Name="GoogleCalPublishBtn" x:Uid="SetGCalPublish" Content="Publicar mi horario" Click="GoogleCalPublishBtn_Click"
                                         Style="{StaticResource AccentButtonStyle}" />
-                                <Button x:Name="GoogleCalUnpublishBtn" Content="Despublicar" Click="GoogleCalUnpublishBtn_Click"
+                                <Button x:Name="GoogleCalUnpublishBtn" x:Uid="SetGCalUnpublish" Content="Despublicar" Click="GoogleCalUnpublishBtn_Click"
                                         Visibility="Collapsed" />
-                                <HyperlinkButton x:Name="GoogleCalReconnectBtn" Content="Reconectar (dar permiso de Calendar)"
+                                <HyperlinkButton x:Name="GoogleCalReconnectBtn" x:Uid="SetGCalReconnect" Content="Reconectar (dar permiso de Calendar)"
                                                  Click="GoogleCalReconnectBtn_Click" />
                             </StackPanel>
-                            <TextBlock Text="Una vía: crea/actualiza en tu Google Calendar los eventos de tus sesiones (recurrentes y extraordinarias) en un calendario propio «Ritmo». Vuelve a publicar tras cambiar el horario."
+                            <TextBlock x:Uid="SetGCalHelp" Text="Una vía: crea/actualiza en tu Google Calendar los eventos de tus sesiones (recurrentes y extraordinarias) en un calendario propio «Ritmo». Vuelve a publicar tras cambiar el horario."
                                        Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
-                            <ToggleSwitch x:Name="GoogleCalShowToggle" Header="Mostrar mis eventos de Google en el Horario/Hoy"
+                            <ToggleSwitch x:Name="GoogleCalShowToggle" x:Uid="SetGCalShow" Header="Mostrar mis eventos de Google en el Horario/Hoy"
                                           OnContent="Sí" OffContent="No" Toggled="GoogleCalShowToggle_Toggled" Margin="0,4,0,0" />
                         </StackPanel>
                     </Border>
@@ -257,16 +257,16 @@
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
                     <Grid>
-                        <TextBlock Text="Fases del plan" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock x:Uid="SetPhases" Text="Fases del plan" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <Button x:Name="AddPhaseBtn" Click="AddPhaseBtn_Click" HorizontalAlignment="Right"
                                 AutomationProperties.Name="Nueva fase">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE710;" FontSize="13" />
-                                <TextBlock Text="Nueva fase" />
+                                <TextBlock x:Uid="SetNewPhase" Text="Nueva fase" />
                             </StackPanel>
                         </Button>
                     </Grid>
-                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                    <TextBlock x:Uid="SetPhasesDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                                Text="Cada fase tiene su propio horario y un rango de fechas (p. ej. «Fase 1», «Fase 2»). El Horario muestra la fase vigente según la fecha; puedes ver otras desde el selector del Horario." />
                     <StackPanel x:Name="PhasesList" Spacing="8" />
                 </StackPanel>
@@ -278,20 +278,20 @@
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
                     <Grid>
-                        <TextBlock Text="Entornos de concentración" FontSize="18" FontWeight="SemiBold"
+                        <TextBlock x:Uid="SetEnvironments" Text="Entornos de concentración" FontSize="18" FontWeight="SemiBold"
                                    VerticalAlignment="Center" />
                         <Button x:Name="AddEnvBtn" Click="AddEnvBtn_Click" HorizontalAlignment="Right"
                                 AutomationProperties.Name="Añadir entorno">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE710;" FontSize="13" />
-                                <TextBlock Text="Añadir entorno" />
+                                <TextBlock x:Uid="SetAddEnv" Text="Añadir entorno" />
                             </StackPanel>
                         </Button>
                     </Grid>
-                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                    <TextBlock x:Uid="SetEnvironmentsDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                                Text="Qué ocurre al concentrarte: música, apps a cerrar, No molestar… El marcado como predeterminado (★) se usa cuando un bloque no tiene un entorno propio asignado." />
                     <StackPanel x:Name="EnvList" Spacing="8" />
-                    <TextBlock x:Name="EnvEmpty" Text="Aún no hay entornos. Añade uno para personalizar tu concentración."
+                    <TextBlock x:Name="EnvEmpty" x:Uid="SetEnvEmpty" Text="Aún no hay entornos. Añade uno para personalizar tu concentración."
                                Opacity="0.6" FontSize="13" Visibility="Collapsed" />
                 </StackPanel>
             </Border>
@@ -301,11 +301,11 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Entorno por tipo de bloque" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                    <TextBlock x:Uid="SetEnvPerType" Text="Entorno por tipo de bloque" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Uid="SetEnvPerTypeDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                                Text="Elige qué entorno usar al concentrarte en cada tipo de bloque del horario. «Por defecto» usa el entorno predeterminado (★)." />
                     <StackPanel x:Name="KindEnvList" Spacing="8" />
-                    <TextBlock x:Name="KindEnvHint" Opacity="0.6" FontSize="13" TextWrapping="Wrap"
+                    <TextBlock x:Name="KindEnvHint" x:Uid="SetKindEnvHint" Opacity="0.6" FontSize="13" TextWrapping="Wrap"
                                Visibility="Collapsed"
                                Text="Crea al menos un entorno arriba para poder asignarlo a un tipo de bloque." />
                 </StackPanel>
@@ -316,11 +316,11 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Apps vinculadas" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                    <TextBlock x:Uid="SetLinkedApps" Text="Apps vinculadas" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Uid="SetLinkedAppsDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                                Text="Conecta servicios externos una vez aquí; luego los usas en tus entornos." />
 
-                    <TextBlock Text="MÚSICA" FontSize="11" FontWeight="SemiBold" Opacity="0.55" />
+                    <TextBlock x:Uid="SetMusicHeader" Text="MÚSICA" FontSize="11" FontWeight="SemiBold" Opacity="0.55" />
                     <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                         <Expander.Header>
                             <StackPanel Orientation="Horizontal" Spacing="10">
@@ -330,26 +330,26 @@
                             </StackPanel>
                         </Expander.Header>
                         <StackPanel Spacing="12" Padding="4,8,4,4">
-                            <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                            <TextBlock x:Uid="SetNavidromeHelp" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                                        Text="Conecta tu servidor de Navidrome. En cada entorno solo eliges una playlist. La contraseña se guarda en el almacén seguro de Windows, nunca en la copia de seguridad." />
-                            <TextBox x:Name="NavServerBox" Header="URL del servidor" PlaceholderText="https://music.midominio.com" />
+                            <TextBox x:Name="NavServerBox" x:Uid="SetNavServer" Header="URL del servidor" PlaceholderText="https://music.midominio.com" />
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBox x:Name="NavUserBox" Grid.Column="0" Header="Usuario" />
-                                <PasswordBox x:Name="NavPassBox" Grid.Column="1" Header="Contraseña" />
+                                <TextBox x:Name="NavUserBox" x:Uid="SetNavUser" Grid.Column="0" Header="Usuario" />
+                                <PasswordBox x:Name="NavPassBox" x:Uid="SetNavPass" Grid.Column="1" Header="Contraseña" />
                             </Grid>
                             <StackPanel Orientation="Horizontal" Spacing="12">
-                                <Button x:Name="NavConnectBtn" Click="NavConnectBtn_Click" Content="Conectar" Style="{StaticResource AccentButtonStyle}" />
-                                <Button x:Name="NavDisconnectBtn" Click="NavDisconnectBtn_Click" Content="Desconectar" />
+                                <Button x:Name="NavConnectBtn" x:Uid="SetConnect" Click="NavConnectBtn_Click" Content="Conectar" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="NavDisconnectBtn" x:Uid="SetDisconnect" Click="NavDisconnectBtn_Click" Content="Desconectar" />
                                 <TextBlock x:Name="NavStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="13" />
                             </StackPanel>
                         </StackPanel>
                     </Expander>
 
-                    <TextBlock Text="CALENDARIO" FontSize="11" FontWeight="SemiBold" Opacity="0.55" Margin="0,4,0,0" />
+                    <TextBlock x:Uid="SetCalendarHeader" Text="CALENDARIO" FontSize="11" FontWeight="SemiBold" Opacity="0.55" Margin="0,4,0,0" />
                     <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap">
                         <Run Text="Suscríbete por enlace ICS (" />
                         <Hyperlink NavigateUri="https://calendar.google.com">Google</Hyperlink>
@@ -365,11 +365,11 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox x:Name="CalNameBox" Grid.Column="0" PlaceholderText="Nombre" Width="130"
+                        <TextBox x:Name="CalNameBox" x:Uid="SetCalName" Grid.Column="0" PlaceholderText="Nombre" Width="130"
                                  AutomationProperties.Name="Nombre del calendario" />
                         <TextBox x:Name="CalUrlBox" Grid.Column="1" PlaceholderText="https://…/basic.ics"
                                  AutomationProperties.Name="Enlace ICS" />
-                        <Button x:Name="CalAddBtn" Grid.Column="2" Click="CalAddBtn_Click" Content="Añadir"
+                        <Button x:Name="CalAddBtn" x:Uid="SetCalAdd" Grid.Column="2" Click="CalAddBtn_Click" Content="Añadir"
                                 AutomationProperties.Name="Agregar calendario" />
                     </Grid>
                     <StackPanel x:Name="CalFeedsList" Spacing="4" />
@@ -381,13 +381,13 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Actualizaciones" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Uid="SetUpdates" Text="Actualizaciones" FontSize="18" FontWeight="SemiBold" />
                     <TextBlock x:Name="VersionText" Opacity="0.7" FontSize="13" />
-                    <TextBlock Text="Ritmo se actualiza solo desde GitHub (App Installer). Aquí puedes comprobarlo manualmente."
+                    <TextBlock x:Uid="SetUpdatesDesc" Text="Ritmo se actualiza solo desde GitHub (App Installer). Aquí puedes comprobarlo manualmente."
                                Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                        <Button x:Name="CheckUpdateBtn" Content="Buscar actualizaciones" Click="CheckUpdateBtn_Click" />
-                        <Button x:Name="InstallUpdateBtn" Content="Instalar ahora" Click="InstallUpdateBtn_Click"
+                        <Button x:Name="CheckUpdateBtn" x:Uid="SetCheckUpdate" Content="Buscar actualizaciones" Click="CheckUpdateBtn_Click" />
+                        <Button x:Name="InstallUpdateBtn" x:Uid="SetInstallNow" Content="Instalar ahora" Click="InstallUpdateBtn_Click"
                                 Style="{ThemeResource AccentButtonStyle}" Visibility="Collapsed" />
                         <TextBlock x:Name="UpdateStatus" VerticalAlignment="Center" Opacity="0.85" FontSize="13" TextWrapping="Wrap" />
                     </StackPanel>
@@ -399,13 +399,13 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="14">
-                    <TextBlock Text="Apariencia" FontSize="18" FontWeight="SemiBold" />
-                    <ComboBox x:Name="ThemeBox" Header="Tema" Width="240" SelectionChanged="ThemeBox_SelectionChanged">
-                        <ComboBoxItem Content="Según el sistema" Tag="system" />
-                        <ComboBoxItem Content="Claro" Tag="light" />
-                        <ComboBoxItem Content="Oscuro" Tag="dark" />
+                    <TextBlock x:Uid="SetAppearance" Text="Apariencia" FontSize="18" FontWeight="SemiBold" />
+                    <ComboBox x:Name="ThemeBox" x:Uid="SetTheme" Header="Tema" Width="240" SelectionChanged="ThemeBox_SelectionChanged">
+                        <ComboBoxItem x:Uid="SetThemeSystem" Content="Según el sistema" Tag="system" />
+                        <ComboBoxItem x:Uid="SetThemeLight" Content="Claro" Tag="light" />
+                        <ComboBoxItem x:Uid="SetThemeDark" Content="Oscuro" Tag="dark" />
                     </ComboBox>
-                    <TextBlock Text="«Según el sistema» usa el tema de Windows. El cambio se aplica al instante."
+                    <TextBlock x:Uid="SetThemeNote" Text="«Según el sistema» usa el tema de Windows. El cambio se aplica al instante."
                                Opacity="0.7" FontSize="12" TextWrapping="Wrap" />
 
                     <ComboBox x:Name="LanguageBox" x:Uid="SettingsLanguage" Header="Idioma" Width="240"
@@ -425,10 +425,10 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="Bloqueo de webs (avanzado)" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock TextWrapping="Wrap" Opacity="0.8" FontSize="13"
+                    <TextBlock x:Uid="SetWebBlock" Text="Bloqueo de webs (avanzado)" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Uid="SetWebBlockDesc" TextWrapping="Wrap" Opacity="0.8" FontSize="13"
                                Text="Durante la concentración, Ritmo minimiza al instante las ventanas en webs bloqueadas del entorno. Para un bloqueo a nivel de RED (que impida cargarlas), instala la extensión de navegador. La lista de webs se configura en cada entorno." />
-                    <Button x:Name="PrepareBlockerBtn" Content="Preparar extensión de bloqueo…"
+                    <Button x:Name="PrepareBlockerBtn" x:Uid="SetPrepareBlocker" Content="Preparar extensión de bloqueo…"
                             Click="PrepareBlockerBtn_Click" HorizontalAlignment="Left" />
                 </StackPanel>
             </Border>
@@ -439,16 +439,16 @@
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="12">
                     <Grid>
-                        <TextBlock Text="Notas" FontSize="18" FontWeight="SemiBold"
+                        <TextBlock x:Uid="SetNotes" Text="Notas" FontSize="18" FontWeight="SemiBold"
                                    VerticalAlignment="Center" />
                         <Button x:Name="AddNoteBtn" Click="AddNoteBtn_Click" HorizontalAlignment="Right">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE710;" FontSize="13" />
-                                <TextBlock Text="Añadir nota" />
+                                <TextBlock x:Uid="SetAddNote" Text="Añadir nota" />
                             </StackPanel>
                         </Button>
                     </Grid>
-                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                    <TextBlock x:Uid="SetNotesDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                                Text="Notas fijadas (admiten Markdown). Aparecen en la pantalla «Hoy». Los enlaces ahora viven en cada entorno de trabajo." />
                     <StackPanel x:Name="NotesList" Spacing="8" />
                 </StackPanel>
@@ -459,20 +459,20 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="14">
-                    <TextBlock Text="Copia de seguridad" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                    <TextBlock x:Uid="SetBackup" Text="Copia de seguridad" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Uid="SetBackupDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                                Text="Exporta toda tu configuración (horario, fases, entornos, notas, ajustes) a un archivo, o impórtala para restaurarla. Importar reemplaza la configuración actual." />
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <Button x:Name="ExportBtn" Click="ExportBtn_Click">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xEDE1;" FontSize="14" />
-                                <TextBlock Text="Exportar configuración" />
+                                <TextBlock x:Uid="SetExport" Text="Exportar configuración" />
                             </StackPanel>
                         </Button>
                         <Button x:Name="ImportBtn" Click="ImportBtn_Click">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE8B5;" FontSize="14" />
-                                <TextBlock Text="Importar configuración" />
+                                <TextBlock x:Uid="SetImport" Text="Importar configuración" />
                             </StackPanel>
                         </Button>
                         <TextBlock x:Name="BackupStatus" VerticalAlignment="Center" Opacity="0.8" FontSize="13" />
@@ -485,16 +485,16 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="14">
-                    <TextBlock Text="Segundo plano y arranque" FontSize="18" FontWeight="SemiBold" />
-                    <TextBlock Opacity="0.7" FontSize="13" TextWrapping="Wrap"
+                    <TextBlock x:Uid="SetBgStartup" Text="Segundo plano y arranque" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Uid="SetBgStartupDesc" Opacity="0.7" FontSize="13" TextWrapping="Wrap"
                                Text="Al cerrar la ventana, Ritmo sigue en segundo plano para que los avisos del horario suenen igualmente. Vuelve a abrirlo desde el menú Inicio o usa «Salir» para cerrarlo del todo." />
-                    <ToggleSwitch x:Name="AutostartSwitch" Header="Arrancar Ritmo al iniciar sesión en Windows"
+                    <ToggleSwitch x:Name="AutostartSwitch" x:Uid="SetAutostart" Header="Arrancar Ritmo al iniciar sesión en Windows"
                                   OffContent="No" OnContent="Sí" Toggled="AutostartSwitch_Toggled" />
                     <TextBlock x:Name="AutostartHint" Opacity="0.6" FontSize="12" TextWrapping="Wrap" />
                     <Button x:Name="ExitBtn" Click="ExitBtn_Click">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <FontIcon Glyph="&#xE7E8;" FontSize="14" />
-                            <TextBlock Text="Salir de Ritmo (detiene los avisos)" />
+                            <TextBlock x:Uid="SetExit" Text="Salir de Ritmo (detiene los avisos)" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -502,7 +502,7 @@
 
             <!-- Guardar -->
             <StackPanel Orientation="Horizontal" Spacing="12">
-                <Button x:Name="SaveBtn" Click="SaveBtn_Click" Style="{StaticResource AccentButtonStyle}" Content="Guardar cambios" />
+                <Button x:Name="SaveBtn" x:Uid="SetSave" Click="SaveBtn_Click" Style="{StaticResource AccentButtonStyle}" Content="Guardar cambios" />
                 <TextBlock x:Name="SaveStatus" VerticalAlignment="Center" Opacity="0.8" />
             </StackPanel>
         </StackPanel>
