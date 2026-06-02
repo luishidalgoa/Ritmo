@@ -26,7 +26,12 @@
                     </Grid.ColumnDefinitions>
 
                     <PersonPicture Grid.Column="0" DisplayName="Luis Hidalgo" Width="84" Height="84"
-                                   VerticalAlignment="Top" />
+                                   VerticalAlignment="Top">
+                        <!-- Foto del autor; si no carga (sin red), PersonPicture cae a las iniciales «LH». -->
+                        <PersonPicture.ProfilePicture>
+                            <BitmapImage UriSource="https://gamehub.luishidalgoa.ddns-ip.net/perfil.png" />
+                        </PersonPicture.ProfilePicture>
+                    </PersonPicture>
 
                     <StackPanel Grid.Column="1" Spacing="10">
                         <TextBlock Text="Luis Hidalgo" FontSize="24" FontWeight="SemiBold" />
