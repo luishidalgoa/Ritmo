@@ -36,4 +36,10 @@ public interface ITaskSyncProvider
 
     /// <summary>Actualiza una tarea remota; devuelve la nueva marca de actualización o null.</summary>
     Task<string?> UpdateTaskAsync(string listId, string taskId, string text, bool done, CancellationToken ct);
+
+    /// <summary>
+    /// Borra una tarea remota (#64). Devuelve true si quedó borrada o si ya no existía (404);
+    /// false si el borrado falló y conviene reintentarlo en la próxima sincronización.
+    /// </summary>
+    Task<bool> DeleteTaskAsync(string listId, string taskId, CancellationToken ct);
 }

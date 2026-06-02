@@ -36,6 +36,7 @@ internal sealed class SettingsDto
     // Tareas (#145): bloques (listas) + tareas.
     public List<TaskBlockDto> TaskBlocks { get; set; } = [];
     public List<TaskItemDto> Tasks { get; set; } = [];
+    public List<TaskTombstoneDto>? TaskTombstones { get; set; } = [];   // #64: borrados pendientes de propagar
     // LEGACY (#84 V1/V2): tarifa/objetivo por ENTORNO. Se migran a proyectos en FromDto y dejan de
     // escribirse. Se mantienen solo para leer settings.json antiguos.
     public Dictionary<string, decimal>? EnvironmentRates { get; set; }
@@ -112,8 +113,15 @@ internal sealed class TaskItemDto
     public string? Notes { get; set; }
     public string? DueDate { get; set; }   // "yyyy-MM-dd" o null
     public string? SessionKey { get; set; }
-    public string? ExternalId { get; set; }       // #64: tarea de Google
-    public string? ExternalUpdated { get; set; }  // #64: updated de Google en la última sync
+    public string? ExternalId { get; set; }       // #64: tarea remota
+    public string? ExternalUpdated { get; set; }  // #64: updated remoto en la última sync
+}
+
+internal sealed class TaskTombstoneDto   // #64
+{
+    public string Provider { get; set; } = "";
+    public string ListId { get; set; } = "";
+    public string TaskId { get; set; } = "";
 }
 
 internal sealed class WorkLogEntryDto
@@ -363,6 +371,8 @@ internal static class SettingsMapper
             ExternalId = t.ExternalId, ExternalUpdated = t.ExternalUpdated,
             DueDate = t.DueDate?.ToString(DateFormat, CultureInfo.InvariantCulture)
         }).ToList(),
+        TaskTombstones = s.TaskTombstones
+            .Select(x => new TaskTombstoneDto { Provider = x.Provider, ListId = x.ListId, TaskId = x.TaskId }).ToList(),
         NavidromeServerUrl = s.NavidromeServerUrl,
         NavidromeUser = s.NavidromeUser,
         NtfyEnabled = s.NtfyEnabled,
@@ -550,7 +560,10 @@ internal static class SettingsMapper
             ExternalUpdated = t.ExternalUpdated,
             DueDate = string.IsNullOrWhiteSpace(t.DueDate) ? null
                 : DateOnly.ParseExact(t.DueDate, DateFormat, CultureInfo.InvariantCulture)
-        }).ToList()
+        }).ToList(),
+        TaskTombstones = (d.TaskTombstones ?? [])
+            .Where(x => !string.IsNullOrEmpty(x.Provider) && !string.IsNullOrEmpty(x.TaskId))
+            .Select(x => new TaskTombstone { Provider = x.Provider, ListId = x.ListId, TaskId = x.TaskId }).ToList()
         };
         return CategoryMigration.Apply(s, d.ViewConfig?.ColorsByKind);
     }

@@ -31,6 +31,7 @@ internal static class TaskSyncRunner
             var s = AppState.Load();
             var blocks = s.TaskBlocks.ToList();
             var tasks = s.Tasks.ToList();
+            var tombstones = s.TaskTombstones.ToList();
 
             // Un bloque es "de este proveedor" si ya está vinculado a él, o si está sin vincular (lo reclama).
             bool Owns(TaskBlock b) => b.Provider == prov || string.IsNullOrEmpty(b.Provider);
@@ -71,6 +72,20 @@ internal static class TaskSyncRunner
                 });
             }
 
+            // 2.5 Propagar BORRADOS locales (#64): borrar en el proveedor las tareas con lápida. Las que
+            // no se puedan borrar se conservan (reintento) y se filtran del remoto para que no reaparezcan.
+            var pendingDelete = new HashSet<string>(StringComparer.Ordinal);
+            var keptTombstones = new List<Ritmo.Core.Model.TaskTombstone>();
+            foreach (var tomb in tombstones)
+            {
+                if (tomb.Provider != prov) { keptTombstones.Add(tomb); continue; }
+                bool ok;
+                try { ok = await provider.DeleteTaskAsync(tomb.ListId, tomb.TaskId, ct); }
+                catch { ok = false; }
+                if (ok) deleted++;
+                else { keptTombstones.Add(tomb); pendingDelete.Add(tomb.TaskId); }
+            }
+
             // 3. Reconciliar tareas por bloque propio. Cada lista va en su propio try: si una falla
             // (p. ej. una colección de iCloud que no admite REPORT), se anota el aviso y se SIGUE con
             // las demás, en vez de tumbar toda la sync y perder lo ya hecho.
@@ -86,7 +101,8 @@ internal static class TaskSyncRunner
 
                 var localSync = localTasks
                     .Select(t => new SyncLocalTask(t.Id, t.ExternalId, t.Text, t.Done, t.ExternalUpdated)).ToList();
-                var remoteSync = remoteTasks.Where(r => !string.IsNullOrEmpty(r.ExternalId)).ToList();
+                var remoteSync = remoteTasks
+                    .Where(r => !string.IsNullOrEmpty(r.ExternalId) && !pendingDelete.Contains(r.ExternalId)).ToList();
                 var plan = TaskSync.Plan(localSync, remoteSync);
 
                 foreach (var l in plan.PushNew)
@@ -131,8 +147,9 @@ internal static class TaskSyncRunner
                 }
             }
 
-            // Guarda SIEMPRE lo conseguido (bloques nuevos + tareas), aunque alguna lista diera aviso.
-            AppState.Store.Save(s with { TaskBlocks = blocks, Tasks = tasks });
+            // Guarda SIEMPRE lo conseguido (bloques nuevos + tareas + lápidas restantes), aunque alguna
+            // lista diera aviso. Las lápidas que se pudieron borrar se descartan; las fallidas se reintentan.
+            AppState.Store.Save(s with { TaskBlocks = blocks, Tasks = tasks, TaskTombstones = keptTombstones });
             var note = warnings.Count == 0 ? null
                 : $"{warnings.Count} lista(s) con aviso · " + string.Join(" · ", warnings);
             return new SyncResult(true, created, updated, deleted, note);

@@ -72,6 +72,10 @@ public sealed record AppSettings
     /// <summary>Tareas (#145), hijas de un <see cref="TaskBlock"/> por su BlockId.</summary>
     public IReadOnlyList<TaskItem> Tasks { get; init; } = [];
 
+    /// <summary>Lápidas de tareas sincronizadas borradas en local (#64): pendientes de borrar en el
+    /// proveedor en la próxima sincronización. Ver <see cref="TaskTombstone"/>.</summary>
+    public IReadOnlyList<TaskTombstone> TaskTombstones { get; init; } = [];
+
     /// <summary>Entornos de concentración definidos por el usuario.</summary>
     public IReadOnlyList<FocusEnvironment> FocusEnvironments { get; init; } = [];
 

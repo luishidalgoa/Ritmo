@@ -279,6 +279,17 @@ public static class GoogleTasksService
         return ParseTask(doc.RootElement);
     }
 
+    /// <summary>Borra una tarea de Google. true si se borró o ya no existía (404); false si falló.</summary>
+    public static async Task<bool> DeleteTaskAsync(string listId, string taskId, CancellationToken ct = default)
+    {
+        if (!await EnsureAccessTokenAsync(ct)) return false;
+        using var req = new HttpRequestMessage(HttpMethod.Delete,
+            $"{ApiBase}/lists/{Uri.EscapeDataString(listId)}/tasks/{Uri.EscapeDataString(taskId)}");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+        using var resp = await Http.SendAsync(req, ct);
+        return resp.IsSuccessStatusCode || resp.StatusCode == HttpStatusCode.NotFound;
+    }
+
     private static GoogleTask ParseTask(JsonElement it)
     {
         string id = it.TryGetProperty("id", out var i) ? i.GetString() ?? "" : "";

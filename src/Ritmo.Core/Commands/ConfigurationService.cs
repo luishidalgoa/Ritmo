@@ -1310,8 +1310,17 @@ public sealed class ConfigurationService
     public CommandResult RemoveTask(string id)
     {
         var s = _store.Load();
-        if (s.Tasks.All(t => t.Id != id)) return CommandResult.Fail("No existe la tarea.");
-        _store.Save(s with { Tasks = s.Tasks.Where(t => t.Id != id).ToList() });
+        var task = s.Tasks.FirstOrDefault(t => t.Id == id);
+        if (task is null) return CommandResult.Fail("No existe la tarea.");
+
+        // Si la tarea estaba sincronizada, deja una lápida para borrarla también en el proveedor (#64).
+        var tombstones = s.TaskTombstones.ToList();
+        var block = s.TaskBlocks.FirstOrDefault(b => b.Id == task.BlockId);
+        if (!string.IsNullOrEmpty(task.ExternalId)
+            && block is { Provider: { Length: > 0 } prov, ExternalId: { Length: > 0 } listId })
+            tombstones.Add(new Ritmo.Core.Model.TaskTombstone { Provider = prov, ListId = listId, TaskId = task.ExternalId! });
+
+        _store.Save(s with { Tasks = s.Tasks.Where(t => t.Id != id).ToList(), TaskTombstones = tombstones });
         return CommandResult.Ok("Tarea eliminada.");
     }
 

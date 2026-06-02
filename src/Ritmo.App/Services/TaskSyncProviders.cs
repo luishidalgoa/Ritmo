@@ -34,6 +34,9 @@ internal sealed class GoogleSyncProvider : ITaskSyncProvider
         var g = await GoogleTasksService.PatchTaskAsync(listId, taskId, text, done, ct);
         return g?.Updated;
     }
+
+    public Task<bool> DeleteTaskAsync(string listId, string taskId, CancellationToken ct)
+        => GoogleTasksService.DeleteTaskAsync(listId, taskId, ct);
 }
 
 /// <summary>
@@ -62,4 +65,7 @@ internal sealed class AppleSyncProvider : ITaskSyncProvider
 
     public async Task<string?> UpdateTaskAsync(string listId, string taskId, string text, bool done, CancellationToken ct)
         => await AppleRemindersService.UpdateTodoAsync(taskId, text, done, ct);
+
+    public Task<bool> DeleteTaskAsync(string listId, string taskId, CancellationToken ct)
+        => AppleRemindersService.DeleteTodoAsync(taskId, ct);   // en Apple el taskId ES la URL del recurso
 }

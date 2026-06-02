@@ -205,6 +205,13 @@ public static class AppleRemindersService
         return etag ?? await FetchEtagAsync(resourceUrl, ct);
     }
 
+    /// <summary>Borra un VTODO (DELETE al recurso). true si se borró o ya no existía (404); false si falló.</summary>
+    public static async Task<bool> DeleteTodoAsync(string resourceUrl, CancellationToken ct = default)
+    {
+        var (st, _, _) = await SendAsync("DELETE", resourceUrl, null, -1, ct);
+        return st is (>= 200 and < 300) or 404;
+    }
+
     private static async Task<string> FetchEtagAsync(string url, CancellationToken ct)
     {
         try
