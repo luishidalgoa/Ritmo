@@ -47,6 +47,8 @@ internal sealed class SettingsDto
     public string? NtfyServerUrl { get; set; }
     public string? NtfyTopic { get; set; }
     public string? GoogleClientId { get; set; }   // #64: OAuth público para Google Tasks
+    public string? GoogleCalendarId { get; set; }   // #112: calendario dedicado donde se publica el horario
+    public List<CalendarLinkDto>? CalendarPublishLinks { get; set; } = [];   // #112
     public string? LastSeenVersion { get; set; }
     public int? IslandLeft { get; set; }   // #152
     public int? IslandTop { get; set; }
@@ -54,6 +56,12 @@ internal sealed class SettingsDto
     public List<CalendarFeedDto> CalendarFeeds { get; set; } = [];
     public List<OverlapPriorityDto> OverlapPriorities { get; set; } = [];
     public List<SessionPriorityDto>? SessionPriorities { get; set; } = [];   // #149
+}
+
+internal sealed class CalendarLinkDto   // #112
+{
+    public string Key { get; set; } = "";
+    public string EventId { get; set; } = "";
 }
 
 internal sealed class CalendarFeedDto
@@ -381,6 +389,9 @@ internal static class SettingsMapper
         NtfyServerUrl = s.NtfyServerUrl,
         NtfyTopic = s.NtfyTopic,
         GoogleClientId = s.GoogleClientId,
+        GoogleCalendarId = s.GoogleCalendarId,
+        CalendarPublishLinks = s.CalendarPublishLinks
+            .Select(l => new CalendarLinkDto { Key = l.Key, EventId = l.EventId }).ToList(),
         LastSeenVersion = s.LastSeenVersion,
         IslandLeft = s.IslandLeft,
         IslandTop = s.IslandTop,
@@ -520,6 +531,10 @@ internal static class SettingsMapper
         NtfyServerUrl = d.NtfyServerUrl,
         NtfyTopic = d.NtfyTopic,
         GoogleClientId = d.GoogleClientId,
+        GoogleCalendarId = d.GoogleCalendarId,
+        CalendarPublishLinks = (d.CalendarPublishLinks ?? [])
+            .Where(l => !string.IsNullOrEmpty(l.Key) && !string.IsNullOrEmpty(l.EventId))
+            .Select(l => new CalendarLink { Key = l.Key, EventId = l.EventId }).ToList(),
         LastSeenVersion = d.LastSeenVersion,
         IslandLeft = d.IslandLeft,
         IslandTop = d.IslandTop,

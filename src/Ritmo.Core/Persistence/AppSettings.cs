@@ -101,6 +101,12 @@ public sealed record AppSettings
     /// escritorio con PKCE no usan secreto confidencial); el refresh token va en el almacén seguro.</summary>
     public string? GoogleClientId { get; init; }
 
+    /// <summary>Id del calendario de Google dedicado donde Ritmo publica el horario (#112 Fase 2); null = aún no creado.</summary>
+    public string? GoogleCalendarId { get; init; }
+
+    /// <summary>Vínculos sesión↔evento publicado (#112 Fase 2): para actualizar/borrar sin duplicar.</summary>
+    public IReadOnlyList<CalendarLink> CalendarPublishLinks { get; init; } = [];
+
     /// <summary>
     /// Última versión de la app cuyas «Novedades» vio el usuario (p. ej. "1.0.1.0").
     /// Null = nunca las ha visto. Al actualizar la app, si la versión actual es mayor

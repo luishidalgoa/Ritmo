@@ -224,6 +224,28 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Publicar el horario en Google Calendar (#112 Fase 2): reúsa el OAuth de Google -->
+                    <Border x:Name="GoogleCalManageCard"
+                            Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="📅  Google Calendar" FontWeight="SemiBold" FontSize="15" />
+                            <TextBlock x:Name="GoogleCalStatus" Opacity="0.8" FontSize="12" TextWrapping="Wrap"
+                                       Text="Publica tus sesiones en un calendario «Ritmo» de Google." />
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Button x:Name="GoogleCalPublishBtn" Content="Publicar mi horario" Click="GoogleCalPublishBtn_Click"
+                                        Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="GoogleCalUnpublishBtn" Content="Despublicar" Click="GoogleCalUnpublishBtn_Click"
+                                        Visibility="Collapsed" />
+                                <HyperlinkButton x:Name="GoogleCalReconnectBtn" Content="Reconectar (dar permiso de Calendar)"
+                                                 Click="GoogleCalReconnectBtn_Click" />
+                            </StackPanel>
+                            <TextBlock Text="Una vía: crea/actualiza en tu Google Calendar los eventos de tus sesiones (recurrentes y extraordinarias) en un calendario propio «Ritmo». Vuelve a publicar tras cambiar el horario."
+                                       Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
                 </StackPanel>
             </Border>
 

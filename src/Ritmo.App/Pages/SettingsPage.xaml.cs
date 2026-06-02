@@ -61,7 +61,8 @@ public sealed partial class SettingsPage : Page
         BuildRhythms();
         BuildNotes();
         LoadNavidromeState(s);
-        LoadGoogleState();      // sync Google Tasks (#64)
+        LoadGoogleState();          // sync Google Tasks (#64)
+        LoadGoogleCalendarState();  // publicar en Google Calendar (#112)
         BuildCalendarFeeds();
         PomodoroHelp.Content = HelpHint.Icon("pomodoro");   // ayuda (#93)
         RhythmsHelp.Content = HelpHint.Icon("rhythm");      // ayuda (#96)
@@ -178,6 +179,78 @@ public sealed partial class SettingsPage : Page
     {
         Services.GoogleTasksService.SignOut();
         LoadGoogleState();
+    }
+
+    // ---------- Publicar el horario en Google Calendar (#112 Fase 2) ----------
+
+    private void LoadGoogleCalendarState()
+    {
+        bool published = !string.IsNullOrEmpty(AppState.Load().GoogleCalendarId);
+        GoogleCalStatus.Text = published
+            ? "✓ Publicado en un calendario «Ritmo» de Google."
+            : "Publica tus sesiones en un calendario «Ritmo» de Google.";
+        GoogleCalUnpublishBtn.Visibility = published ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void GoogleCalPublishBtn_Click(object sender, RoutedEventArgs e)
+    {
+        GoogleCalPublishBtn.IsEnabled = false;
+        try
+        {
+            if (!Services.GoogleTasksService.HasSession)
+            {
+                GoogleCalStatus.Text = "Conéctate a Google: pulsa «Reconectar (dar permiso de Calendar)».";
+                return;
+            }
+            GoogleCalStatus.Text = "Publicando…";
+            var r = await Services.GoogleCalendarPublisher.PublishAsync();
+            if (r.Ok)
+            {
+                GoogleCalStatus.Text = $"✓ Publicado · +{r.Created} nuevo(s) · {r.Updated} actualizado(s) · {r.Deleted} borrado(s).";
+                GoogleCalUnpublishBtn.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                GoogleCalStatus.Text = "⚠ " + (r.Error ?? "No se pudo publicar.") + " · Si es de permisos, pulsa «Reconectar».";
+            }
+        }
+        catch (Exception ex) { GoogleCalStatus.Text = "⚠ Error: " + ex.Message; }
+        finally { GoogleCalPublishBtn.IsEnabled = true; }
+    }
+
+    private async void GoogleCalReconnectBtn_Click(object sender, RoutedEventArgs e)
+    {
+        GoogleCalReconnectBtn.IsEnabled = false;
+        GoogleCalStatus.Text = "Conectando… autoriza en el navegador (verás permiso de Calendar).";
+        try
+        {
+            // Reutiliza el OAuth de Google; ahora pide el scope combinado (Tasks + Calendar).
+            if (!Services.GoogleTasksService.HasStoredSecret)
+            {
+                GoogleCalStatus.Text = "Conecta primero Google Tasks (arriba) para guardar el secreto; luego reconecta aquí.";
+                return;
+            }
+            bool ok = await Services.GoogleTasksService.AuthorizeAsync();
+            GoogleCalStatus.Text = ok
+                ? "✓ Conectado con permiso de Calendar. Ya puedes publicar."
+                : "No se pudo conectar. Revisa que tu cuenta esté como «usuario de prueba» en Google Cloud.";
+        }
+        catch (Exception ex) { GoogleCalStatus.Text = "⚠ Error: " + ex.Message; }
+        finally { GoogleCalReconnectBtn.IsEnabled = true; }
+    }
+
+    private async void GoogleCalUnpublishBtn_Click(object sender, RoutedEventArgs e)
+    {
+        GoogleCalUnpublishBtn.IsEnabled = false;
+        GoogleCalStatus.Text = "Quitando de Google Calendar…";
+        try
+        {
+            var r = await Services.GoogleCalendarPublisher.UnpublishAsync();
+            GoogleCalStatus.Text = r.Ok ? "✓ Quitado de Google Calendar." : "⚠ " + (r.Error ?? "No se pudo quitar.");
+            LoadGoogleCalendarState();
+        }
+        catch (Exception ex) { GoogleCalStatus.Text = "⚠ Error: " + ex.Message; }
+        finally { GoogleCalUnpublishBtn.IsEnabled = true; }
     }
 
     // ---------- Tema de la app (#48) ----------

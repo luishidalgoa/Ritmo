@@ -106,7 +106,8 @@ public static class GoogleTasksService
         var verifier = GoogleAuth.NewVerifier();
         var challenge = GoogleAuth.Challenge(verifier);
         var state = GoogleAuth.NewState();
-        var url = GoogleAuth.AuthorizeUrl(clientId, RedirectUri, challenge, state);
+        // Scope combinado (Tasks + Calendar): una sola conexión de Google cubre ambos (#112).
+        var url = GoogleAuth.AuthorizeUrl(clientId, RedirectUri, challenge, state, GoogleAuth.FullScope);
 
         var listener = new TcpListener(IPAddress.Loopback, CallbackPort);
         listener.Start();
@@ -201,6 +202,10 @@ public static class GoogleTasksService
         if (_accessToken is not null && DateTimeOffset.UtcNow < _accessExpiry) return true;
         return await RefreshAsync(ct);
     }
+
+    /// <summary>Devuelve un access token válido (renovándolo si hace falta) o null. Lo comparte Calendar (#112).</summary>
+    public static async Task<string?> GetAccessTokenAsync(CancellationToken ct = default)
+        => await EnsureAccessTokenAsync(ct) ? _accessToken : null;
 
     // ---------- API de Google Tasks ----------
 

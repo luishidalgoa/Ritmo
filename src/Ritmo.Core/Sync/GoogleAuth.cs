@@ -19,6 +19,12 @@ public static class GoogleAuth
     /// <summary>Permiso para leer y escribir las listas/tareas de Google Tasks.</summary>
     public const string TasksScope = "https://www.googleapis.com/auth/tasks";
 
+    /// <summary>Permiso para gestionar calendarios y eventos de Google Calendar (#112 Fase 2).</summary>
+    public const string CalendarScope = "https://www.googleapis.com/auth/calendar";
+
+    /// <summary>Scope combinado: una sola conexión de Google cubre Tasks + Calendar.</summary>
+    public const string FullScope = TasksScope + " " + CalendarScope;
+
     private const string VerifierChars =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
 
