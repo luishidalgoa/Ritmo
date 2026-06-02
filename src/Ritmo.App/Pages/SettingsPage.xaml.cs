@@ -168,6 +168,7 @@ public sealed partial class SettingsPage : Page
             var r = await Services.GoogleTasksSync.SyncAsync();
             GoogleStatus.Text = r.Ok
                 ? $"✓ Sincronizado · +{r.Created} nueva(s) · {r.Updated} actualizada(s) · {r.Deleted} borrada(s)."
+                  + (r.Error is { Length: > 0 } w ? "  ⚠ " + w : "")
                 : "⚠ " + (r.Error ?? "No se pudo sincronizar.");
         }
         catch (Exception ex) { GoogleStatus.Text = "⚠ Error: " + ex.Message; }
@@ -245,6 +246,7 @@ public sealed partial class SettingsPage : Page
             var r = await Services.AppleRemindersSync.SyncAsync();
             AppleStatus.Text = r.Ok
                 ? $"✓ Sincronizado · +{r.Created} nueva(s) · {r.Updated} actualizada(s) · {r.Deleted} borrada(s)."
+                  + (r.Error is { Length: > 0 } w ? "  ⚠ " + w : "")
                 : "⚠ " + (r.Error ?? "No se pudo sincronizar.");
         }
         catch (Exception ex) { AppleStatus.Text = "⚠ Error: " + ex.Message; }

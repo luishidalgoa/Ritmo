@@ -161,7 +161,11 @@ public static class AppleRemindersService
     public static async Task<IReadOnlyList<AppleTodo>> ListTodosAsync(string collectionUrl, CancellationToken ct = default)
     {
         var (st, body, _) = await SendAsync("REPORT", collectionUrl, ReportVTodos, 1, ct);
-        if (st is < 200 or >= 300) throw new HttpRequestException($"iCloud REPORT: HTTP {st}.");
+        if (st is < 200 or >= 300)
+        {
+            var u = collectionUrl.Length > 80 ? "…" + collectionUrl[^80..] : collectionUrl;
+            throw new HttpRequestException($"REPORT HTTP {st} en {u}");
+        }
         var todos = new List<AppleTodo>();
         foreach (var r in CalDavXml.ParseMultistatus(body))
         {

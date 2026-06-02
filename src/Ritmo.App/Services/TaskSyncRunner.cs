@@ -71,10 +71,15 @@ internal static class TaskSyncRunner
                 });
             }
 
-            // 3. Reconciliar tareas por bloque propio.
+            // 3. Reconciliar tareas por bloque propio. Cada lista va en su propio try: si una falla
+            // (p. ej. una colección de iCloud que no admite REPORT), se anota el aviso y se SIGUE con
+            // las demás, en vez de tumbar toda la sync y perder lo ya hecho.
+            var warnings = new List<string>();
             foreach (var b in blocks)
             {
                 if (b.Provider != prov || string.IsNullOrEmpty(b.ExternalId)) continue;
+                try
+                {
                 var listId = b.ExternalId!;
                 var localTasks = tasks.Where(t => t.BlockId == b.Id).ToList();
                 var remoteTasks = await provider.ListTasksAsync(listId, ct);
@@ -119,10 +124,18 @@ internal static class TaskSyncRunner
                     int idx = tasks.FindIndex(t => t.Id == localId);
                     if (idx >= 0) { tasks.RemoveAt(idx); deleted++; }
                 }
+                }
+                catch (Exception ex)
+                {
+                    warnings.Add($"«{b.Name}»: {ex.Message}");
+                }
             }
 
+            // Guarda SIEMPRE lo conseguido (bloques nuevos + tareas), aunque alguna lista diera aviso.
             AppState.Store.Save(s with { TaskBlocks = blocks, Tasks = tasks });
-            return new SyncResult(true, created, updated, deleted, null);
+            var note = warnings.Count == 0 ? null
+                : $"{warnings.Count} lista(s) con aviso · " + string.Join(" · ", warnings);
+            return new SyncResult(true, created, updated, deleted, note);
         }
         catch (Exception ex)
         {
