@@ -1151,10 +1151,11 @@ public sealed partial class SchedulePage : Page
     private async Task LoadCalendarAsync()
     {
         var settings = AppState.Load();
-        if (settings.CalendarFeeds.Count == 0) return;
+        bool anySource = settings.CalendarFeeds.Count > 0 || (settings.ShowGoogleCalendar && GoogleTasksService.HasSession);
+        if (!anySource) return;
         var target = _weekStart;
         IReadOnlyList<CalendarEvent> events;
-        try { events = await CalendarService.FetchAsync(settings.CalendarFeeds, target, target.AddDays(6)); }
+        try { events = await CalendarService.FetchAllAsync(settings, target, target.AddDays(6)); }
         catch { return; }
         if (target != _weekStart) return;   // el usuario ya cambió de semana: descarta
         _calEvents = events;

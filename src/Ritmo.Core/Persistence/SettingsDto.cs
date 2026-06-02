@@ -49,6 +49,7 @@ internal sealed class SettingsDto
     public string? GoogleClientId { get; set; }   // #64: OAuth público para Google Tasks
     public string? GoogleCalendarId { get; set; }   // #112: calendario dedicado donde se publica el horario
     public List<CalendarLinkDto>? CalendarPublishLinks { get; set; } = [];   // #112
+    public bool ShowGoogleCalendar { get; set; }   // #79: mostrar mis calendarios de Google en el overlay
     public string? LastSeenVersion { get; set; }
     public int? IslandLeft { get; set; }   // #152
     public int? IslandTop { get; set; }
@@ -392,6 +393,7 @@ internal static class SettingsMapper
         GoogleCalendarId = s.GoogleCalendarId,
         CalendarPublishLinks = s.CalendarPublishLinks
             .Select(l => new CalendarLinkDto { Key = l.Key, EventId = l.EventId }).ToList(),
+        ShowGoogleCalendar = s.ShowGoogleCalendar,
         LastSeenVersion = s.LastSeenVersion,
         IslandLeft = s.IslandLeft,
         IslandTop = s.IslandTop,
@@ -535,6 +537,7 @@ internal static class SettingsMapper
         CalendarPublishLinks = (d.CalendarPublishLinks ?? [])
             .Where(l => !string.IsNullOrEmpty(l.Key) && !string.IsNullOrEmpty(l.EventId))
             .Select(l => new CalendarLink { Key = l.Key, EventId = l.EventId }).ToList(),
+        ShowGoogleCalendar = d.ShowGoogleCalendar,
         LastSeenVersion = d.LastSeenVersion,
         IslandLeft = d.IslandLeft,
         IslandTop = d.IslandTop,

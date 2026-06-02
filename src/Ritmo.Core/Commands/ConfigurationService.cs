@@ -797,6 +797,14 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Prioridad eliminada.");
     }
 
+    /// <summary>Activa/desactiva mostrar los calendarios de Google (OAuth) en el overlay del horario (#79).</summary>
+    public CommandResult SetShowGoogleCalendar(bool show)
+    {
+        var s = _store.Load();
+        _store.Save(s with { ShowGoogleCalendar = show });
+        return CommandResult.Ok(show ? "Calendario de Google activado." : "Calendario de Google desactivado.");
+    }
+
     /// <summary>Recuerda la posición (esquina sup. izq.) y el modo compacto de la isla flotante (#152).</summary>
     public CommandResult SetIslandPlacement(int? left, int? top, bool compact)
     {

@@ -183,13 +183,25 @@ public sealed partial class SettingsPage : Page
 
     // ---------- Publicar el horario en Google Calendar (#112 Fase 2) ----------
 
+    private bool _loadingGoogleCal;
+
     private void LoadGoogleCalendarState()
     {
-        bool published = !string.IsNullOrEmpty(AppState.Load().GoogleCalendarId);
+        var s = AppState.Load();
+        bool published = !string.IsNullOrEmpty(s.GoogleCalendarId);
         GoogleCalStatus.Text = published
             ? "✓ Publicado en un calendario «Ritmo» de Google."
             : "Publica tus sesiones en un calendario «Ritmo» de Google.";
         GoogleCalUnpublishBtn.Visibility = published ? Visibility.Visible : Visibility.Collapsed;
+        _loadingGoogleCal = true;
+        GoogleCalShowToggle.IsOn = s.ShowGoogleCalendar;
+        _loadingGoogleCal = false;
+    }
+
+    private void GoogleCalShowToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loadingGoogleCal) return;
+        AppState.Config.SetShowGoogleCalendar(GoogleCalShowToggle.IsOn);
     }
 
     private async void GoogleCalPublishBtn_Click(object sender, RoutedEventArgs e)

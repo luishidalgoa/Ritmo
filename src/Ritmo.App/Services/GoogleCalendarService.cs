@@ -5,6 +5,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Globalization;
+using Ritmo.Core.Interop;
 using Ritmo.Core.Sync;
 
 namespace Ritmo_App.Services;
@@ -88,6 +90,72 @@ public static class GoogleCalendarService
         var (st, _) = await SendAsync(HttpMethod.Delete,
             $"{ApiBase}/calendars/{Uri.EscapeDataString(calendarId)}/events/{Uri.EscapeDataString(eventId)}", null, ct);
         return st is (>= 200 and < 300) or 404 or 410;
+    }
+
+    // ---------- LECTURA: eventos de mis calendarios para el overlay (#79) ----------
+
+    /// <summary>
+    /// Trae los eventos de TODOS mis calendarios de Google (vía OAuth) en [from, to], excluyendo
+    /// <paramref name="excludeCalendarId"/> (el calendario "Ritmo", para no ver mis propias sesiones
+    /// publicadas). Devuelve <see cref="CalendarEvent"/> para reusar el overlay del ICS. #79
+    /// </summary>
+    public static async Task<IReadOnlyList<CalendarEvent>> FetchEventsAsync(
+        DateOnly from, DateOnly to, string? excludeCalendarId, CancellationToken ct = default)
+    {
+        var result = new List<CalendarEvent>();
+        if (await GoogleTasksService.GetAccessTokenAsync(ct) is null) return result;
+
+        var (cs, cbody) = await SendAsync(HttpMethod.Get, $"{ApiBase}/users/me/calendarList?maxResults=250&minAccessRole=reader", null, ct);
+        if (cs is < 200 or >= 300) return result;
+        var cals = new List<(string Id, string Summary)>();
+        using (var cdoc = JsonDocument.Parse(cbody))
+            if (cdoc.RootElement.TryGetProperty("items", out var items))
+                foreach (var it in items.EnumerateArray())
+                {
+                    var id = it.TryGetProperty("id", out var i) ? i.GetString() ?? "" : "";
+                    if (string.IsNullOrEmpty(id) || id == excludeCalendarId) continue;
+                    var sum = it.TryGetProperty("summaryOverride", out var so) ? so.GetString()
+                              : it.TryGetProperty("summary", out var sm) ? sm.GetString() : null;
+                    cals.Add((id, string.IsNullOrWhiteSpace(sum) ? id : sum!));
+                }
+
+        var timeMin = new DateTimeOffset(from.ToDateTime(TimeOnly.MinValue)).ToString("o");
+        var timeMax = new DateTimeOffset(to.AddDays(1).ToDateTime(TimeOnly.MinValue)).ToString("o");
+
+        foreach (var (id, sum) in cals)
+        {
+            var url = $"{ApiBase}/calendars/{Uri.EscapeDataString(id)}/events?singleEvents=true&orderBy=startTime&maxResults=250" +
+                      $"&timeMin={Uri.EscapeDataString(timeMin)}&timeMax={Uri.EscapeDataString(timeMax)}";
+            var (es, ebody) = await SendAsync(HttpMethod.Get, url, null, ct);
+            if (es is < 200 or >= 300) continue;
+            using var edoc = JsonDocument.Parse(ebody);
+            if (!edoc.RootElement.TryGetProperty("items", out var evs)) continue;
+            foreach (var ev in evs.EnumerateArray())
+                if (ParseEvent(ev, sum) is { } ce) result.Add(ce);
+        }
+        return result;
+    }
+
+    private static CalendarEvent? ParseEvent(JsonElement ev, string calName)
+    {
+        if (ev.TryGetProperty("status", out var stt) && stt.GetString() == "cancelled") return null;
+        var title = ev.TryGetProperty("summary", out var s) ? s.GetString() ?? "(sin título)" : "(sin título)";
+        if (!ev.TryGetProperty("start", out var st) || !ev.TryGetProperty("end", out var en)) return null;
+        var (start, allDay) = ParseWhen(st);
+        var (end, _) = ParseWhen(en);
+        if (start is null || end is null) return null;
+        return new CalendarEvent(title, start.Value, end.Value, allDay, calName);
+    }
+
+    private static (DateTime? Dt, bool AllDay) ParseWhen(JsonElement when)
+    {
+        if (when.TryGetProperty("dateTime", out var dt) && dt.GetString() is { } s
+            && DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dto))
+            return (dto.LocalDateTime, false);
+        if (when.TryGetProperty("date", out var d) && d.GetString() is { } ds
+            && DateTime.TryParse(ds, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            return (date, true);
+        return (null, false);
     }
 
     // ---------- Construcción del cuerpo del evento ----------

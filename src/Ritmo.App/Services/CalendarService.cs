@@ -35,4 +35,19 @@ public static class CalendarService
         }
         return all.OrderBy(e => e.Start).ToList();
     }
+
+    /// <summary>
+    /// Todas las fuentes de eventos del overlay: suscripciones ICS (#112) + mis calendarios de Google
+    /// por OAuth si está activado (#79). Best-effort: cada fuente se ignora si falla.
+    /// </summary>
+    public static async Task<IReadOnlyList<CalendarEvent>> FetchAllAsync(
+        Ritmo.Core.Persistence.AppSettings settings, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        var all = new List<CalendarEvent>();
+        if (settings.CalendarFeeds.Count > 0)
+            try { all.AddRange(await FetchAsync(settings.CalendarFeeds, from, to, ct)); } catch { }
+        if (settings.ShowGoogleCalendar && GoogleTasksService.HasSession)
+            try { all.AddRange(await GoogleCalendarService.FetchEventsAsync(from, to, settings.GoogleCalendarId, ct)); } catch { }
+        return all.OrderBy(e => e.Start).ToList();
+    }
 }

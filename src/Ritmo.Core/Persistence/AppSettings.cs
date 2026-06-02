@@ -104,6 +104,9 @@ public sealed record AppSettings
     /// <summary>Id del calendario de Google dedicado donde Ritmo publica el horario (#112 Fase 2); null = aún no creado.</summary>
     public string? GoogleCalendarId { get; init; }
 
+    /// <summary>Mostrar los eventos de mis calendarios de Google (vía OAuth) en el Horario/Hoy (#79). Opt-in.</summary>
+    public bool ShowGoogleCalendar { get; init; }
+
     /// <summary>Vínculos sesión↔evento publicado (#112 Fase 2): para actualizar/borrar sin duplicar.</summary>
     public IReadOnlyList<CalendarLink> CalendarPublishLinks { get; init; } = [];
 

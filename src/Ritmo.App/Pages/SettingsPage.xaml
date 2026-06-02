@@ -243,6 +243,8 @@
                             </StackPanel>
                             <TextBlock Text="Una vía: crea/actualiza en tu Google Calendar los eventos de tus sesiones (recurrentes y extraordinarias) en un calendario propio «Ritmo». Vuelve a publicar tras cambiar el horario."
                                        Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
+                            <ToggleSwitch x:Name="GoogleCalShowToggle" Header="Mostrar mis eventos de Google en el Horario/Hoy"
+                                          OnContent="Sí" OffContent="No" Toggled="GoogleCalShowToggle_Toggled" Margin="0,4,0,0" />
                         </StackPanel>
                     </Border>
 

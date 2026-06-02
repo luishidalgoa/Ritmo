@@ -101,10 +101,13 @@ public sealed partial class HomePage : Page
     /// <summary>Descarga y muestra los eventos de HOY de los calendarios suscritos (#112).</summary>
     private async System.Threading.Tasks.Task LoadCalendarAsync(Ritmo.Core.Persistence.AppSettings settings)
     {
-        if (settings.CalendarFeeds.Count == 0) { CalendarSection.Visibility = Visibility.Collapsed; return; }
+        bool anySource = settings.CalendarFeeds.Count > 0
+            || (settings.ShowGoogleCalendar && Services.GoogleTasksService.HasSession);
+        if (!anySource) { CalendarSection.Visibility = Visibility.Collapsed; return; }
+        CalendarSection.Visibility = Visibility.Visible;
         var today = DateOnly.FromDateTime(DateTime.Now);
         IReadOnlyList<CalendarEvent> events;
-        try { events = await CalendarService.FetchAsync(settings.CalendarFeeds, today, today); }
+        try { events = await CalendarService.FetchAllAsync(settings, today, today); }
         catch { return; }
 
         CalendarPanel.Children.Clear();
