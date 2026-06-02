@@ -53,6 +53,10 @@ public partial class App : Application
         // que una sesión nueva no avisaba hasta reiniciar. #128
         AppState.SettingsChanged += () => ScheduleHost.Instance.Start();
 
+        // Auto-sincroniza tareas con Google/Apple 15 s después de detectar un cambio en una lista
+        // vinculada (debounce). Solo si hay conexión; lo local no lo dispara. #64
+        Services.TaskAutoSync.Instance.Start();
+
         _window = new MainWindow();
 
         // Icono de bandeja: hace visible que Ritmo sigue activo en segundo plano (menú Abrir/Salir).
