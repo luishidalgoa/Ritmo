@@ -47,6 +47,10 @@ public sealed record AppSettings
     /// <summary>Tema de la app (#48): "system" (sigue a Windows), "light" o "dark". Por defecto sistema.</summary>
     public string ThemeMode { get; init; } = "system";
 
+    /// <summary>Idioma de la app (#48 i18n): "system" (sigue a Windows), "es" o "en". Por defecto español
+    /// (la app nació en español; mientras la traducción es parcial, "system" podría dar un estado mixto).</summary>
+    public string Language { get; init; } = "es";
+
     /// <summary>Modo descanso MANUAL (#135): pausa los avisos del horario «ahora» hasta apagarlo.</summary>
     public bool RestActive { get; init; }
 

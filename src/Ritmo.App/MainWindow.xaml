@@ -20,39 +20,39 @@
                     ItemInvoked="Nav_ItemInvoked"
                     Loaded="Nav_Loaded">
         <NavigationView.MenuItems>
-            <NavigationViewItem Content="Hoy" Tag="home" IsSelected="True">
+            <NavigationViewItem x:Uid="NavHome" Tag="home" IsSelected="True">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE8D1;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem Content="Temporizador" Tag="timer">
+            <NavigationViewItem x:Uid="NavTimer" Tag="timer">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE916;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem Content="Horario" Tag="schedule">
+            <NavigationViewItem x:Uid="NavSchedule" Tag="schedule">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE787;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem Content="Trabajo" Tag="work">
+            <NavigationViewItem x:Uid="NavWork" Tag="work">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE9F9;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem Content="Tareas" Tag="tasks">
+            <NavigationViewItem x:Uid="NavTasks" Tag="tasks">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE73E;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem x:Name="WorkEnvNav" Content="Entornos de trabajo" Tag="workenv" SelectsOnInvoked="False">
+            <NavigationViewItem x:Name="WorkEnvNav" x:Uid="NavWorkEnv" Tag="workenv" SelectsOnInvoked="False">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE821;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
         </NavigationView.MenuItems>
         <NavigationView.FooterMenuItems>
-            <NavigationViewItem x:Name="WhatsNewNav" Content="Novedades" Tag="whatsnew" SelectsOnInvoked="False">
+            <NavigationViewItem x:Name="WhatsNewNav" x:Uid="NavWhatsNew" Tag="whatsnew" SelectsOnInvoked="False">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE734;" />
                 </NavigationViewItem.Icon>
@@ -60,12 +60,12 @@
                     <InfoBadge x:Name="WhatsNewBadge" Visibility="Collapsed" />
                 </NavigationViewItem.InfoBadge>
             </NavigationViewItem>
-            <NavigationViewItem Content="Ayuda" Tag="help">
+            <NavigationViewItem x:Uid="NavHelp" Tag="help">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE897;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem Content="Ajustes" Tag="settings">
+            <NavigationViewItem x:Uid="NavSettings" Tag="settings">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE713;" />
                 </NavigationViewItem.Icon>
@@ -82,8 +82,8 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <StackPanel Grid.Row="0" Spacing="2">
-                        <TextBlock Text="Entornos de trabajo" FontSize="18" FontWeight="SemiBold" />
-                        <TextBlock Text="Accesos rápidos por entorno." Opacity="0.7" FontSize="12" />
+                        <TextBlock x:Uid="WorkEnvPanelTitle" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock x:Uid="WorkEnvPanelSub" Opacity="0.7" FontSize="12" />
                     </StackPanel>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="WorkEnvPanel" Spacing="8" />

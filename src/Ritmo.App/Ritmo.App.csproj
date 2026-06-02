@@ -13,6 +13,9 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Idioma por defecto de los recursos (#48 i18n). Los .resw de Strings/<lang>/ aportan las
+         traducciones; el override de idioma se hace con PrimaryLanguageOverride al arrancar. -->
+    <DefaultLanguage>es-ES</DefaultLanguage>
     <!-- La app es MSIX empaquetada: el Windows App Runtime ya viene desplegado
          por el paquete. Desactivamos el auto-inicializador del Deployment Manager,
          que con la mezcla de versiones (foundation 2.0.21 vs runtime 2.1.3) lanzaba

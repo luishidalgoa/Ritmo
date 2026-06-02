@@ -407,6 +407,16 @@
                     </ComboBox>
                     <TextBlock Text="«Según el sistema» usa el tema de Windows. El cambio se aplica al instante."
                                Opacity="0.7" FontSize="12" TextWrapping="Wrap" />
+
+                    <ComboBox x:Name="LanguageBox" x:Uid="SettingsLanguage" Header="Idioma" Width="240"
+                              SelectionChanged="LanguageBox_SelectionChanged" Margin="0,4,0,0">
+                        <ComboBoxItem x:Uid="SettingsLangSystem" Content="Según el sistema" Tag="system" />
+                        <ComboBoxItem Content="Español" Tag="es" />
+                        <ComboBoxItem Content="English" Tag="en" />
+                    </ComboBox>
+                    <TextBlock x:Name="LanguageHint" x:Uid="SettingsLanguageHint"
+                               Text="El cambio de idioma se aplica al reiniciar la app."
+                               Opacity="0.7" FontSize="12" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 

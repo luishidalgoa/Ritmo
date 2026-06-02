@@ -56,6 +56,10 @@ public sealed partial class SettingsPage : Page
         SelectComboByTag(ThemeBox, s.ThemeMode);   // refleja la preferencia guardada (#48)
         _loadingTheme = false;
 
+        _loadingLanguage = true;
+        SelectComboByTag(LanguageBox, s.Language);   // idioma guardado (#48 i18n)
+        _loadingLanguage = false;
+
         BuildEnvList();
         BuildPhases();
         BuildRhythms();
@@ -275,6 +279,31 @@ public sealed partial class SettingsPage : Page
         if (ThemeBox.SelectedItem is not ComboBoxItem it || it.Tag is not string mode) return;
         AppState.Config.SetThemeMode(mode);
         MainWindow.Current?.ApplyTheme(mode);   // aplica en caliente
+    }
+
+    // ---------- Idioma (#48 i18n) ----------
+
+    private bool _loadingLanguage;
+
+    private async void LanguageBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingLanguage) return;
+        if (LanguageBox.SelectedItem is not ComboBoxItem it || it.Tag is not string lang) return;
+        if (AppState.Load().Language == lang) return;
+        AppState.Config.SetLanguage(lang);
+        // Deja el override listo para el próximo arranque (los textos x:Uid se resuelven al cargar la UI).
+        Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = lang switch
+        { "es" => "es-ES", "en" => "en-US", _ => "" };
+
+        var dlg = new ContentDialog
+        {
+            Title = "Idioma / Language",
+            Content = "El cambio de idioma se aplica al reiniciar Ritmo. ¿Reiniciar ahora?",
+            PrimaryButtonText = "Reiniciar ahora", CloseButtonText = "Más tarde",
+            XamlRoot = this.XamlRoot, DefaultButton = ContentDialogButton.Primary
+        };
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+            Microsoft.Windows.AppLifecycle.AppInstance.Restart("");
     }
 
     // ---------- Música: conexión global a Navidrome (#107) ----------

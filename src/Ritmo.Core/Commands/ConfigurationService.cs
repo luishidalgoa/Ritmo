@@ -690,6 +690,16 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Tema actualizado.");
     }
 
+    /// <summary>Idioma de la app (#48 i18n): "system", "es" o "en". Se aplica al reiniciar.</summary>
+    public CommandResult SetLanguage(string lang)
+    {
+        var l = (lang ?? "").Trim().ToLowerInvariant();
+        if (l != "system" && l != "es" && l != "en")
+            return CommandResult.Fail("Idioma no válido (usa system, es o en).");
+        _store.Save(_store.Load() with { Language = l });
+        return CommandResult.Ok("Idioma actualizado.");
+    }
+
     /// <summary>Guarda el Client ID OAuth de Google (público, apps de escritorio con PKCE) para
     /// sincronizar Google Tasks (#64). Vacío = lo borra/desconecta.</summary>
     public CommandResult SetGoogleClientId(string? clientId)

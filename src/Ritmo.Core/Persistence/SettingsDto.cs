@@ -26,6 +26,7 @@ internal sealed class SettingsDto
     public List<CategoryDto> Categories { get; set; } = [];
     public bool OnboardingCompleted { get; set; }
     public string? ThemeMode { get; set; }   // #48: "system" | "light" | "dark"
+    public string? Language { get; set; }   // #48 i18n: "system" | "es" | "en"
     // Modo descanso (#135): manual + periodos programados.
     public bool RestActive { get; set; }
     public List<RestPeriodDto> RestPeriods { get; set; } = [];
@@ -340,6 +341,7 @@ internal static class SettingsMapper
         }).ToList(),
         OnboardingCompleted = s.OnboardingCompleted,
         ThemeMode = s.ThemeMode,
+        Language = s.Language,
         RestActive = s.RestActive,
         RestPeriods = s.RestPeriods.Select(p => new RestPeriodDto
         {
@@ -517,6 +519,7 @@ internal static class SettingsMapper
             }).ToList(),
         OnboardingCompleted = d.OnboardingCompleted,
         ThemeMode = string.IsNullOrWhiteSpace(d.ThemeMode) ? "system" : d.ThemeMode,
+        Language = string.IsNullOrWhiteSpace(d.Language) ? "es" : d.Language,
         RestActive = d.RestActive,
         RestPeriods = (d.RestPeriods ?? []).Select(p => new RestPeriod
         {

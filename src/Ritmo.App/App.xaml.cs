@@ -19,7 +19,23 @@ public partial class App : Application
 
     public App()
     {
+        ApplyLanguageOverride();   // idioma elegido (#48), ANTES de cargar la UI
         InitializeComponent();
+    }
+
+    /// <summary>Aplica el idioma elegido (#48 i18n) al sistema de recursos antes de crear la UI.</summary>
+    private static void ApplyLanguageOverride()
+    {
+        try
+        {
+            Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = AppState.Load().Language switch
+            {
+                "es" => "es-ES",
+                "en" => "en-US",
+                _ => ""   // "system": sin override, sigue a Windows
+            };
+        }
+        catch { /* si falla, arranca con el idioma del sistema */ }
     }
 
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
