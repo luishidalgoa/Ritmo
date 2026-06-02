@@ -239,6 +239,8 @@
                                         Visibility="Collapsed" Style="{StaticResource AccentButtonStyle}" />
                                 <Button x:Name="AppleDisconnectBtn" Content="Desconectar" Click="AppleDisconnectBtn_Click"
                                         Visibility="Collapsed" />
+                                <HyperlinkButton x:Name="AppleDiagBtn" Content="Diagnóstico" Click="AppleDiagBtn_Click"
+                                                 Visibility="Collapsed" />
                             </StackPanel>
                             <TextBlock Text="Sincroniza con tus listas de Recordatorios (iCloud). Crea las listas en Recordatorios y las tareas van en ambos sentidos. Necesita una «contraseña de aplicación» de appleid.apple.com (no tu contraseña normal)."
                                        Opacity="0.6" FontSize="11" TextWrapping="Wrap" />

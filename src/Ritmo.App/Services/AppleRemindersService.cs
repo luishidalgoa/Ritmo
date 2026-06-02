@@ -163,6 +163,41 @@ public static class AppleRemindersService
         return result;
     }
 
+    /// <summary>
+    /// Diagnóstico (#64): devuelve, en texto, TODAS las colecciones que iCloud expone bajo el home
+    /// (sin filtrar), con sus flags. Sirve para ver por qué no aparecen las listas reales del usuario.
+    /// </summary>
+    public static async Task<string> DiagnoseAsync(CancellationToken ct = default)
+    {
+        var (st1, b1, _) = await SendAsync("PROPFIND", BaseUrl, PropfindPrincipal, 0, ct);
+        if (st1 is < 200 or >= 300) return $"PROPFIND principal: HTTP {st1}.";
+        var principal = CalDavXml.CurrentUserPrincipal(b1);
+        if (principal is null) return "No se encontró el principal (¿credenciales?).";
+        var principalUrl = Resolve(BaseUrl, principal);
+
+        var (_, b2, _) = await SendAsync("PROPFIND", principalUrl, PropfindHome, 0, ct);
+        var home = CalDavXml.CalendarHomeSet(b2);
+        if (home is null) return $"Principal: {principalUrl}\nNo se encontró el calendar-home.";
+        var homeUrl = Resolve(principalUrl, home);
+
+        var (_, b3, _) = await SendAsync("PROPFIND", homeUrl, PropfindCollections, 1, ct);
+        var cols = CalDavXml.ParseMultistatus(b3);
+        var sb = new StringBuilder();
+        sb.Append("Home: ").Append(homeUrl).Append('\n');
+        sb.Append("Colecciones encontradas: ").Append(cols.Count).Append('\n');
+        foreach (var r in cols)
+        {
+            var seg = r.Href.TrimEnd('/');
+            seg = seg.Length == 0 ? "/" : seg[(seg.LastIndexOf('/') + 1)..];
+            sb.Append(" · ").Append(seg)
+              .Append("  nombre=\"").Append(r.DisplayName ?? "(sin nombre)").Append('"')
+              .Append("  calendar=").Append(r.IsCalendar)
+              .Append("  vtodo=").Append(r.SupportsVTodo)
+              .Append('\n');
+        }
+        return sb.ToString();
+    }
+
     /// <summary>Lista los VTODO de una colección (Recordatorios) con su etag.</summary>
     public static async Task<IReadOnlyList<AppleTodo>> ListTodosAsync(string collectionUrl, CancellationToken ct = default)
     {

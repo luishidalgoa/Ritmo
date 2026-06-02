@@ -192,6 +192,32 @@ public sealed partial class SettingsPage : Page
         AppleConnectBtn.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         AppleSyncBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
         AppleDisconnectBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
+        AppleDiagBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void AppleDiagBtn_Click(object sender, RoutedEventArgs e)
+    {
+        AppleDiagBtn.IsEnabled = false;
+        try
+        {
+            var text = await Services.AppleRemindersService.DiagnoseAsync();
+            var box = new TextBox
+            {
+                Text = text, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.NoWrap,
+                Height = 280, FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas")
+            };
+            ScrollViewer.SetHorizontalScrollBarVisibility(box, ScrollBarVisibility.Auto);
+            await new ContentDialog
+            {
+                Title = "Diagnóstico de iCloud (colecciones)",
+                Content = box, CloseButtonText = "Cerrar", XamlRoot = this.XamlRoot
+            }.ShowAsync();
+        }
+        catch (Exception ex)
+        {
+            await new ContentDialog { Title = "Diagnóstico", Content = ex.Message, CloseButtonText = "Vale", XamlRoot = this.XamlRoot }.ShowAsync();
+        }
+        finally { AppleDiagBtn.IsEnabled = true; }
     }
 
     private async void AppleConnectBtn_Click(object sender, RoutedEventArgs e)
