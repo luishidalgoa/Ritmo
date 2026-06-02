@@ -127,10 +127,11 @@ public sealed partial class MainWindow : Window
     private async void ShowWhatsNew()
     {
         var current = AppVersionInfo.Current;
-        var pending = Ritmo.Core.Updates.ReleaseNotes.Since(AppState.Load().LastSeenVersion, current);
+        var lang = Ritmo_App.Services.Loc.Lang;   // novedades en el idioma elegido (#48)
+        var pending = Ritmo.Core.Updates.ReleaseNotes.Since(AppState.Load().LastSeenVersion, current, lang);
         var notes = pending.Count > 0
             ? pending
-            : Ritmo.Core.Updates.ReleaseNotes.All.Reverse().ToList();   // sin pendientes: navegar el histórico
+            : Ritmo.Core.Updates.ReleaseNotes.For(lang).Reverse().ToList();   // sin pendientes: navegar el histórico
         if (notes.Count == 0) return;
 
         var dlg = new Dialogs.WhatsNewDialog(notes) { XamlRoot = Nav.XamlRoot };

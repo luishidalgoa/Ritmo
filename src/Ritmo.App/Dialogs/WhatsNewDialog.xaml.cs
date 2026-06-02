@@ -16,6 +16,9 @@ public sealed partial class WhatsNewDialog : ContentDialog
     {
         InitializeComponent();
 
+        Title = Ritmo_App.Services.Loc.Pick("Novedades", "What's new");   // #48 i18n
+        CloseButtonText = Ritmo_App.Services.Loc.Pick("Entendido", "Got it");
+
         foreach (var n in notes) Flip.Items.Add(BuildSlide(n));
         Pips.NumberOfPages = notes.Count;
         if (notes.Count <= 1) Pips.Visibility = Visibility.Collapsed;
@@ -33,7 +36,7 @@ public sealed partial class WhatsNewDialog : ContentDialog
         });
         panel.Children.Add(new TextBlock
         {
-            Text = "Versión " + n.Version, FontSize = 11, Opacity = 0.55,
+            Text = Ritmo_App.Services.Loc.Pick("Versión ", "Version ") + n.Version, FontSize = 11, Opacity = 0.55,
             HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 4)
         });
 

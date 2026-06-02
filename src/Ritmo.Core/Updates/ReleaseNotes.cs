@@ -97,13 +97,88 @@ public static class ReleaseNotes
         },
     ];
 
+    /// <summary>Novedades en inglés (#48 i18n). Mismas versiones/emojis que <see cref="All"/>, traducidas.</summary>
+    public static IReadOnlyList<ReleaseNote> AllEn { get; } =
+    [
+        new ReleaseNote
+        {
+            Version = "1.0.1.0",
+            Title = "Your schedule, more yours",
+            Emoji = "🗓️",
+            Highlights =
+            [
+                "The schedule adapts to the window size and marks the current time of each day.",
+                "Place blocks at any time (e.g. 16:40) and choose the grid granularity (60/30/15 min).",
+                "Customize the background color of each block type from Settings.",
+                "When you start focusing, a preview reminds you of today's blocks.",
+                "Get schedule reminders on your phone too (ntfy notifications).",
+            ]
+        },
+        new ReleaseNote
+        {
+            Version = "1.0.2.0",
+            Title = "Ritmo, your way",
+            Emoji = "🧩",
+            Highlights =
+            [
+                "Now Ritmo is yours: define your own block categories (name, color, and whether they trigger focus) in Settings → Categories.",
+                "When you start, pick a template — Study, Work, or Generic — instead of a fixed schedule. Your usual categories are kept.",
+                "Each environment unfolds into modules: Focus, Links, Tasks, and Tools.",
+                "Tap a module to edit just that part, without getting lost in a giant form.",
+                "\"Open workspace\" launches all the environment's links at once in a new browser window.",
+                "Each environment has its Task list: add, check off, and reorder.",
+                "Mark apps as \"Mute\" and Ritmo silences them while you focus (and restores them when you finish).",
+                "Schedule reminders reach your PC and phone reliably, including tentative sessions and when you edit the schedule.",
+                "Option for Ritmo to start automatically when you sign in to Windows, in the background: your reminders fire without opening it.",
+                "System tray icon: when you close the window Ritmo stays active for your reminders; open it or quit completely from there.",
+                "Choose the default pre-alert for new sessions from Settings.",
+                "Duplicate a schedule phase to build the next one from it, without redoing it.",
+                "Copy and paste sessions with Ctrl+C / Ctrl+V: they paste where your mouse is, if the slot is free.",
+                "Extraordinary sessions are placed on specific dates (a day or a range), with a calendar.",
+                "Coming soon: link your external calendar to each environment.",
+            ]
+        },
+        new ReleaseNote
+        {
+            Version = "1.0.3.0",
+            Title = "Welcome little touches",
+            Emoji = "✨",
+            Highlights =
+            [
+                "Delete a session from the calendar with the Delete key: select it and press Del.",
+                "Sessions that overlap on the same day now show side by side, not on top of each other.",
+                "Rest mode: pause reminders with a switch, or schedule periods (holidays) from date to date.",
+            ]
+        },
+        new ReleaseNote
+        {
+            Version = "1.0.4.0",
+            Title = "For those who bill by the hour",
+            Emoji = "💼",
+            Highlights =
+            [
+                "New \"Work\" section: track your hours and earnings per project or client, with rate, goal, and currency.",
+                "Per-project charts: daily hour bars and a line of the running total against your monthly goal.",
+                "Designed for those without a fixed schedule: add hours day by day and see the end-of-month estimate.",
+                "Link a schedule category to a project and all its sessions count automatically; mark a day as \"not done\" or \"partial\" when you miss it or leave early.",
+                "An accidental change to the schedule? Undo with Ctrl+Z and redo with Ctrl+Y.",
+                "Hover over the \"?\" on fields: there are now explanations with examples on the new stuff.",
+                "While you focus, Ritmo stops flashing in the taskbar so it doesn't distract you.",
+            ]
+        },
+    ];
+
+    /// <summary>Catálogo de novedades en el idioma dado ("en" = inglés; cualquier otro = español).</summary>
+    public static IReadOnlyList<ReleaseNote> For(string? lang) =>
+        string.Equals(lang, "en", System.StringComparison.OrdinalIgnoreCase) ? AllEn : All;
+
     /// <summary>
-    /// Notas con versión en el rango <c>(lastSeen, current]</c>, de la más nueva a la
-    /// más antigua. <paramref name="lastSeen"/> null (nunca vistas) = se trata como "0".
+    /// Notas con versión en el rango <c>(lastSeen, current]</c>, de la más nueva a la más antigua, en el
+    /// idioma <paramref name="lang"/>. <paramref name="lastSeen"/> null (nunca vistas) = se trata como "0".
     /// </summary>
-    public static IReadOnlyList<ReleaseNote> Since(string? lastSeen, string current)
+    public static IReadOnlyList<ReleaseNote> Since(string? lastSeen, string current, string? lang = null)
     {
-        return All
+        return For(lang)
             .Where(n => CompareVersions(n.Version, current) <= 0
                      && (string.IsNullOrWhiteSpace(lastSeen) || CompareVersions(n.Version, lastSeen) > 0))
             .OrderByDescending(n => n.Version, VersionComparer.Instance)
