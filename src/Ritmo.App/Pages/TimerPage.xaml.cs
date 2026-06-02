@@ -37,6 +37,7 @@ public sealed partial class TimerPage : Page
     // Contexto del bloque vigente (resuelto desde el horario).
     private FocusEnvironment? _activeEnv;
     private string? _activeSessionTitle;   // título de la sesión activa (perfil por tipo, #116)
+    private string? _activeCategoryId;     // categoría de la sesión activa (notas por categoría, #153)
 
     // Isla flotante de concentración (#118).
     private FocusOverlayWindow? _overlay;
@@ -92,7 +93,7 @@ public sealed partial class TimerPage : Page
         }
 
         var notes = AppState.Load().Notes
-            .Where(n => string.Equals(n.SessionTitle, title, StringComparison.OrdinalIgnoreCase))
+            .Where(n => n.AppliesTo(title, _activeCategoryId))   // por título o por categoría (#153)
             .OrderBy(n => n.Order).ToList();
 
         NotesExpander.Header = notes.Count > 0 ? $"Notas · {title} ({notes.Count})" : $"Notas · {title}";
@@ -155,9 +156,11 @@ public sealed partial class TimerPage : Page
     private async System.Threading.Tasks.Task AddNote(string sessionTitle)
     {
         var dlg = new Ritmo_App.Dialogs.NoteDialog { XamlRoot = this.XamlRoot };
+        dlg.EnableScope(AppState.Load().Categories, sessionTitle);   // #153
         if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
         {
-            AppState.Config.AddNote(dlg.TitleText, dlg.ContentText, sessionTitle: sessionTitle);
+            AppState.Config.AddNote(dlg.TitleText, dlg.ContentText,
+                sessionTitle: dlg.SelectedSessionTitle, categoryId: dlg.SelectedCategoryId);
             BuildNotes();
         }
     }
@@ -165,10 +168,12 @@ public sealed partial class TimerPage : Page
     private async System.Threading.Tasks.Task EditNote(StudyNote note)
     {
         var dlg = new Ritmo_App.Dialogs.NoteDialog { XamlRoot = this.XamlRoot };
+        dlg.EnableScope(AppState.Load().Categories, _activeSessionTitle);   // #153
         dlg.LoadFrom(note);
         if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
         {
-            AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText);
+            AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText,
+                setScope: true, sessionTitle: dlg.SelectedSessionTitle, categoryId: dlg.SelectedCategoryId);
             BuildNotes();
         }
     }
@@ -196,6 +201,7 @@ public sealed partial class TimerPage : Page
         var oneOff = OneOffPlanner.ActiveAt(settings.OneOffSessions, now);
         var active = oneOff?.AsSession() ?? new SchedulePlanner(schedule, settings.FocusCategoryIds()).GetActiveSession(now);
         _activeSessionTitle = active?.Title;   // tipo de sesión para resolver qué abrir (#116)
+        _activeCategoryId = active?.CategoryId;   // categoría para resolver notas por categoría (#153)
 
         PomodoroConfig config;
         if (active is not null)
@@ -369,6 +375,7 @@ public sealed partial class TimerPage : Page
                 else StartBtn_Click(this, new RoutedEventArgs());   // reanuda
             };
             _overlay.SkipRequested += () => SkipBtn_Click(this, new RoutedEventArgs());
+            _overlay.NotesRequested += OpenNotesFromIsland;   // #153
             _overlay.Closed += (_, _) => { _overlay = null; _compact = false; };
         }
         _compact = true;
@@ -391,6 +398,18 @@ public sealed partial class TimerPage : Page
     }
 
     private void CompactBtn_Click(object sender, RoutedEventArgs e) => EnterCompact();
+
+    /// <summary>Desde la isla: restaura la app y abre el desplegable de notas de la sesión activa (#153).</summary>
+    private void OpenNotesFromIsland()
+    {
+        ExitCompact();
+        BuildNotes();
+        if (NotesExpander.Visibility == Visibility.Visible)
+        {
+            NotesExpander.IsExpanded = true;
+            NotesExpander.StartBringIntoView();
+        }
+    }
 
     /// <summary>
     /// Mantiene el "No molestar" del SO sincronizado: activo SOLO mientras hay

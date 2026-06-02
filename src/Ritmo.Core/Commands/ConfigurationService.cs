@@ -428,12 +428,15 @@ public sealed class ConfigurationService
     /// Añade una nota fijada (markdown). Devuelve su Id en el mensaje. Si se pasa
     /// <paramref name="sessionTitle"/>, la nota es un "post-it" de esa sesión (#73).
     /// </summary>
-    public CommandResult AddNote(string title, string content, string? accentColor = null, string? sessionTitle = null)
+    public CommandResult AddNote(string title, string content, string? accentColor = null,
+        string? sessionTitle = null, string? categoryId = null)
     {
         if (string.IsNullOrWhiteSpace(title))
             return CommandResult.Fail("La nota necesita un título.");
         var s = _store.Load();
         var order = s.Notes.Count == 0 ? 0 : s.Notes.Max(n => n.Order) + 1;
+        // Una nota se asocia por categoría O por título, nunca por ambos (la categoría manda). #153
+        var cat = string.IsNullOrWhiteSpace(categoryId) ? null : categoryId.Trim();
         var note = new StudyNote
         {
             Id = $"note-{Guid.NewGuid():N}"[..12],
@@ -441,22 +444,39 @@ public sealed class ConfigurationService
             Content = content ?? "",
             AccentColor = accentColor,
             Order = order,
-            SessionTitle = string.IsNullOrWhiteSpace(sessionTitle) ? null : sessionTitle.Trim()
+            SessionTitle = cat is not null || string.IsNullOrWhiteSpace(sessionTitle) ? null : sessionTitle.Trim(),
+            CategoryId = cat
         };
         _store.Save(s with { Notes = [.. s.Notes, note] });
         return CommandResult.Ok(note.Id);
     }
 
-    /// <summary>Edita el título/contenido de una nota existente.</summary>
-    public CommandResult UpdateNote(string id, string title, string content, string? accentColor = null)
+    /// <summary>
+    /// Edita una nota existente. Si <paramref name="setScope"/> es true, reasigna su ámbito
+    /// (general / por título / por categoría) según <paramref name="sessionTitle"/> y
+    /// <paramref name="categoryId"/>; si es false, conserva el ámbito actual. #153
+    /// </summary>
+    public CommandResult UpdateNote(string id, string title, string content, string? accentColor = null,
+        bool setScope = false, string? sessionTitle = null, string? categoryId = null)
     {
         if (string.IsNullOrWhiteSpace(title))
             return CommandResult.Fail("La nota necesita un título.");
         var s = _store.Load();
         var note = s.Notes.FirstOrDefault(n => n.Id == id);
         if (note is null) return CommandResult.Fail($"No existe la nota «{id}».");
+        var cat = string.IsNullOrWhiteSpace(categoryId) ? null : categoryId.Trim();
+        var ses = cat is not null || string.IsNullOrWhiteSpace(sessionTitle) ? null : sessionTitle.Trim();
         var updated = s.Notes
-            .Select(n => n.Id == id ? n with { Title = title.Trim(), Content = content ?? "", AccentColor = accentColor } : n)
+            .Select(n => n.Id == id
+                ? n with
+                {
+                    Title = title.Trim(),
+                    Content = content ?? "",
+                    AccentColor = accentColor,
+                    SessionTitle = setScope ? ses : n.SessionTitle,
+                    CategoryId = setScope ? cat : n.CategoryId
+                }
+                : n)
             .ToList();
         _store.Save(s with { Notes = updated });
         return CommandResult.Ok("Nota actualizada.");

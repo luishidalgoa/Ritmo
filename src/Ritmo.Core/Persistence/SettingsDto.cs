@@ -274,6 +274,7 @@ internal sealed class NoteDto
     public string? AccentColor { get; set; }
     public int Order { get; set; }
     public string? SessionTitle { get; set; }
+    public string? CategoryId { get; set; }
 }
 
 internal sealed class ShortcutDto
@@ -457,7 +458,7 @@ internal static class SettingsMapper
     private static NoteDto ToDto(StudyNote n) => new()
     {
         Id = n.Id, Title = n.Title, Content = n.Content,
-        AccentColor = n.AccentColor, Order = n.Order, SessionTitle = n.SessionTitle
+        AccentColor = n.AccentColor, Order = n.Order, SessionTitle = n.SessionTitle, CategoryId = n.CategoryId
     };
 
     private static ViewConfigDto ToDto(ScheduleViewConfig v) => new()
@@ -700,7 +701,8 @@ internal static class SettingsMapper
     {
         Id = n.Id, Title = n.Title, Content = n.Content,
         AccentColor = n.AccentColor, Order = n.Order,
-        SessionTitle = string.IsNullOrWhiteSpace(n.SessionTitle) ? null : n.SessionTitle
+        SessionTitle = string.IsNullOrWhiteSpace(n.SessionTitle) ? null : n.SessionTitle,
+        CategoryId = string.IsNullOrWhiteSpace(n.CategoryId) ? null : n.CategoryId
     };
 
     private static ScheduleViewConfig FromDto(ViewConfigDto v) => new()

@@ -17,6 +17,10 @@ public sealed partial class MainWindow : Window
 {
     private bool _exiting;
 
+    /// <summary>Qué contenido muestra el panel lateral derecho ahora mismo (#153).</summary>
+    private enum PanelMode { WorkEnv, Notes }
+    private PanelMode _panelMode = PanelMode.WorkEnv;
+
     /// <summary>La ventana principal (única). La usan otras páginas p. ej. para "Salir".</summary>
     public static MainWindow? Current { get; private set; }
 
@@ -240,8 +244,16 @@ public sealed partial class MainWindow : Window
         // "Entornos de trabajo" no navega: abre/cierra el panel lateral derecho (#74).
         else if (tag == "workenv")
         {
-            if (!RightPanel.IsPaneOpen) BuildWorkEnvPanel();
-            RightPanel.IsPaneOpen = !RightPanel.IsPaneOpen;
+            bool wasEnv = RightPanel.IsPaneOpen && _panelMode == PanelMode.WorkEnv;
+            if (!wasEnv) BuildWorkEnvPanel();
+            RightPanel.IsPaneOpen = !wasEnv;
+        }
+        // "Notas" no navega: abre/cierra el panel lateral derecho con las notas (#153).
+        else if (tag == "notes")
+        {
+            bool wasNotes = RightPanel.IsPaneOpen && _panelMode == PanelMode.Notes;
+            if (!wasNotes) BuildNotesPanel();
+            RightPanel.IsPaneOpen = !wasNotes;
         }
         // Un sub-item de entorno: abre el panel enfocado en ese entorno (#102).
         else if (tag is not null && tag.StartsWith("env:"))
@@ -257,6 +269,9 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void BuildWorkEnvPanel(string? focusEnvId = null)
     {
+        _panelMode = PanelMode.WorkEnv;
+        PanelTitle.Text = Loc.Pick("Entornos de trabajo", "Work environments");
+        PanelSub.Text = Loc.Pick("Accesos rápidos por entorno.", "Quick shortcuts per environment.");
         WorkEnvPanel.Children.Clear();
 
         // Botón para crear un entorno desde aquí mismo (#92).
@@ -295,6 +310,140 @@ public sealed partial class MainWindow : Window
             WorkEnvPanel.Children.Add(exp);
         }
         focused?.StartBringIntoView();
+    }
+
+    // ---------- Panel de notas (#153): acceso global rápido desde el navbar ----------
+
+    /// <summary>Rellena el panel derecho con las notas, agrupadas: de hoy · generales · otras.</summary>
+    private void BuildNotesPanel()
+    {
+        _panelMode = PanelMode.Notes;
+        PanelTitle.Text = Loc.Pick("Notas", "Notes");
+        PanelSub.Text = Loc.Pick("Acceso rápido a tus notas.", "Quick access to your notes.");
+        WorkEnvPanel.Children.Clear();
+
+        var settings = Services.AppState.Load();
+
+        var newBtn = new Button { HorizontalAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0, 0, 0, 4) };
+        newBtn.Content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center,
+            Children = { new SymbolIcon(Symbol.Add), new TextBlock { Text = Loc.Pick("Nueva nota", "New note") } }
+        };
+        newBtn.Click += (_, _) => _ = AddNoteFromPanel();
+        WorkEnvPanel.Children.Add(newBtn);
+
+        if (settings.Notes.Count == 0)
+        {
+            WorkEnvPanel.Children.Add(new TextBlock
+            {
+                Text = Loc.Pick("Aún no tienes notas. Crea una para fijar recordatorios.",
+                                "No notes yet. Create one to pin reminders."),
+                Opacity = 0.6, FontSize = 13, TextWrapping = TextWrapping.Wrap
+            });
+            return;
+        }
+
+        // Sesiones de hoy (título + categoría) para separar "de hoy" del resto.
+        var today = System.DateOnly.FromDateTime(System.DateTime.Now);
+        var phase = settings.Plan.GetActivePhase(today) ?? settings.Plan.OrderedPhases.FirstOrDefault();
+        var schedule = phase?.Schedule ?? settings.Schedule;
+        var todaySessions = schedule.Sessions.Where(s => s.Day == today.DayOfWeek).Select(s => (s.Title, s.CategoryId))
+            .Concat(settings.OneOffSessions.Where(o => o.Date == today).Select(o => (o.Title, o.CategoryId)))
+            .ToList();
+
+        bool IsToday(Ritmo.Core.Model.StudyNote n) =>
+            !n.IsGeneral && todaySessions.Any(s => n.AppliesTo(s.Title, s.CategoryId));
+
+        var ordered = settings.Notes.OrderBy(n => n.Order).ToList();
+        AddNoteGroup(Loc.Pick("DE HOY", "TODAY"), ordered.Where(IsToday), settings);
+        AddNoteGroup(Loc.Pick("GENERALES", "GENERAL"), ordered.Where(n => n.IsGeneral), settings);
+        AddNoteGroup(Loc.Pick("OTRAS", "OTHER"), ordered.Where(n => !n.IsGeneral && !IsToday(n)), settings);
+    }
+
+    private void AddNoteGroup(string header, System.Collections.Generic.IEnumerable<Ritmo.Core.Model.StudyNote> notes,
+        Ritmo.Core.Persistence.AppSettings settings)
+    {
+        var list = notes.ToList();
+        if (list.Count == 0) return;
+        WorkEnvPanel.Children.Add(new TextBlock
+        {
+            Text = header, FontSize = 10, Opacity = 0.55, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            Margin = new Thickness(0, 6, 0, 0)
+        });
+        foreach (var n in list) WorkEnvPanel.Children.Add(NotePanelRow(n, settings));
+    }
+
+    /// <summary>Una fila de nota en el panel: ámbito + título + editar/eliminar.</summary>
+    private FrameworkElement NotePanelRow(Ritmo.Core.Model.StudyNote note, Ritmo.Core.Persistence.AppSettings settings)
+    {
+        var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+        string? scope = !string.IsNullOrEmpty(note.CategoryId)
+            ? Loc.Pick("Categoría · ", "Category · ") + settings.CategoryName(note.CategoryId)
+            : !string.IsNullOrEmpty(note.SessionTitle)
+                ? Loc.Pick("Sesión · ", "Session · ") + note.SessionTitle
+                : null;
+        if (scope is not null)
+            texts.Children.Add(new TextBlock { Text = scope, FontSize = 10, Opacity = 0.55,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        texts.Children.Add(new TextBlock { Text = note.Title, TextWrapping = TextWrapping.Wrap,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        Grid.SetColumn(texts, 0);
+
+        var edit = NoteRowIcon(Symbol.Edit, Loc.Pick("Editar nota", "Edit note"), () => _ = EditNoteFromPanel(note));
+        Grid.SetColumn(edit, 1);
+        var del = NoteRowIcon(Symbol.Delete, Loc.Pick("Eliminar nota", "Delete note"), () =>
+        {
+            Services.AppState.Config.RemoveNote(note.Id);
+            BuildNotesPanel();
+        });
+        Grid.SetColumn(del, 2);
+
+        var grid = new Grid { ColumnSpacing = 4, Padding = new Thickness(2, 4, 2, 4) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(texts); grid.Children.Add(edit); grid.Children.Add(del);
+        return grid;
+    }
+
+    private static Button NoteRowIcon(Symbol symbol, string tooltip, System.Action onClick)
+    {
+        var b = new Button
+        {
+            Content = new SymbolIcon(symbol) { Width = 16, Height = 16 },
+            Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(0), Padding = new Thickness(6), MinWidth = 0,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        ToolTipService.SetToolTip(b, tooltip);
+        b.Click += (_, _) => onClick();
+        return b;
+    }
+
+    private async System.Threading.Tasks.Task AddNoteFromPanel()
+    {
+        var dlg = new Dialogs.NoteDialog { XamlRoot = RightPanel.XamlRoot };
+        dlg.EnableScope(Services.AppState.Load().Categories);   // #153: general / por categoría
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
+        {
+            Services.AppState.Config.AddNote(dlg.TitleText, dlg.ContentText,
+                sessionTitle: dlg.SelectedSessionTitle, categoryId: dlg.SelectedCategoryId);
+            BuildNotesPanel();
+        }
+    }
+
+    private async System.Threading.Tasks.Task EditNoteFromPanel(Ritmo.Core.Model.StudyNote note)
+    {
+        var dlg = new Dialogs.NoteDialog { XamlRoot = RightPanel.XamlRoot };
+        dlg.EnableScope(Services.AppState.Load().Categories);
+        dlg.LoadFrom(note);
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
+        {
+            Services.AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText,
+                setScope: true, sessionTitle: dlg.SelectedSessionTitle, categoryId: dlg.SelectedCategoryId);
+            BuildNotesPanel();
+        }
     }
 
     private StackPanel BuildEnvContent(Ritmo.Core.Focus.FocusEnvironment env)

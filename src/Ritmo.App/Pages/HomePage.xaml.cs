@@ -154,13 +154,20 @@ public sealed partial class HomePage : Page
         var today = DateOnly.FromDateTime(DateTime.Now);
         var phase = settings.Plan.GetActivePhase(today) ?? settings.Plan.OrderedPhases.FirstOrDefault();
         var schedule = phase?.Schedule ?? settings.Schedule;
-        var todayTitles = schedule.Sessions.Where(s => s.Day == today.DayOfWeek).Select(s => s.Title.Trim())
-            .Concat(settings.OneOffSessions.Where(o => o.Date == today).Select(o => o.Title.Trim()))
+        var todaySessions = schedule.Sessions.Where(s => s.Day == today.DayOfWeek)
+            .Select(s => (s.Title, s.CategoryId))
+            .Concat(settings.OneOffSessions.Where(o => o.Date == today).Select(o => (o.Title, o.CategoryId)))
+            .ToList();
+        var todayTitles = todaySessions.Select(s => s.Title.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var todayCategories = todaySessions.Select(s => s.CategoryId.Trim()).Where(c => c.Length > 0)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        // Notas generales + las de HOY (por título o por categoría, #153).
         var notes = settings.Notes
-            .Where(n => string.IsNullOrEmpty(n.SessionTitle) || todayTitles.Contains(n.SessionTitle!.Trim()))
-            .OrderBy(n => n.SessionTitle is null ? 1 : 0)   // primero las de las sesiones de hoy
+            .Where(n => n.IsGeneral
+                        || (!string.IsNullOrEmpty(n.SessionTitle) && todayTitles.Contains(n.SessionTitle!.Trim()))
+                        || (!string.IsNullOrEmpty(n.CategoryId) && todayCategories.Contains(n.CategoryId!.Trim())))
+            .OrderBy(n => n.IsGeneral ? 1 : 0)   // primero las de las sesiones de hoy
             .ThenBy(n => n.Order)
             .ToList();
 
@@ -171,10 +178,14 @@ public sealed partial class HomePage : Page
     private FrameworkElement NoteCard(StudyNote note)
     {
         var stack = new StackPanel { Spacing = 2 };
-        if (!string.IsNullOrEmpty(note.SessionTitle))
+        // Chip de ámbito: categoría (#153) o título de sesión (#73).
+        string? scopeLabel = !string.IsNullOrEmpty(note.CategoryId)
+            ? AppState.Load().CategoryName(note.CategoryId)
+            : note.SessionTitle;
+        if (!string.IsNullOrEmpty(scopeLabel))
             stack.Children.Add(new TextBlock
             {
-                Text = note.SessionTitle, FontSize = 11, Opacity = 0.55,
+                Text = scopeLabel, FontSize = 11, Opacity = 0.55,
                 FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
             });
         stack.Children.Add(new TextBlock { Text = note.Title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });

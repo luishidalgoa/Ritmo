@@ -57,6 +57,7 @@
   <data name="NavWork.Content" xml:space="preserve"><value>Trabajo</value></data>
   <data name="NavTasks.Content" xml:space="preserve"><value>Tareas</value></data>
   <data name="NavWorkEnv.Content" xml:space="preserve"><value>Entornos de trabajo</value></data>
+  <data name="NavNotes.Content" xml:space="preserve"><value>Notas</value></data>
   <data name="NavWhatsNew.Content" xml:space="preserve"><value>Novedades</value></data>
   <data name="NavHelp.Content" xml:space="preserve"><value>Ayuda</value></data>
   <data name="NavSettings.Content" xml:space="preserve"><value>Ajustes</value></data>

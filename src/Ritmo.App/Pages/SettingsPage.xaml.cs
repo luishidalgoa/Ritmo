@@ -473,6 +473,12 @@ public sealed partial class SettingsPage : Page
     private FrameworkElement NoteRow(Ritmo.Core.Model.StudyNote note)
     {
         var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        // Chip de ámbito (#153): categoría o sesión.
+        string? scope = !string.IsNullOrWhiteSpace(note.CategoryId)
+            ? "Categoría · " + AppState.Load().CategoryName(note.CategoryId)
+            : !string.IsNullOrWhiteSpace(note.SessionTitle) ? "Sesión · " + note.SessionTitle : null;
+        if (scope is not null)
+            info.Children.Add(new TextBlock { Text = scope, FontSize = 10, Opacity = 0.55, FontWeight = FontWeights.SemiBold });
         info.Children.Add(new TextBlock { Text = note.Title, FontWeight = FontWeights.SemiBold });
         if (!string.IsNullOrWhiteSpace(note.Content))
             info.Children.Add(new TextBlock
@@ -509,9 +515,11 @@ public sealed partial class SettingsPage : Page
     private async void AddNoteBtn_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new NoteDialog { XamlRoot = this.XamlRoot };
+        dlg.EnableScope(AppState.Load().Categories);   // #153: general / por categoría
         if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
         {
-            AppState.Config.AddNote(dlg.TitleText, dlg.ContentText);
+            AppState.Config.AddNote(dlg.TitleText, dlg.ContentText,
+                sessionTitle: dlg.SelectedSessionTitle, categoryId: dlg.SelectedCategoryId);
             BuildNotes();
         }
     }
@@ -519,10 +527,12 @@ public sealed partial class SettingsPage : Page
     private async Task EditNote(Ritmo.Core.Model.StudyNote note)
     {
         var dlg = new NoteDialog { XamlRoot = this.XamlRoot };
+        dlg.EnableScope(AppState.Load().Categories);   // #153
         dlg.LoadFrom(note);
         if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
         {
-            AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText);
+            AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText,
+                setScope: true, sessionTitle: dlg.SelectedSessionTitle, categoryId: dlg.SelectedCategoryId);
             BuildNotes();
         }
     }

@@ -25,6 +25,7 @@ public sealed partial class FocusOverlayWindow : Window
     public event Action? ExpandRequested;
     public event Action? PauseResumeRequested;
     public event Action? SkipRequested;
+    public event Action? NotesRequested;   // abrir las notas de la sesión activa (#153)
 
     private bool _compact;
 
@@ -66,7 +67,7 @@ public sealed partial class FocusOverlayWindow : Window
         CompactRoot.Visibility = compact ? Visibility.Visible : Visibility.Collapsed;
 
         double scale = Scale();
-        int w = (int)((compact ? 300 : 452) * scale);
+        int w = (int)((compact ? 348 : 452) * scale);   // compacto algo más ancho para el botón de notas (#153)
         int h = (int)((compact ? 92 : 208) * scale);
         AppWindow.Resize(new SizeInt32(w, h));   // mantiene la esquina superior izquierda
 
@@ -170,6 +171,7 @@ public sealed partial class FocusOverlayWindow : Window
 
     private void PauseBtn_Click(object sender, RoutedEventArgs e) => PauseResumeRequested?.Invoke();
     private void SkipBtn_Click(object sender, RoutedEventArgs e) => SkipRequested?.Invoke();
+    private void NotesBtn_Click(object sender, RoutedEventArgs e) => NotesRequested?.Invoke();
     private void ExpandBtn_Click(object sender, RoutedEventArgs e) => ExpandRequested?.Invoke();
     private void CompactToggleBtn_Click(object sender, RoutedEventArgs e) => SetCompact(true, save: true);
     private void GrowBtn_Click(object sender, RoutedEventArgs e) => SetCompact(false, save: true);

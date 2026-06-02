@@ -880,8 +880,8 @@ public sealed partial class SchedulePage : Page
                 g.Children.Add(focusBtn);
             }
 
-            // Badge de post-its: nº de notas de esta sesión (#73).
-            int noteCount = _notes.Count(n => string.Equals(n.SessionTitle, s.Title, StringComparison.OrdinalIgnoreCase));
+            // Badge de post-its: nº de notas de esta sesión (#73) — por título o por categoría (#153).
+            int noteCount = _notes.Count(n => n.AppliesTo(s.Title, s.CategoryId));
             if (noteCount > 0)
             {
                 var badge = new Border
@@ -1809,7 +1809,7 @@ public sealed partial class SchedulePage : Page
             content.Children.Add(tasksBtn);
         }
 
-        AppendSessionNotes(rep.Title);   // post-its de la sesión (#73)
+        AppendSessionNotes(rep.Title, rep.CategoryId);   // post-its de la sesión (#73) + por categoría (#153)
 
         // Solapamientos con el calendario en los días en que se repite la sesión.
         var resolvers = new List<FrameworkElement>();
@@ -2087,12 +2087,12 @@ public sealed partial class SchedulePage : Page
 
     // ---------- Notas como post-it de la sesión (#73) ----------
 
-    private void AppendSessionNotes(string sessionTitle)
+    private void AppendSessionNotes(string sessionTitle, string? categoryId)
     {
         var content = DetailContent;
         content.Children.Add(SectionLabel("NOTAS"));
         var notes = _notes
-            .Where(n => string.Equals(n.SessionTitle, sessionTitle, StringComparison.OrdinalIgnoreCase))
+            .Where(n => n.AppliesTo(sessionTitle, categoryId))   // por título o por categoría (#153)
             .OrderBy(n => n.Order).ToList();
         if (notes.Count == 0)
             content.Children.Add(new TextBlock { Text = "Sin notas para esta sesión.", Opacity = 0.55, FontSize = 12 });
@@ -2151,9 +2151,11 @@ public sealed partial class SchedulePage : Page
     private async Task AddSessionNote(string sessionTitle)
     {
         var dlg = new NoteDialog { XamlRoot = this.XamlRoot };
+        dlg.EnableScope(AppState.Load().Categories, sessionTitle);   // #153
         if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
         {
-            AppState.Config.AddNote(dlg.TitleText, dlg.ContentText, sessionTitle: sessionTitle);
+            AppState.Config.AddNote(dlg.TitleText, dlg.ContentText,
+                sessionTitle: dlg.SelectedSessionTitle, categoryId: dlg.SelectedCategoryId);
             if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup);
         }
     }
@@ -2161,10 +2163,12 @@ public sealed partial class SchedulePage : Page
     private async Task EditSessionNote(StudyNote note)
     {
         var dlg = new NoteDialog { XamlRoot = this.XamlRoot };
+        dlg.EnableScope(AppState.Load().Categories, _selectedGroup?.Representative.Title);   // #153
         dlg.LoadFrom(note);
         if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
         {
-            AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText);
+            AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText,
+                setScope: true, sessionTitle: dlg.SelectedSessionTitle, categoryId: dlg.SelectedCategoryId);
             if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup);
         }
     }

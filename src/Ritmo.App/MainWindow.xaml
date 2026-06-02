@@ -52,6 +52,11 @@
             </NavigationViewItem>
         </NavigationView.MenuItems>
         <NavigationView.FooterMenuItems>
+            <NavigationViewItem x:Name="NotesNav" x:Uid="NavNotes" Tag="notes" SelectsOnInvoked="False" Content="Notas">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE70B;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem x:Name="WhatsNewNav" x:Uid="NavWhatsNew" Tag="whatsnew" SelectsOnInvoked="False">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE734;" />
@@ -82,8 +87,8 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <StackPanel Grid.Row="0" Spacing="2">
-                        <TextBlock x:Uid="WorkEnvPanelTitle" FontSize="18" FontWeight="SemiBold" />
-                        <TextBlock x:Uid="WorkEnvPanelSub" Opacity="0.7" FontSize="12" />
+                        <TextBlock x:Name="PanelTitle" x:Uid="WorkEnvPanelTitle" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock x:Name="PanelSub" x:Uid="WorkEnvPanelSub" Opacity="0.7" FontSize="12" />
                     </StackPanel>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="WorkEnvPanel" Spacing="8" />

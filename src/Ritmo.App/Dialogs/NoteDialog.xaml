@@ -12,10 +12,12 @@
     SecondaryButtonText="Cancelar"
     DefaultButton="Primary">
 
-    <StackPanel Spacing="12" Width="340">
+    <StackPanel Spacing="12" Width="360">
         <TextBox x:Name="TitleBox" Header="Título" PlaceholderText="p. ej. ¡OJO! Importante" />
         <TextBox x:Name="ContentBox" Header="Contenido" PlaceholderText="Texto de la nota…"
                  AcceptsReturn="True" TextWrapping="Wrap" Height="120"
                  ScrollViewer.VerticalScrollBarVisibility="Auto" />
+        <ComboBox x:Name="ScopeBox" Header="Asignar a" HorizontalAlignment="Stretch" Visibility="Collapsed" />
+        <TextBlock x:Name="ScopeHint" Opacity="0.6" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed" />
     </StackPanel>
 </ContentDialog>

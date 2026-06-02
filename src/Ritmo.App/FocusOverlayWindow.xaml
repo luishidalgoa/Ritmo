@@ -50,6 +50,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <Button x:Name="PauseBtn" Grid.Column="0" Click="PauseBtn_Click" Padding="12,6"
@@ -60,11 +61,15 @@
                             ToolTipService.ToolTip="Saltar a la siguiente fase">
                         <FontIcon Glyph="&#xE893;" FontSize="14" />
                     </Button>
-                    <Button x:Name="CompactToggleBtn" Grid.Column="2" Click="CompactToggleBtn_Click" Padding="12,6"
+                    <Button x:Name="NotesBtn" Grid.Column="2" Click="NotesBtn_Click" Padding="12,6"
+                            ToolTipService.ToolTip="Notas de la sesión activa">
+                        <FontIcon Glyph="&#xE70B;" FontSize="14" />
+                    </Button>
+                    <Button x:Name="CompactToggleBtn" Grid.Column="3" Click="CompactToggleBtn_Click" Padding="12,6"
                             ToolTipService.ToolTip="Compactar la isla">
                         <FontIcon Glyph="&#xE73F;" FontSize="14" />
                     </Button>
-                    <Button x:Name="ExpandBtn" Grid.Column="3" Click="ExpandBtn_Click" HorizontalAlignment="Right"
+                    <Button x:Name="ExpandBtn" Grid.Column="4" Click="ExpandBtn_Click" HorizontalAlignment="Right"
                             Style="{StaticResource AccentButtonStyle}" Padding="14,6"
                             ToolTipService.ToolTip="Abrir la app y cerrar esta ventana">
                         <StackPanel Orientation="Horizontal" Spacing="6">
@@ -77,9 +82,10 @@
         </Grid>
 
         <!-- ====================== MODO COMPACTO ====================== -->
-        <Grid x:Name="CompactRoot" Padding="16,8,10,8" ColumnSpacing="10" Visibility="Collapsed">
+        <Grid x:Name="CompactRoot" Padding="16,8,10,8" ColumnSpacing="8" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
@@ -97,11 +103,15 @@
                 </StackPanel>
             </StackPanel>
 
-            <Button x:Name="CompactPauseBtn" Grid.Column="1" Click="PauseBtn_Click" Padding="10,6"
+            <Button x:Name="CompactNotesBtn" Grid.Column="1" Click="NotesBtn_Click" Padding="10,6"
+                    VerticalAlignment="Center" ToolTipService.ToolTip="Notas de la sesión activa">
+                <FontIcon Glyph="&#xE70B;" FontSize="13" />
+            </Button>
+            <Button x:Name="CompactPauseBtn" Grid.Column="2" Click="PauseBtn_Click" Padding="10,6"
                     VerticalAlignment="Center" ToolTipService.ToolTip="Pausar / Reanudar">
                 <FontIcon x:Name="CompactPauseIcon" Glyph="&#xE769;" FontSize="13" />
             </Button>
-            <Button x:Name="GrowBtn" Grid.Column="2" Click="GrowBtn_Click" Padding="10,6"
+            <Button x:Name="GrowBtn" Grid.Column="3" Click="GrowBtn_Click" Padding="10,6"
                     VerticalAlignment="Center" ToolTipService.ToolTip="Tamaño normal">
                 <FontIcon Glyph="&#xE740;" FontSize="13" />
             </Button>
