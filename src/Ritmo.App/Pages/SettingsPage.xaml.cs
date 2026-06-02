@@ -63,6 +63,7 @@ public sealed partial class SettingsPage : Page
         LoadNavidromeState(s);
         LoadGoogleState();      // sync Google Tasks (#64)
         LoadMicrosoftState();   // sync Microsoft To Do (#64)
+        LoadAppleState();       // sync Recordatorios de Apple (#64)
         BuildCalendarFeeds();
         PomodoroHelp.Content = HelpHint.Icon("pomodoro");   // ayuda (#93)
         RhythmsHelp.Content = HelpHint.Icon("rhythm");      // ayuda (#96)
@@ -243,6 +244,83 @@ public sealed partial class SettingsPage : Page
     {
         Services.MicrosoftTodoService.SignOut();
         LoadMicrosoftState();
+    }
+
+    // ---------- Sincronización con Recordatorios de Apple (iCloud CalDAV, #64) ----------
+
+    private void LoadAppleState()
+    {
+        bool connected = Services.AppleRemindersService.HasSession;
+        AppleStatus.Text = connected
+            ? $"✓ Conectado a iCloud ({Services.AppleRemindersService.AppleId})."
+            : "No conectado.";
+        AppleConnectBtn.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
+        AppleSyncBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
+        AppleDisconnectBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void AppleConnectBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var idBox = new TextBox { Header = "Apple ID (email)", PlaceholderText = "tu@icloud.com", Text = Services.AppleRemindersService.AppleId ?? "" };
+        var pwdBox = new PasswordBox { Header = "Contraseña de aplicación" };
+        var ask = new ContentDialog
+        {
+            Title = "Conectar Recordatorios de Apple",
+            Content = new StackPanel
+            {
+                Spacing = 8,
+                Children =
+                {
+                    new TextBlock { TextWrapping = TextWrapping.Wrap, Text = "Genera una «contraseña de aplicación» en appleid.apple.com (Inicio de sesión y seguridad → Contraseñas específicas para apps). NO es tu contraseña normal. Se guarda cifrada en este equipo." },
+                    idBox, pwdBox
+                }
+            },
+            PrimaryButtonText = "Conectar", CloseButtonText = "Cancelar",
+            XamlRoot = this.XamlRoot, DefaultButton = ContentDialogButton.Primary
+        };
+        if (await ask.ShowAsync() != ContentDialogResult.Primary) return;
+        var appleId = idBox.Text?.Trim() ?? "";
+        var pwd = pwdBox.Password ?? "";
+        if (appleId.Length == 0 || pwd.Length == 0) return;
+
+        AppleConnectBtn.IsEnabled = false;
+        AppleStatus.Text = "Conectando con iCloud…";
+        try
+        {
+            Services.AppleRemindersService.Connect(appleId, pwd);
+            int lists = await Services.AppleRemindersService.VerifyAsync();
+            AppleStatus.Text = $"✓ Conectado a iCloud ({appleId}) · {lists} lista(s).";
+            AppleConnectBtn.Visibility = Visibility.Collapsed;
+            AppleSyncBtn.Visibility = Visibility.Visible;
+            AppleDisconnectBtn.Visibility = Visibility.Visible;
+        }
+        catch (Exception ex)
+        {
+            Services.AppleRemindersService.SignOut();   // credenciales inválidas: no dejar conexión a medias
+            AppleStatus.Text = "⚠ No se pudo conectar: " + ex.Message;
+        }
+        finally { AppleConnectBtn.IsEnabled = true; }
+    }
+
+    private async void AppleSyncBtn_Click(object sender, RoutedEventArgs e)
+    {
+        AppleSyncBtn.IsEnabled = false;
+        AppleStatus.Text = "Sincronizando…";
+        try
+        {
+            var r = await Services.AppleRemindersSync.SyncAsync();
+            AppleStatus.Text = r.Ok
+                ? $"✓ Sincronizado · +{r.Created} nueva(s) · {r.Updated} actualizada(s) · {r.Deleted} borrada(s)."
+                : "⚠ " + (r.Error ?? "No se pudo sincronizar.");
+        }
+        catch (Exception ex) { AppleStatus.Text = "⚠ Error: " + ex.Message; }
+        finally { AppleSyncBtn.IsEnabled = true; }
+    }
+
+    private void AppleDisconnectBtn_Click(object sender, RoutedEventArgs e)
+    {
+        Services.AppleRemindersService.SignOut();
+        LoadAppleState();
     }
 
     // ---------- Tema de la app (#48) ----------

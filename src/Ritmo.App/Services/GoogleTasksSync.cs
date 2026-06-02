@@ -20,3 +20,10 @@ internal static class MicrosoftTodoSync
     public static Task<TaskSyncRunner.SyncResult> SyncAsync(CancellationToken ct = default)
         => TaskSyncRunner.RunAsync(new MicrosoftSyncProvider(), ct);
 }
+
+/// <summary>Entrada de la sincronización Bloques/Tareas de Ritmo ↔ Recordatorios de Apple (#64).</summary>
+internal static class AppleRemindersSync
+{
+    public static Task<TaskSyncRunner.SyncResult> SyncAsync(CancellationToken ct = default)
+        => TaskSyncRunner.RunAsync(new AppleSyncProvider(), ct);
+}

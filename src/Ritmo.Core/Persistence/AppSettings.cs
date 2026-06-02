@@ -101,6 +101,10 @@ public sealed record AppSettings
     /// público con PKCE, sin secreto). Normalmente embebido; este override permite fijarlo sin recompilar.</summary>
     public string? MicrosoftClientId { get; init; }
 
+    /// <summary>Apple ID (email) conectado para Recordatorios vía iCloud CalDAV (#64). No es secreto
+    /// (solo identifica la cuenta); la contraseña de aplicación va CIFRADA en el almacén de credenciales.</summary>
+    public string? AppleId { get; init; }
+
     /// <summary>
     /// Última versión de la app cuyas «Novedades» vio el usuario (p. ej. "1.0.1.0").
     /// Null = nunca las ha visto. Al actualizar la app, si la versión actual es mayor

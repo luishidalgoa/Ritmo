@@ -244,6 +244,27 @@
                                        Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
+
+                    <!-- Gestión de Recordatorios de Apple (#64): iCloud CalDAV con contraseña de aplicación -->
+                    <Border x:Name="AppleManageCard"
+                            Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="🍎  Recordatorios de Apple" FontWeight="SemiBold" FontSize="15" />
+                            <TextBlock x:Name="AppleStatus" Opacity="0.8" FontSize="12" TextWrapping="Wrap" Text="No conectado." />
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Button x:Name="AppleConnectBtn" Content="Conectar" Click="AppleConnectBtn_Click"
+                                        Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="AppleSyncBtn" Content="Sincronizar ahora" Click="AppleSyncBtn_Click"
+                                        Visibility="Collapsed" Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="AppleDisconnectBtn" Content="Desconectar" Click="AppleDisconnectBtn_Click"
+                                        Visibility="Collapsed" />
+                            </StackPanel>
+                            <TextBlock Text="Sincroniza con tus listas de Recordatorios (iCloud). Crea las listas en Recordatorios y las tareas van en ambos sentidos. Necesita una «contraseña de aplicación» de appleid.apple.com (no tu contraseña normal)."
+                                       Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
 

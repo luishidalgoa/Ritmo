@@ -65,3 +65,31 @@ internal sealed class MicrosoftSyncProvider : ITaskSyncProvider
         return t?.Updated;
     }
 }
+
+/// <summary>
+/// Adaptador de Recordatorios de Apple (iCloud CalDAV) al runner genérico (#64). Las "listas" son
+/// colecciones VTODO de iCloud; sus ids son URLs. NOTA V1: <see cref="CreateListAsync"/> devuelve null
+/// (no se crean listas nuevas en iCloud por su fragilidad con MKCALENDAR): el usuario crea la lista en
+/// Recordatorios y Ritmo la sincroniza. Las TAREAS sí van en ambos sentidos dentro de listas existentes.
+/// </summary>
+internal sealed class AppleSyncProvider : ITaskSyncProvider
+{
+    public string ProviderName => "apple";
+    public string DisplayName => "Recordatorios de Apple";
+    public bool HasSession => AppleRemindersService.HasSession;
+
+    public async Task<IReadOnlyList<(string Id, string Title)>> GetListsAsync(CancellationToken ct)
+        => (await AppleRemindersService.GetReminderListsAsync(ct)).Select(l => (l.Url, l.Title)).ToList();
+
+    public Task<string?> CreateListAsync(string name, CancellationToken ct) => Task.FromResult<string?>(null);
+
+    public async Task<IReadOnlyList<SyncRemoteTask>> ListTasksAsync(string listId, CancellationToken ct)
+        => (await AppleRemindersService.ListTodosAsync(listId, ct))
+            .Select(r => new SyncRemoteTask(r.Url, r.Title, r.Done, r.Etag)).ToList();
+
+    public async Task<(string Id, string Updated)?> CreateTaskAsync(string listId, string text, bool done, CancellationToken ct)
+        => await AppleRemindersService.CreateTodoAsync(listId, text, done, ct);
+
+    public async Task<string?> UpdateTaskAsync(string listId, string taskId, string text, bool done, CancellationToken ct)
+        => await AppleRemindersService.UpdateTodoAsync(taskId, text, done, ct);
+}
