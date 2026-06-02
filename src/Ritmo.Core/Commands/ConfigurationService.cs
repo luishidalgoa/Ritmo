@@ -797,6 +797,14 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Prioridad eliminada.");
     }
 
+    /// <summary>Recuerda la posición (esquina sup. izq.) y el modo compacto de la isla flotante (#152).</summary>
+    public CommandResult SetIslandPlacement(int? left, int? top, bool compact)
+    {
+        var s = _store.Load();
+        _store.Save(s with { IslandLeft = left, IslandTop = top, IslandCompact = compact });
+        return CommandResult.Ok("Isla actualizada.");
+    }
+
     // ---------- Prioridad en solapamientos sesión↔sesión (#149) ----------
 
     /// <summary>

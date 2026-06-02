@@ -108,6 +108,14 @@ public sealed record AppSettings
     /// </summary>
     public string? LastSeenVersion { get; init; }
 
+    /// <summary>
+    /// Isla flotante de concentración (#118/#152): posición recordada (esquina sup. izq. en px de
+    /// escritorio) y modo compacto. Left/Top null = posición por defecto (esquina superior derecha).
+    /// </summary>
+    public int? IslandLeft { get; init; }
+    public int? IslandTop { get; init; }
+    public bool IslandCompact { get; init; }
+
     /// <summary>Suscripciones a calendarios externos por enlace ICS (lectura). #112</summary>
     public IReadOnlyList<CalendarFeed> CalendarFeeds { get; init; } = [];
 

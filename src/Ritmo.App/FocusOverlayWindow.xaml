@@ -9,63 +9,102 @@
     mc:Ignorable="d">
 
     <!-- Estilo "modo reposo (StandBy)" de iPhone: fondo negro, hora gigante de color. -->
-    <Grid x:Name="Root" RequestedTheme="Dark" Background="#0A0A0B" Padding="24,16,22,14">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <Grid x:Name="Root" RequestedTheme="Dark" Background="#0A0A0B">
 
-        <!-- Fila principal: hora grande (izquierda) + info (derecha) -->
-        <Grid Grid.Row="0" ColumnSpacing="18">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+        <!-- ====================== MODO NORMAL ====================== -->
+        <Grid x:Name="NormalRoot" Padding="24,16,22,14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-            <TextBlock x:Name="ClockText" Grid.Column="0" Text="00:00"
-                       FontSize="100" FontWeight="Bold" LineHeight="100"
-                       FontFamily="Segoe UI Variable Display"
-                       Foreground="{ThemeResource AccentFillColorDefaultBrush}"
-                       VerticalAlignment="Center" />
+            <!-- Fila principal: hora grande (izquierda) + info (derecha). Es la zona de ARRASTRE. -->
+            <Grid x:Name="NormalDragArea" Grid.Row="0" ColumnSpacing="18" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2" MinWidth="104">
-                <TextBlock x:Name="DateText" Text="" FontSize="15" FontWeight="SemiBold" Opacity="0.95" />
-                <TextBlock x:Name="PhaseLabel" Text="CONCENTRACIÓN" FontSize="11" FontWeight="SemiBold"
-                           Opacity="0.5" CharacterSpacing="100" Margin="0,6,0,0"
-                           TextWrapping="Wrap" />
-                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
-                    <FontIcon x:Name="PomoGlyph" Glyph="&#xE916;" FontSize="13" Opacity="0.85" />
-                    <TextBlock x:Name="PomoText" Text="00:00" FontSize="15" FontWeight="SemiBold" FontFamily="Consolas" />
+                <TextBlock x:Name="ClockText" Grid.Column="0" Text="00:00"
+                           FontSize="100" FontWeight="Bold" LineHeight="100"
+                           FontFamily="Segoe UI Variable Display"
+                           Foreground="{ThemeResource AccentFillColorDefaultBrush}"
+                           VerticalAlignment="Center" />
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2" MinWidth="104">
+                    <TextBlock x:Name="DateText" Text="" FontSize="15" FontWeight="SemiBold" Opacity="0.95" />
+                    <TextBlock x:Name="PhaseLabel" Text="CONCENTRACIÓN" FontSize="11" FontWeight="SemiBold"
+                               Opacity="0.5" CharacterSpacing="100" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                        <FontIcon x:Name="PomoGlyph" Glyph="&#xE916;" FontSize="13" Opacity="0.85" />
+                        <TextBlock x:Name="PomoText" Text="00:00" FontSize="15" FontWeight="SemiBold" FontFamily="Consolas" />
+                    </StackPanel>
                 </StackPanel>
+            </Grid>
+
+            <!-- Progreso + controles -->
+            <StackPanel Grid.Row="1" Spacing="10" Margin="0,12,0,0">
+                <ProgressBar x:Name="Prog" Minimum="0" Maximum="1" Value="0" Height="3" />
+                <Grid ColumnSpacing="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="PauseBtn" Grid.Column="0" Click="PauseBtn_Click" Padding="12,6"
+                            ToolTipService.ToolTip="Pausar / Reanudar">
+                        <FontIcon x:Name="PauseIcon" Glyph="&#xE769;" FontSize="14" />
+                    </Button>
+                    <Button x:Name="SkipBtn" Grid.Column="1" Click="SkipBtn_Click" Padding="12,6"
+                            ToolTipService.ToolTip="Saltar a la siguiente fase">
+                        <FontIcon Glyph="&#xE893;" FontSize="14" />
+                    </Button>
+                    <Button x:Name="CompactToggleBtn" Grid.Column="2" Click="CompactToggleBtn_Click" Padding="12,6"
+                            ToolTipService.ToolTip="Compactar la isla">
+                        <FontIcon Glyph="&#xE73F;" FontSize="14" />
+                    </Button>
+                    <Button x:Name="ExpandBtn" Grid.Column="3" Click="ExpandBtn_Click" HorizontalAlignment="Right"
+                            Style="{StaticResource AccentButtonStyle}" Padding="14,6"
+                            ToolTipService.ToolTip="Abrir la app y cerrar esta ventana">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE740;" FontSize="14" />
+                            <TextBlock Text="Abrir" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
             </StackPanel>
         </Grid>
 
-        <!-- Progreso + controles -->
-        <StackPanel Grid.Row="1" Spacing="10" Margin="0,12,0,0">
-            <ProgressBar x:Name="Prog" Minimum="0" Maximum="1" Value="0" Height="3" />
-            <Grid ColumnSpacing="6">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Button x:Name="PauseBtn" Grid.Column="0" Click="PauseBtn_Click" Padding="12,6"
-                        ToolTipService.ToolTip="Pausar / Reanudar">
-                    <FontIcon x:Name="PauseIcon" Glyph="&#xE769;" FontSize="14" />
-                </Button>
-                <Button x:Name="SkipBtn" Grid.Column="1" Click="SkipBtn_Click" Padding="12,6"
-                        ToolTipService.ToolTip="Saltar a la siguiente fase">
-                    <FontIcon Glyph="&#xE893;" FontSize="14" />
-                </Button>
-                <Button x:Name="ExpandBtn" Grid.Column="2" Click="ExpandBtn_Click" HorizontalAlignment="Right"
-                        Style="{StaticResource AccentButtonStyle}" Padding="14,6"
-                        ToolTipService.ToolTip="Abrir la app y cerrar esta ventana">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE740;" FontSize="14" />
-                        <TextBlock Text="Abrir" />
-                    </StackPanel>
-                </Button>
-            </Grid>
-        </StackPanel>
+        <!-- ====================== MODO COMPACTO ====================== -->
+        <Grid x:Name="CompactRoot" Padding="16,8,10,8" ColumnSpacing="10" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Zona de arrastre del modo compacto: hora + pomodoro -->
+            <StackPanel x:Name="CompactDragArea" Grid.Column="0" Orientation="Horizontal" Spacing="12"
+                        VerticalAlignment="Center" Background="Transparent">
+                <TextBlock x:Name="CompactClock" Text="00:00" FontSize="40" FontWeight="Bold" LineHeight="40"
+                           FontFamily="Segoe UI Variable Display"
+                           Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" />
+                <StackPanel VerticalAlignment="Center" Spacing="0">
+                    <TextBlock x:Name="CompactPhase" Text="" FontSize="9" FontWeight="SemiBold"
+                               Opacity="0.5" CharacterSpacing="80" />
+                    <TextBlock x:Name="CompactPomo" Text="00:00" FontSize="14" FontWeight="SemiBold" FontFamily="Consolas" />
+                </StackPanel>
+            </StackPanel>
+
+            <Button x:Name="CompactPauseBtn" Grid.Column="1" Click="PauseBtn_Click" Padding="10,6"
+                    VerticalAlignment="Center" ToolTipService.ToolTip="Pausar / Reanudar">
+                <FontIcon x:Name="CompactPauseIcon" Glyph="&#xE769;" FontSize="13" />
+            </Button>
+            <Button x:Name="GrowBtn" Grid.Column="2" Click="GrowBtn_Click" Padding="10,6"
+                    VerticalAlignment="Center" ToolTipService.ToolTip="Tamaño normal">
+                <FontIcon Glyph="&#xE740;" FontSize="13" />
+            </Button>
+        </Grid>
     </Grid>
 </Window>
