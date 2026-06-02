@@ -15,7 +15,8 @@ public sealed record CalDavResource(
     string? Etag = null,
     string? DisplayName = null,
     string? CalendarData = null,
-    bool SupportsVTodo = false);
+    bool SupportsVTodo = false,
+    bool IsCalendar = false);
 
 /// <summary>
 /// Parseo PURO de las respuestas WebDAV/CalDAV (XML "multistatus", DAV:/CalDAV namespaces) que usa la
@@ -61,7 +62,7 @@ public static class CalDavXml
             if (string.IsNullOrEmpty(href)) continue;
 
             string? etag = null, displayName = null, calData = null;
-            bool vtodo = false;
+            bool vtodo = false, isCalendar = false;
 
             foreach (var prop in resp.Descendants(D + "prop"))
             {
@@ -72,9 +73,13 @@ public static class CalDavXml
                 if (compSet is not null)
                     vtodo = compSet.Elements(C + "comp")
                                    .Any(c => string.Equals((string?)c.Attribute("name"), "VTODO", StringComparison.OrdinalIgnoreCase));
+                // Solo una colección de tipo <caldav:calendar> es una lista real; descarta las
+                // colecciones de scheduling (schedule-outbox/schedule-inbox), que no admiten REPORT.
+                var rt = prop.Element(D + "resourcetype");
+                if (rt is not null && rt.Element(C + "calendar") is not null) isCalendar = true;
             }
 
-            result.Add(new CalDavResource(href, etag, displayName, calData, vtodo));
+            result.Add(new CalDavResource(href, etag, displayName, calData, vtodo, isCalendar));
         }
         return result;
     }

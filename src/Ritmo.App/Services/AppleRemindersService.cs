@@ -147,11 +147,17 @@ public static class AppleRemindersService
         // 3) colecciones bajo el home; quedarse con las que soportan VTODO
         var (_, b3, _) = await SendAsync("PROPFIND", homeUrl, PropfindCollections, 1, ct);
         var result = new List<(string, string)>();
+        // Colecciones especiales de iCloud que NO son listas (no admiten REPORT calendar-query).
+        var special = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "outbox", "inbox", "notification", "dropbox" };
         foreach (var r in CalDavXml.ParseMultistatus(b3))
         {
-            if (!r.SupportsVTodo) continue;
+            // Lista real = colección de tipo <calendar> que soporta VTODO. Descarta outbox/inbox/etc.
+            if (!r.SupportsVTodo || !r.IsCalendar) continue;
             var url = Resolve(homeUrl, r.Href);
             if (url.TrimEnd('/').Equals(homeUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)) continue;  // el propio home
+            var lastSeg = url.TrimEnd('/');
+            lastSeg = lastSeg[(lastSeg.LastIndexOf('/') + 1)..];
+            if (special.Contains(lastSeg)) continue;
             result.Add((url, string.IsNullOrWhiteSpace(r.DisplayName) ? "Recordatorios" : r.DisplayName!));
         }
         return result;

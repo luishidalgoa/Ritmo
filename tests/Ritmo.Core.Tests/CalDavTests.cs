@@ -114,6 +114,27 @@ END:VTODO</c:calendar-data>
     }
 
     [Fact]
+    public void ParseMultistatus_distingue_calendar_real_de_outbox()
+    {
+        // La lista real es <calendar>; el outbox de scheduling NO, aunque anuncie VTODO. (#64)
+        var xml = @"<multistatus xmlns='DAV:' xmlns:c='urn:ietf:params:xml:ns:caldav'>
+            <response><href>/123/calendars/reminders/</href><propstat><prop>
+                <resourcetype><collection/><c:calendar/></resourcetype>
+                <c:supported-calendar-component-set><c:comp name='VTODO'/></c:supported-calendar-component-set>
+            </prop></propstat></response>
+            <response><href>/123/calendars/outbox/</href><propstat><prop>
+                <resourcetype><collection/><c:schedule-outbox/></resourcetype>
+                <c:supported-calendar-component-set><c:comp name='VTODO'/></c:supported-calendar-component-set>
+            </prop></propstat></response></multistatus>";
+        var rs = CalDavXml.ParseMultistatus(xml);
+        var cal = rs.First(r => r.Href.Contains("reminders"));
+        var outbox = rs.First(r => r.Href.Contains("outbox"));
+        Assert.True(cal.IsCalendar);
+        Assert.True(cal.SupportsVTodo);
+        Assert.False(outbox.IsCalendar);   // schedule-outbox: se descarta como lista
+    }
+
+    [Fact]
     public void ParseMultistatus_xml_invalido_no_revienta()
         => Assert.Empty(CalDavXml.ParseMultistatus("no es xml"));
 }
