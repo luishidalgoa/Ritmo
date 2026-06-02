@@ -46,6 +46,7 @@ internal sealed class SettingsDto
     public string? NtfyServerUrl { get; set; }
     public string? NtfyTopic { get; set; }
     public string? GoogleClientId { get; set; }   // #64: OAuth público para Google Tasks
+    public string? MicrosoftClientId { get; set; }   // #64: OAuth público para Microsoft To Do
     public string? LastSeenVersion { get; set; }
     public List<CalendarFeedDto> CalendarFeeds { get; set; } = [];
     public List<OverlapPriorityDto> OverlapPriorities { get; set; } = [];
@@ -97,7 +98,8 @@ internal sealed class TaskBlockDto
     public string? ColorHex { get; set; }
     public int Order { get; set; }
     public string? EnvironmentId { get; set; }
-    public string? ExternalId { get; set; }   // #64: lista de Google Tasks
+    public string? ExternalId { get; set; }   // #64: id de la lista externa
+    public string? Provider { get; set; }      // #64: "google" | "microsoft" | "apple"
 }
 
 internal sealed class TaskItemDto
@@ -352,7 +354,7 @@ internal static class SettingsMapper
         TaskBlocks = s.TaskBlocks.Select(b => new TaskBlockDto
         {
             Id = b.Id, Name = b.Name, ColorHex = b.ColorHex, Order = b.Order,
-            EnvironmentId = b.EnvironmentId, ExternalId = b.ExternalId
+            EnvironmentId = b.EnvironmentId, ExternalId = b.ExternalId, Provider = b.Provider
         }).ToList(),
         Tasks = s.Tasks.Select(t => new TaskItemDto
         {
@@ -367,6 +369,7 @@ internal static class SettingsMapper
         NtfyServerUrl = s.NtfyServerUrl,
         NtfyTopic = s.NtfyTopic,
         GoogleClientId = s.GoogleClientId,
+        MicrosoftClientId = s.MicrosoftClientId,
         LastSeenVersion = s.LastSeenVersion,
         CalendarFeeds = s.CalendarFeeds.Select(f => new CalendarFeedDto { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
         OverlapPriorities = s.OverlapPriorities
@@ -503,6 +506,7 @@ internal static class SettingsMapper
         NtfyServerUrl = d.NtfyServerUrl,
         NtfyTopic = d.NtfyTopic,
         GoogleClientId = d.GoogleClientId,
+        MicrosoftClientId = d.MicrosoftClientId,
         LastSeenVersion = d.LastSeenVersion,
         CalendarFeeds = d.CalendarFeeds.Select(f => new CalendarFeed { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
         OverlapPriorities = d.OverlapPriorities
@@ -527,7 +531,11 @@ internal static class SettingsMapper
             ColorHex = b.ColorHex,
             Order = b.Order,
             EnvironmentId = b.EnvironmentId,
-            ExternalId = b.ExternalId
+            ExternalId = b.ExternalId,
+            // Migración: un bloque ya sincronizado con Google antes del multi-proveedor (#64) tenía
+            // ExternalId pero no Provider → se asume "google" para no re-sincronizarlo como nuevo.
+            Provider = !string.IsNullOrEmpty(b.Provider) ? b.Provider
+                       : (!string.IsNullOrEmpty(b.ExternalId) ? "google" : null)
         }).ToList(),
         Tasks = d.Tasks.Select(t => new TaskItem
         {

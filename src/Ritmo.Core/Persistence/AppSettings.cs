@@ -97,6 +97,10 @@ public sealed record AppSettings
     /// escritorio con PKCE no usan secreto confidencial); el refresh token va en el almacén seguro.</summary>
     public string? GoogleClientId { get; init; }
 
+    /// <summary>Client ID (Application ID) de Azure para Microsoft To Do (#64). PÚBLICO (cliente
+    /// público con PKCE, sin secreto). Normalmente embebido; este override permite fijarlo sin recompilar.</summary>
+    public string? MicrosoftClientId { get; init; }
+
     /// <summary>
     /// Última versión de la app cuyas «Novedades» vio el usuario (p. ej. "1.0.1.0").
     /// Null = nunca las ha visto. Al actualizar la app, si la versión actual es mayor

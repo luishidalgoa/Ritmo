@@ -22,6 +22,13 @@ public sealed record TaskBlock
     /// </summary>
     public string? EnvironmentId { get; init; }
 
-    /// <summary>Id de la lista de Google Tasks con la que está sincronizado este bloque (#64); null = no sincronizado.</summary>
+    /// <summary>Id de la lista externa con la que está sincronizado este bloque (#64); null = no sincronizado.</summary>
     public string? ExternalId { get; init; }
+
+    /// <summary>
+    /// Proveedor externo dueño de <see cref="ExternalId"/> (#64): "google" | "microsoft" | "apple".
+    /// null = sin vincular todavía (lo reclama el primer proveedor con el que se sincronice). Evita
+    /// que la sincronización de un proveedor pise los ids de otro cuando hay varias conexiones.
+    /// </summary>
+    public string? Provider { get; init; }
 }
