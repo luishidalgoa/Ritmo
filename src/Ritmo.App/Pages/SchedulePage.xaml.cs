@@ -834,6 +834,13 @@ public sealed partial class SchedulePage : Page
                     RangeSelectTo(thisGroup);
                     return;
                 }
+                // Ctrl+clic = selección granular: añade/quita esta tarjeta de la selección. No arrastra.
+                if (e.KeyModifiers.HasFlag(Windows.System.VirtualKeyModifiers.Control))
+                {
+                    _suppressNextTap = true;
+                    ToggleSelectTo(thisGroup);
+                    return;
+                }
                 BeginDrag(b, thisGroup, ZoneMode(b, e), cardDayCol, cardStartSlot, thisGroup.DaySpan, cardSpanSlots, e);
             };
             // Clic = abrir el detalle. Tapped es fiable dentro del ScrollViewer (no
@@ -2262,6 +2269,33 @@ public sealed partial class SchedulePage : Page
         ShowMultiDetail();   // panel de acciones en bloque
     }
 
+    /// <summary>
+    /// Ctrl+clic: selección GRANULAR (#142b). Alterna esta tarjeta dentro de la selección múltiple
+    /// (añade si no estaba, quita si estaba), conservando el resto. Si venías de un clic normal sobre
+    /// otra sesión, esa entra también (como en el Explorador: clic selecciona, Ctrl+clic añade).
+    /// </summary>
+    private void ToggleSelectTo(SessionGroup group)
+    {
+        // Arranca la selección con lo que hubiera resaltado por un clic normal previo.
+        if (_multiSel.Count == 0 && _selectedGroup is not null)
+            foreach (var m in _selectedGroup.Members) _multiSel.Add(MemberKey(m));
+
+        bool anySelected = group.Members.Any(m => _multiSel.Contains(MemberKey(m)));
+        foreach (var m in group.Members)
+        {
+            var key = MemberKey(m);
+            if (anySelected) _multiSel.Remove(key); else _multiSel.Add(key);
+        }
+
+        _anchorGroup = group;   // referencia para un Shift+clic posterior
+        _selectedGroup = null; _selectedSessionKey = null; _selectedGroupFirstDay = -1;
+        _selectedEvent = null; _selectedOneOff = null; _selectedEventKey = null;
+
+        if (_multiSel.Count == 0) { CloseDetail(); return; }
+        Build();             // repinta con los anillos de selección
+        ShowMultiDetail();   // panel de acciones en bloque
+    }
+
     /// <summary>Panel lateral con las acciones en bloque para la selección múltiple (#142).</summary>
     private void ShowMultiDetail()
     {
@@ -2271,7 +2305,7 @@ public sealed partial class SchedulePage : Page
         var content = DetailContent;
         content.Children.Clear();
         content.Children.Add(DetailHeader($"{count} sesiones seleccionadas"));
-        content.Children.Add(MetaLine("Selección rectangular (Shift+clic). Las acciones se aplican a todas."));
+        content.Children.Add(MetaLine("Shift+clic = rango A→B · Ctrl+clic = añadir/quitar una. Las acciones se aplican a todas."));
 
         var sel = SelectedSessions();
         var col = new StackPanel { Spacing = 8, Margin = new Thickness(0, 10, 0, 0) };
