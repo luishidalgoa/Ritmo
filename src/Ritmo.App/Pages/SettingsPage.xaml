@@ -353,11 +353,13 @@
                     CornerRadius="8" Padding="20">
                 <StackPanel Spacing="14">
                     <TextBlock Text="Apariencia" FontSize="18" FontWeight="SemiBold" />
-                    <ComboBox x:Name="ThemeBox" Header="Tema" Width="240">
-                        <ComboBoxItem Content="Según el sistema" Tag="Default" />
-                        <ComboBoxItem Content="Claro" Tag="Light" />
-                        <ComboBoxItem Content="Oscuro" Tag="Dark" />
+                    <ComboBox x:Name="ThemeBox" Header="Tema" Width="240" SelectionChanged="ThemeBox_SelectionChanged">
+                        <ComboBoxItem Content="Según el sistema" Tag="system" />
+                        <ComboBoxItem Content="Claro" Tag="light" />
+                        <ComboBoxItem Content="Oscuro" Tag="dark" />
                     </ComboBox>
+                    <TextBlock Text="«Según el sistema» usa el tema de Windows. El cambio se aplica al instante."
+                               Opacity="0.7" FontSize="12" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 

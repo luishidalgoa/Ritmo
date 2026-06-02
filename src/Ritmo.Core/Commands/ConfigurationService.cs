@@ -680,6 +680,16 @@ public sealed class ConfigurationService
         return CommandResult.Ok("Entorno por defecto actualizado.");
     }
 
+    /// <summary>Fija el tema de la app (#48): "system", "light" o "dark".</summary>
+    public CommandResult SetThemeMode(string mode)
+    {
+        var m = (mode ?? "").Trim().ToLowerInvariant();
+        if (m != "system" && m != "light" && m != "dark")
+            return CommandResult.Fail("Tema no válido (usa system, light o dark).");
+        _store.Save(_store.Load() with { ThemeMode = m });
+        return CommandResult.Ok("Tema actualizado.");
+    }
+
     /// <summary>Guarda la conexión GLOBAL a Navidrome (servidor + usuario). La
     /// contraseña se guarda aparte en el almacén seguro del host. #107</summary>
     public CommandResult SetNavidromeConnection(string serverUrl, string user)

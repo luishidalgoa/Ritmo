@@ -25,6 +25,7 @@ internal sealed class SettingsDto
     // Categorías de bloque definibles (#83). Vacío en JSON legacy → la migración las deriva.
     public List<CategoryDto> Categories { get; set; } = [];
     public bool OnboardingCompleted { get; set; }
+    public string? ThemeMode { get; set; }   // #48: "system" | "light" | "dark"
     // Modo descanso (#135): manual + periodos programados.
     public bool RestActive { get; set; }
     public List<RestPeriodDto> RestPeriods { get; set; } = [];
@@ -307,6 +308,7 @@ internal static class SettingsMapper
             IsFocus = c.IsFocus, Order = c.Order, IsSystem = c.IsSystem
         }).ToList(),
         OnboardingCompleted = s.OnboardingCompleted,
+        ThemeMode = s.ThemeMode,
         RestActive = s.RestActive,
         RestPeriods = s.RestPeriods.Select(p => new RestPeriodDto
         {
@@ -469,6 +471,7 @@ internal static class SettingsMapper
                 IsFocus = c.IsFocus, Order = c.Order, IsSystem = c.IsSystem
             }).ToList(),
         OnboardingCompleted = d.OnboardingCompleted,
+        ThemeMode = string.IsNullOrWhiteSpace(d.ThemeMode) ? "system" : d.ThemeMode,
         RestActive = d.RestActive,
         RestPeriods = (d.RestPeriods ?? []).Select(p => new RestPeriod
         {

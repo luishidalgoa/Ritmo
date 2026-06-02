@@ -29,6 +29,21 @@ public sealed partial class MainWindow : Window
         try { AppWindow.SetIcon(System.IO.Path.Combine(System.AppContext.BaseDirectory, "Assets", "AppIcon.ico")); }
         catch { AppWindow.SetIcon("Assets/AppIcon.ico"); }
         AppWindow.Closing += AppWindow_Closing;
+        ApplyTheme(AppState.Load().ThemeMode);   // tema elegido por el usuario (#48)
+    }
+
+    /// <summary>Convierte el modo de tema guardado ("system"/"light"/"dark") en ElementTheme. #48</summary>
+    public static ElementTheme ThemeFor(string? mode) => mode switch
+    {
+        "light" => ElementTheme.Light,
+        "dark" => ElementTheme.Dark,
+        _ => ElementTheme.Default
+    };
+
+    /// <summary>Aplica el tema en caliente a toda la ventana (la raíz es la NavigationView). #48</summary>
+    public void ApplyTheme(string? mode)
+    {
+        if (Content is FrameworkElement fe) fe.RequestedTheme = ThemeFor(mode);
     }
 
     private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)

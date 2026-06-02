@@ -48,12 +48,9 @@ public sealed partial class SettingsPage : Page
         RefreshConnections(s);
         VersionText.Text = $"Versión actual: {AppVersionInfo.Current}";
 
-        ThemeBox.SelectedIndex = (this.ActualTheme) switch
-        {
-            ElementTheme.Light => 1,
-            ElementTheme.Dark => 2,
-            _ => 0
-        };
+        _loadingTheme = true;
+        SelectComboByTag(ThemeBox, s.ThemeMode);   // refleja la preferencia guardada (#48)
+        _loadingTheme = false;
 
         BuildEnvList();
         BuildPhases();
@@ -64,6 +61,18 @@ public sealed partial class SettingsPage : Page
         PomodoroHelp.Content = HelpHint.Icon("pomodoro");   // ayuda (#93)
         RhythmsHelp.Content = HelpHint.Icon("rhythm");      // ayuda (#96)
         _ = LoadAutostartState();
+    }
+
+    // ---------- Tema de la app (#48) ----------
+
+    private bool _loadingTheme;
+
+    private void ThemeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingTheme) return;
+        if (ThemeBox.SelectedItem is not ComboBoxItem it || it.Tag is not string mode) return;
+        AppState.Config.SetThemeMode(mode);
+        MainWindow.Current?.ApplyTheme(mode);   // aplica en caliente
     }
 
     // ---------- Música: conexión global a Navidrome (#107) ----------

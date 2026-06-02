@@ -44,6 +44,9 @@ public sealed record AppSettings
     /// <summary>Si el usuario ya pasó el onboarding (selector de plantillas). #83</summary>
     public bool OnboardingCompleted { get; init; }
 
+    /// <summary>Tema de la app (#48): "system" (sigue a Windows), "light" o "dark". Por defecto sistema.</summary>
+    public string ThemeMode { get; init; } = "system";
+
     /// <summary>Modo descanso MANUAL (#135): pausa los avisos del horario «ahora» hasta apagarlo.</summary>
     public bool RestActive { get; init; }
 
