@@ -30,6 +30,21 @@ public sealed partial class SessionDialog : ContentDialog
         ProjectBox.Header = Ritmo_App.Services.HelpHint.Label("Proyecto (seguimiento laboral)", "work-link");
         TentativeSwitch.Header = Ritmo_App.Services.HelpHint.Label("Provisional (no dispara concentración)", "tentative");
         OneOffSwitch.Header = Ritmo_App.Services.HelpHint.Label("Sesión extraordinaria (en fechas concretas)", "oneoff");
+
+        // La hora de fin nunca puede ser ≤ inicio (#150): se autocorrige al seleccionar.
+        Ritmo_App.Services.TimeRangeGuard.Attach(StartPicker, EndPicker);
+        StartPicker.TimeChanged += (_, _) => TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+        EndPicker.TimeChanged += (_, _) => TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+        // Red de seguridad por si se cargaran datos antiguos inválidos: no deja guardar fin ≤ inicio.
+        PrimaryButtonClick += (_, args) =>
+        {
+            if (EndPicker.Time <= StartPicker.Time)
+            {
+                TimeError.Text = "La hora de fin debe ser posterior a la de inicio.";
+                TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+                args.Cancel = true;
+            }
+        };
     }
 
     /// <summary>Carga los títulos existentes del horario como sugerencias del combo (#116).</summary>

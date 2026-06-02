@@ -24,6 +24,8 @@ public sealed partial class SettingsPage : Page
     {
         InitializeComponent();
         Loaded += (_, _) => LoadValues();
+        // La hora de fin del día nunca puede ser ≤ la de inicio (#150): se autocorrige al seleccionar.
+        Services.TimeRangeGuard.Attach(DayStartPicker, DayEndPicker, minGapMinutes: 30);
     }
 
     private void LoadValues()

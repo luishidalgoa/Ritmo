@@ -57,6 +57,9 @@
                     HorizontalAlignment="Stretch" />
         <TimePicker x:Name="EndPicker" Header="Fin" ClockIdentifier="24HourClock" MinuteIncrement="5"
                     HorizontalAlignment="Stretch" />
+        <!-- Aviso si el fin quedara ≤ inicio (red de seguridad; normalmente se autocorrige). #150 -->
+        <TextBlock x:Name="TimeError" Visibility="Collapsed" FontSize="12" TextWrapping="Wrap"
+                   Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
 
         <!-- Categorías dinámicas (#83): se llenan en runtime con SetCategories desde los
              ajustes del usuario. Ya no hay tipos fijos. -->
