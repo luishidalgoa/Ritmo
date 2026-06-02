@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Ritmo_App"
+    xmlns:ctrl="using:Ritmo_App.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -70,8 +71,8 @@
                     <TextBlock Text="Horario" FontSize="18" FontWeight="SemiBold" />
                     <TextBlock Text="Rango de horas que se muestra en la cuadrícula." Opacity="0.7" FontSize="13" />
                     <StackPanel Orientation="Horizontal" Spacing="16">
-                        <TimePicker x:Name="DayStartPicker" Header="Desde" ClockIdentifier="24HourClock" MinuteIncrement="30" />
-                        <TimePicker x:Name="DayEndPicker" Header="Hasta" ClockIdentifier="24HourClock" MinuteIncrement="30" />
+                        <ctrl:TimeOfDayPicker x:Name="DayStartPicker" Header="Desde" MinuteStep="30" Width="120" />
+                        <ctrl:TimeOfDayPicker x:Name="DayEndPicker" Header="Hasta" MinuteStep="30" Width="120" />
                     </StackPanel>
                     <ComboBox x:Name="GranularityBox" Header="Granularidad de la rejilla" Width="240">
                         <ComboBoxItem Content="1 hora" Tag="60" />

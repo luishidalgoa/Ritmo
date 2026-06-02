@@ -31,16 +31,18 @@ public sealed partial class SessionDialog : ContentDialog
         TentativeSwitch.Header = Ritmo_App.Services.HelpHint.Label("Provisional (no dispara concentración)", "tentative");
         OneOffSwitch.Header = Ritmo_App.Services.HelpHint.Label("Sesión extraordinaria (en fechas concretas)", "oneoff");
 
-        // La hora de fin nunca puede ser ≤ inicio (#150): se autocorrige al seleccionar.
-        Ritmo_App.Services.TimeRangeGuard.Attach(StartPicker, EndPicker);
-        StartPicker.SelectedTimeChanged += (_, _) => TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
-        EndPicker.SelectedTimeChanged += (_, _) => TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+        // La hora de fin nunca puede ser ≤ inicio (#150): el selector de fin deshabilita (en gris)
+        // las horas/min que no superan al inicio. Se reajusta el mínimo cuando cambia el inicio.
+        StartPicker.TimeChanged += (_, _) =>
+        {
+            EndPicker.MinExclusive = StartPicker.Time;
+            TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+        };
+        EndPicker.TimeChanged += (_, _) => TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
         // Red de seguridad por si se cargaran datos antiguos inválidos: no deja guardar fin ≤ inicio.
         PrimaryButtonClick += (_, args) =>
         {
-            var start = StartPicker.SelectedTime ?? StartPicker.Time;
-            var end = EndPicker.SelectedTime ?? EndPicker.Time;
-            if (end <= start)
+            if (EndPicker.Time <= StartPicker.Time)
             {
                 TimeError.Text = "La hora de fin debe ser posterior a la de inicio.";
                 TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
@@ -231,6 +233,7 @@ public sealed partial class SessionDialog : ContentDialog
         DayHint.Text = "Al editar, cambia el día marcándolo aquí.";
         StartPicker.Time = s.Start.ToTimeSpan();
         EndPicker.Time = s.End.ToTimeSpan();
+        EndPicker.MinExclusive = StartPicker.Time;   // #150: el fin no puede bajar del inicio
         TentativeSwitch.IsOn = s.IsTentative;
         for (int i = 0; i < KindBox.Items.Count; i++)
             if (KindBox.Items[i] is ComboBoxItem it && (string)it.Tag == s.CategoryId)
@@ -253,6 +256,7 @@ public sealed partial class SessionDialog : ContentDialog
         var st = start ?? new TimeOnly(9, 0);
         StartPicker.Time = st.ToTimeSpan();
         EndPicker.Time = st.Add(TimeSpan.FromHours(1)).ToTimeSpan();
+        EndPicker.MinExclusive = StartPicker.Time;   // #150
         KindBox.SelectedIndex = 0;
         SetAlert(Alert1Box, Alert1Custom, defaultPreAlertMinutes);   // aviso por defecto configurable (#48)
         SetAlert(Alert2Box, Alert2Custom, 0);                        // segundo aviso: ninguno
@@ -261,8 +265,8 @@ public sealed partial class SessionDialog : ContentDialog
     /// <summary>Construye la sesión para un día concreto (inicio+fin → duración).</summary>
     public StudySession ToSession(DayOfWeek day)
     {
-        var start = TimeOnly.FromTimeSpan(StartPicker.SelectedTime ?? StartPicker.Time);
-        var end = TimeOnly.FromTimeSpan(EndPicker.SelectedTime ?? EndPicker.Time);
+        var start = TimeOnly.FromTimeSpan(StartPicker.Time);
+        var end = TimeOnly.FromTimeSpan(EndPicker.Time);
         var duration = ScheduleMath.DurationBetween(start, end);
 
         var categoryId = (KindBox.SelectedItem as ComboBoxItem)?.Tag as string;

@@ -24,8 +24,9 @@ public sealed partial class SettingsPage : Page
     {
         InitializeComponent();
         Loaded += (_, _) => LoadValues();
-        // La hora de fin del día nunca puede ser ≤ la de inicio (#150): se autocorrige al seleccionar.
-        Services.TimeRangeGuard.Attach(DayStartPicker, DayEndPicker, minGapMinutes: 30);
+        // La hora de fin del día nunca puede ser ≤ la de inicio (#150): el selector "Hasta"
+        // deshabilita (en gris) las horas que no superan a "Desde".
+        DayStartPicker.TimeChanged += (_, _) => DayEndPicker.MinExclusive = DayStartPicker.Time;
     }
 
     private void LoadValues()
@@ -38,6 +39,7 @@ public sealed partial class SettingsPage : Page
 
         DayStartPicker.Time = s.ViewConfig.DayStart.ToTimeSpan();
         DayEndPicker.Time = s.ViewConfig.DayEnd.ToTimeSpan();
+        DayEndPicker.MinExclusive = DayStartPicker.Time;   // #150
         GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
         DayPreviewToggle.IsOn = s.ViewConfig.ShowDayPreviewOnFocusStart;
         SelectComboByTag(DefaultPreAlertBox, s.ViewConfig.DefaultPreAlertMinutes.ToString());
@@ -1068,8 +1070,8 @@ public sealed partial class SettingsPage : Page
         var r1 = AppState.Config.SetPomodoro(
             Val(FocusBox, 50), Val(ShortBox, 10), Val(LongBox, 20), Val(CyclesBox, 2));
 
-        var start = TimeOnly.FromTimeSpan(DayStartPicker.SelectedTime ?? DayStartPicker.Time);
-        var end = TimeOnly.FromTimeSpan(DayEndPicker.SelectedTime ?? DayEndPicker.Time);
+        var start = TimeOnly.FromTimeSpan(DayStartPicker.Time);
+        var end = TimeOnly.FromTimeSpan(DayEndPicker.Time);
         var r2 = AppState.Config.SetViewHours(start, end);
 
         int gran = (GranularityBox.SelectedItem is ComboBoxItem gi && gi.Tag is string gt && int.TryParse(gt, out var gm)) ? gm : 60;
