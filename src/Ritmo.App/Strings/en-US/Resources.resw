@@ -60,6 +60,7 @@
   <data name="NavNotes.Content" xml:space="preserve"><value>Notes</value></data>
   <data name="NavWhatsNew.Content" xml:space="preserve"><value>What's new</value></data>
   <data name="NavHelp.Content" xml:space="preserve"><value>Help</value></data>
+  <data name="NavAbout.Content" xml:space="preserve"><value>Made by</value></data>
   <data name="NavSettings.Content" xml:space="preserve"><value>Settings</value></data>
   <data name="WorkEnvPanelTitle.Text" xml:space="preserve"><value>Work environments</value></data>
   <data name="WorkEnvPanelSub.Text" xml:space="preserve"><value>Quick shortcuts per environment.</value></data>
@@ -116,6 +117,31 @@
   <data name="SetExit.Text" xml:space="preserve"><value>Quit Ritmo (stops reminders)</value></data>
   <data name="SetCheckUpdate.Content" xml:space="preserve"><value>Check for updates</value></data>
   <data name="SetInstallNow.Content" xml:space="preserve"><value>Install now</value></data>
+
+  <!-- «Made by» page (AboutPage) -->
+  <data name="AboutHeader.Text" xml:space="preserve"><value>MADE BY</value></data>
+  <data name="AboutBio.Text" xml:space="preserve"><value>Full-stack developer. I design and build products end to end — from the data model to the interface, including integrations, infrastructure and design. Ritmo is one of those projects.</value></data>
+  <data name="AboutPortfolioBtn.Text" xml:space="preserve"><value>View my portfolio</value></data>
+  <data name="AboutCodeBtn.Text" xml:space="preserve"><value>This project's code</value></data>
+  <data name="AboutAboutTitle.Text" xml:space="preserve"><value>About Ritmo</value></data>
+  <data name="AboutAboutText.Text" xml:space="preserve"><value>A Windows desktop app that organizes your study, focus and work time. The model and logic live in a pure, tested core; the app is just the host.</value></data>
+  <data name="AboutFeat1.Text" xml:space="preserve"><value>• Phased schedule with your own categories</value></data>
+  <data name="AboutFeat2.Text" xml:space="preserve"><value>• Focus mode with environments (music, web blocking, Do Not Disturb)</value></data>
+  <data name="AboutFeat3.Text" xml:space="preserve"><value>• Pomodoro, floating island and notes per session/category</value></data>
+  <data name="AboutFeat4.Text" xml:space="preserve"><value>• Hour tracking and sync with Google Tasks/Calendar</value></data>
+  <data name="AboutContactTitle.Text" xml:space="preserve"><value>Let's talk?</value></data>
+  <data name="AboutContactText.Text" xml:space="preserve"><value>If you'd like to collaborate, hire me or ask how this is built, my portfolio has all the details: links, experience, other projects and ways to get in touch.</value></data>
+  <data name="AboutOpenBtn.Text" xml:space="preserve"><value>Open luishidalgoa.vercel.app</value></data>
+  <data name="AboutStackTitle.Text" xml:space="preserve"><value>Ritmo's tech stack</value></data>
+  <data name="AboutColApp.Text" xml:space="preserve"><value>APP</value></data>
+  <data name="AboutColArch.Text" xml:space="preserve"><value>ARCHITECTURE</value></data>
+  <data name="AboutColIntegr.Text" xml:space="preserve"><value>INTEGRATIONS</value></data>
+  <data name="AboutColPack.Text" xml:space="preserve"><value>PACKAGING</value></data>
+  <data name="AboutArch1.Text" xml:space="preserve"><value>Pure core + xUnit</value></data>
+  <data name="AboutArch2.Text" xml:space="preserve"><value>WinUI host</value></data>
+  <data name="AboutArch3.Text" xml:space="preserve"><value>MCP server</value></data>
+  <data name="AboutIntegr4.Text" xml:space="preserve"><value>ICS calendars</value></data>
+  <data name="AboutPack3.Text" xml:space="preserve"><value>Auto-update (GitHub)</value></data>
 
   <!-- #48 i18n - second pass: static Settings chrome -->
   <data name="SetPomodoroHelp.Text" xml:space="preserve"><value>These values are the «App default» rhythm. Create named rhythms to reuse them when setting up each environment.</value></data>

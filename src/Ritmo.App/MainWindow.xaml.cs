@@ -225,6 +225,7 @@ public sealed partial class MainWindow : Window
             "tasks" => typeof(TasksPage),
             "settings" => typeof(SettingsPage),
             "help" => typeof(HelpPage),
+            "about" => typeof(AboutPage),
             _ => typeof(HomePage)
         };
 

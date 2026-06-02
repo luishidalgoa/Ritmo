@@ -60,6 +60,7 @@
   <data name="NavNotes.Content" xml:space="preserve"><value>Notas</value></data>
   <data name="NavWhatsNew.Content" xml:space="preserve"><value>Novedades</value></data>
   <data name="NavHelp.Content" xml:space="preserve"><value>Ayuda</value></data>
+  <data name="NavAbout.Content" xml:space="preserve"><value>Hecho por</value></data>
   <data name="NavSettings.Content" xml:space="preserve"><value>Ajustes</value></data>
   <data name="WorkEnvPanelTitle.Text" xml:space="preserve"><value>Entornos de trabajo</value></data>
   <data name="WorkEnvPanelSub.Text" xml:space="preserve"><value>Accesos rápidos por entorno.</value></data>
@@ -116,6 +117,31 @@
   <data name="SetExit.Text" xml:space="preserve"><value>Salir de Ritmo (detiene los avisos)</value></data>
   <data name="SetCheckUpdate.Content" xml:space="preserve"><value>Buscar actualizaciones</value></data>
   <data name="SetInstallNow.Content" xml:space="preserve"><value>Instalar ahora</value></data>
+
+  <!-- Página «Hecho por» (AboutPage) -->
+  <data name="AboutHeader.Text" xml:space="preserve"><value>HECHO POR</value></data>
+  <data name="AboutBio.Text" xml:space="preserve"><value>Desarrollador full-stack. Diseño y construyo productos de principio a fin — del modelo de datos a la interfaz, pasando por integraciones, infraestructura y diseño. Ritmo es uno de esos proyectos.</value></data>
+  <data name="AboutPortfolioBtn.Text" xml:space="preserve"><value>Ver mi portfolio</value></data>
+  <data name="AboutCodeBtn.Text" xml:space="preserve"><value>Código de este proyecto</value></data>
+  <data name="AboutAboutTitle.Text" xml:space="preserve"><value>Sobre Ritmo</value></data>
+  <data name="AboutAboutText.Text" xml:space="preserve"><value>Una app de escritorio para Windows que organiza tu tiempo de estudio, concentración y trabajo. El modelo y la lógica viven en un núcleo puro y testeado; la app es solo el anfitrión.</value></data>
+  <data name="AboutFeat1.Text" xml:space="preserve"><value>• Horario por fases con categorías propias</value></data>
+  <data name="AboutFeat2.Text" xml:space="preserve"><value>• Modo concentración con entornos (música, bloqueo de webs, No molestar)</value></data>
+  <data name="AboutFeat3.Text" xml:space="preserve"><value>• Pomodoro, isla flotante y notas por sesión/categoría</value></data>
+  <data name="AboutFeat4.Text" xml:space="preserve"><value>• Seguimiento de horas y sincronización con Google Tasks/Calendar</value></data>
+  <data name="AboutContactTitle.Text" xml:space="preserve"><value>¿Hablamos?</value></data>
+  <data name="AboutContactText.Text" xml:space="preserve"><value>Si quieres colaborar, contratarme o preguntarme cómo está hecho esto, mi portfolio tiene todos los detalles: enlaces, experiencia, otros proyectos y formas de contacto.</value></data>
+  <data name="AboutOpenBtn.Text" xml:space="preserve"><value>Abrir luishidalgoa.vercel.app</value></data>
+  <data name="AboutStackTitle.Text" xml:space="preserve"><value>Stack técnico de Ritmo</value></data>
+  <data name="AboutColApp.Text" xml:space="preserve"><value>APP</value></data>
+  <data name="AboutColArch.Text" xml:space="preserve"><value>ARQUITECTURA</value></data>
+  <data name="AboutColIntegr.Text" xml:space="preserve"><value>INTEGRACIONES</value></data>
+  <data name="AboutColPack.Text" xml:space="preserve"><value>EMPAQUETADO</value></data>
+  <data name="AboutArch1.Text" xml:space="preserve"><value>Núcleo puro + xUnit</value></data>
+  <data name="AboutArch2.Text" xml:space="preserve"><value>Host WinUI</value></data>
+  <data name="AboutArch3.Text" xml:space="preserve"><value>Servidor MCP</value></data>
+  <data name="AboutIntegr4.Text" xml:space="preserve"><value>Calendarios ICS</value></data>
+  <data name="AboutPack3.Text" xml:space="preserve"><value>Auto-actualización (GitHub)</value></data>
 
   <!-- #48 i18n - segunda pasada: chrome estático del Settings -->
   <data name="SetPomodoroHelp.Text" xml:space="preserve"><value>Estos valores son el ritmo «Por defecto de la app». Crea ritmos con nombre para reutilizarlos al configurar cada entorno.</value></data>

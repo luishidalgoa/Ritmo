@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Ritmo_App.AboutPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Ritmo_App"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" MaxWidth="860" HorizontalAlignment="Left">
+
+            <!-- Cabecera de grupo (acento, como en Ajustes) -->
+            <TextBlock x:Uid="AboutHeader" Text="HECHO POR" FontSize="13" FontWeight="SemiBold" CharacterSpacing="70"
+                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Margin="2,2,0,-2" />
+
+            <!-- Tarjeta del autor -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="10" Padding="24">
+                <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <PersonPicture Grid.Column="0" DisplayName="Luis Hidalgo" Width="84" Height="84"
+                                   VerticalAlignment="Top" />
+
+                    <StackPanel Grid.Column="1" Spacing="10">
+                        <TextBlock Text="Luis Hidalgo" FontSize="24" FontWeight="SemiBold" />
+                        <TextBlock x:Uid="AboutBio" TextWrapping="Wrap" Opacity="0.8" FontSize="14" LineHeight="20"
+                                   Text="Desarrollador full-stack. Diseño y construyo productos de principio a fin — del modelo de datos a la interfaz, pasando por integraciones, infraestructura y diseño. Ritmo es uno de esos proyectos." />
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                            <Button Tag="https://luishidalgoa.vercel.app/" Click="OpenLink_Click"
+                                    Style="{StaticResource AccentButtonStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE774;" FontSize="14" />
+                                    <TextBlock x:Uid="AboutPortfolioBtn" Text="Ver mi portfolio" />
+                                </StackPanel>
+                            </Button>
+                            <Button Tag="https://github.com/luishidalgoa" Click="OpenLink_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE71B;" FontSize="14" />
+                                    <TextBlock Text="GitHub" />
+                                </StackPanel>
+                            </Button>
+                            <Button Tag="https://github.com/luishidalgoa/Ritmo" Click="OpenLink_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE943;" FontSize="14" />
+                                    <TextBlock x:Uid="AboutCodeBtn" Text="Código de este proyecto" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Sobre Ritmo + ¿Hablamos? -->
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                        CornerRadius="10" Padding="20" VerticalAlignment="Stretch">
+                    <StackPanel Spacing="10">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE916;" FontSize="15" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock x:Uid="AboutAboutTitle" Text="Sobre Ritmo" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock x:Uid="AboutAboutText" TextWrapping="Wrap" Opacity="0.8" FontSize="13" LineHeight="19"
+                                   Text="Una app de escritorio para Windows que organiza tu tiempo de estudio, concentración y trabajo. El modelo y la lógica viven en un núcleo puro y testeado; la app es solo el anfitrión." />
+                        <StackPanel Spacing="4" Margin="0,2,0,0">
+                            <TextBlock x:Uid="AboutFeat1" FontSize="13" Opacity="0.75" TextWrapping="Wrap" Text="• Horario por fases con categorías propias" />
+                            <TextBlock x:Uid="AboutFeat2" FontSize="13" Opacity="0.75" TextWrapping="Wrap" Text="• Modo concentración con entornos (música, bloqueo de webs, No molestar)" />
+                            <TextBlock x:Uid="AboutFeat3" FontSize="13" Opacity="0.75" TextWrapping="Wrap" Text="• Pomodoro, isla flotante y notas por sesión/categoría" />
+                            <TextBlock x:Uid="AboutFeat4" FontSize="13" Opacity="0.75" TextWrapping="Wrap" Text="• Seguimiento de horas y sincronización con Google Tasks/Calendar" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                        CornerRadius="10" Padding="20" VerticalAlignment="Stretch">
+                    <Grid RowSpacing="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Spacing="10">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8BD;" FontSize="15" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                                <TextBlock x:Uid="AboutContactTitle" Text="¿Hablamos?" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock x:Uid="AboutContactText" TextWrapping="Wrap" Opacity="0.8" FontSize="13" LineHeight="19"
+                                       Text="Si quieres colaborar, contratarme o preguntarme cómo está hecho esto, mi portfolio tiene todos los detalles: enlaces, experiencia, otros proyectos y formas de contacto." />
+                        </StackPanel>
+                        <Button Grid.Row="2" Tag="https://luishidalgoa.vercel.app/" Click="OpenLink_Click"
+                                Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                <FontIcon Glyph="&#xE774;" FontSize="14" />
+                                <TextBlock x:Uid="AboutOpenBtn" Text="Abrir luishidalgoa.vercel.app" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Stack técnico -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="10" Padding="20">
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE950;" FontSize="15" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock x:Uid="AboutStackTitle" Text="Stack técnico de Ritmo" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Grid ColumnSpacing="20" RowSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Spacing="3">
+                            <TextBlock x:Uid="AboutColApp" Text="APP" FontSize="11" FontWeight="SemiBold" Opacity="0.55"
+                                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="WinUI 3" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="Windows App SDK" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text=".NET 9 · C#" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="Segoe Fluent UI" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock x:Uid="AboutColArch" Text="ARQUITECTURA" FontSize="11" FontWeight="SemiBold" Opacity="0.55"
+                                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock x:Uid="AboutArch1" FontSize="13" Opacity="0.8" Text="Núcleo puro + xUnit" />
+                            <TextBlock x:Uid="AboutArch2" FontSize="13" Opacity="0.8" Text="Host WinUI" />
+                            <TextBlock x:Uid="AboutArch3" FontSize="13" Opacity="0.8" Text="Servidor MCP" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="System.Text.Json" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Spacing="3">
+                            <TextBlock x:Uid="AboutColIntegr" Text="INTEGRACIONES" FontSize="11" FontWeight="SemiBold" Opacity="0.55"
+                                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="Google Tasks / Calendar" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="ntfy" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="Navidrome" />
+                            <TextBlock x:Uid="AboutIntegr4" FontSize="13" Opacity="0.8" Text="Calendarios ICS" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="3" Spacing="3">
+                            <TextBlock x:Uid="AboutColPack" Text="EMPAQUETADO" FontSize="11" FontWeight="SemiBold" Opacity="0.55"
+                                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="MSIX" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="App Installer" />
+                            <TextBlock x:Uid="AboutPack3" FontSize="13" Opacity="0.8" Text="Auto-actualización (GitHub)" />
+                            <TextBlock FontSize="13" Opacity="0.8" Text="GitHub Actions (CD)" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
