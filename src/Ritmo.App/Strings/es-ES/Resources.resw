@@ -79,7 +79,6 @@
   <data name="SetCategoriesDesc.Text" xml:space="preserve"><value>Define tus categorías de bloque: su nombre, su color en la rejilla del horario y si al empezar disparan el modo concentración.</value></data>
   <data name="SetRest.Text" xml:space="preserve"><value>Descanso</value></data>
   <data name="SetRestDesc.Text" xml:space="preserve"><value>Pausa los avisos del horario. Útil para vacaciones o pausas: el horario se sigue viendo, pero no suenan avisos.</value></data>
-  <data name="SetConnections.Text" xml:space="preserve"><value>Conexiones</value></data>
   <data name="SetConnectionsDesc.Text" xml:space="preserve"><value>Apps externas conectadas a Ritmo. Añade nuevas desde «Añadir conexión».</value></data>
   <data name="SetAddConnection.Content" xml:space="preserve"><value>Añadir conexión</value></data>
   <data name="SetPhases.Text" xml:space="preserve"><value>Fases del plan</value></data>
@@ -88,8 +87,6 @@
   <data name="SetEnvironmentsDesc.Text" xml:space="preserve"><value>Qué ocurre al concentrarte: música, apps a cerrar, No molestar… El marcado como predeterminado (★) se usa cuando un bloque no tiene un entorno propio asignado.</value></data>
   <data name="SetEnvPerType.Text" xml:space="preserve"><value>Entorno por tipo de bloque</value></data>
   <data name="SetEnvPerTypeDesc.Text" xml:space="preserve"><value>Elige qué entorno usar al concentrarte en cada tipo de bloque del horario. «Por defecto» usa el entorno predeterminado (★).</value></data>
-  <data name="SetLinkedApps.Text" xml:space="preserve"><value>Apps vinculadas</value></data>
-  <data name="SetLinkedAppsDesc.Text" xml:space="preserve"><value>Conecta servicios externos una vez aquí; luego los usas en tus entornos.</value></data>
   <data name="SetUpdates.Text" xml:space="preserve"><value>Actualizaciones</value></data>
   <data name="SetUpdatesDesc.Text" xml:space="preserve"><value>Ritmo se actualiza solo desde GitHub (App Installer). Aquí puedes comprobarlo manualmente.</value></data>
   <data name="SetAppearance.Text" xml:space="preserve"><value>Apariencia</value></data>
@@ -97,7 +94,6 @@
   <data name="SetWebBlock.Text" xml:space="preserve"><value>Bloqueo de webs (avanzado)</value></data>
   <data name="SetWebBlockDesc.Text" xml:space="preserve"><value>Durante la concentración, Ritmo minimiza al instante las ventanas en webs bloqueadas del entorno. Para un bloqueo a nivel de RED (que impida cargarlas), instala la extensión de navegador. La lista de webs se configura en cada entorno.</value></data>
   <data name="SetPrepareBlocker.Content" xml:space="preserve"><value>Preparar extensión de bloqueo…</value></data>
-  <data name="SetNotes.Text" xml:space="preserve"><value>Notas</value></data>
   <data name="SetNotesDesc.Text" xml:space="preserve"><value>Notas fijadas (admiten Markdown). Aparecen en la pantalla «Hoy». Los enlaces ahora viven en cada entorno de trabajo.</value></data>
   <data name="SetBackup.Text" xml:space="preserve"><value>Copia de seguridad</value></data>
   <data name="SetBackupDesc.Text" xml:space="preserve"><value>Exporta toda tu configuración (horario, fases, entornos, notas, ajustes) a un archivo, o impórtala para restaurarla. Importar reemplaza la configuración actual.</value></data>

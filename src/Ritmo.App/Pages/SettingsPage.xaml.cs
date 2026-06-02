@@ -29,6 +29,9 @@ public sealed partial class SettingsPage : Page
         DayStartPicker.TimeChanged += (_, _) => DayEndPicker.MinExclusive = DayStartPicker.Time;
     }
 
+    /// <summary>Atajo i18n (#48): texto dinámico según el idioma efectivo.</summary>
+    private static string L(string es, string en) => Loc.Pick(es, en);
+
     private void LoadValues()
     {
         var s = AppState.Load();
@@ -43,14 +46,14 @@ public sealed partial class SettingsPage : Page
         GranularityBox.SelectedIndex = s.ViewConfig.GranularityMinutes switch { 30 => 1, 15 => 2, _ => 0 };
         DayPreviewToggle.IsOn = s.ViewConfig.ShowDayPreviewOnFocusStart;
         SelectComboByTag(DefaultPreAlertBox, s.ViewConfig.DefaultPreAlertMinutes.ToString());
-        DefaultPreAlertBox.Header = HelpHint.Label("Aviso previo por defecto", "default-prealert");   // ayuda (#93)
+        DefaultPreAlertBox.Header = HelpHint.Label(L("Aviso previo por defecto", "Default pre-alert"), "default-prealert");   // ayuda (#93)
 
         BuildCategories(s);
         CategoriesHelp.Content = HelpHint.Icon("category");   // ayuda en el título de sección (#93)
         RestHelp.Content = HelpHint.Icon("rest-mode");
         LoadRest(s);   // modo descanso (#135)
         RefreshConnections(s);
-        VersionText.Text = $"Versión actual: {AppVersionInfo.Current}";
+        VersionText.Text = L("Versión actual: ", "Current version: ") + AppVersionInfo.Current;
 
         _loadingTheme = true;
         SelectComboByTag(ThemeBox, s.ThemeMode);   // refleja la preferencia guardada (#48)
@@ -84,19 +87,27 @@ public sealed partial class SettingsPage : Page
 
         var dlg = new ContentDialog
         {
-            Title = "Instalar la extensión de bloqueo",
+            Title = L("Instalar la extensión de bloqueo", "Install the blocking extension"),
             Content = new TextBlock
             {
                 TextWrapping = TextWrapping.Wrap,
-                Text = "Se ha abierto la carpeta de la extensión.\n\n" +
-                       "En Microsoft Edge:\n" +
-                       "1. Abre  edge://extensions\n" +
-                       "2. Activa «Modo de desarrollador».\n" +
-                       "3. Pulsa «Cargar desempaquetada» y elige esa carpeta.\n\n" +
-                       "(En Chrome / Brave:  chrome://extensions  →  Modo de desarrollador  →  Cargar descomprimida.)\n\n" +
-                       "La lista de webs bloqueadas se configura en cada entorno (módulo de concentración)."
+                Text = L(
+                    "Se ha abierto la carpeta de la extensión.\n\n" +
+                    "En Microsoft Edge:\n" +
+                    "1. Abre  edge://extensions\n" +
+                    "2. Activa «Modo de desarrollador».\n" +
+                    "3. Pulsa «Cargar desempaquetada» y elige esa carpeta.\n\n" +
+                    "(En Chrome / Brave:  chrome://extensions  →  Modo de desarrollador  →  Cargar descomprimida.)\n\n" +
+                    "La lista de webs bloqueadas se configura en cada entorno (módulo de concentración).",
+                    "The extension folder has been opened.\n\n" +
+                    "In Microsoft Edge:\n" +
+                    "1. Open  edge://extensions\n" +
+                    "2. Turn on «Developer mode».\n" +
+                    "3. Click «Load unpacked» and choose that folder.\n\n" +
+                    "(In Chrome / Brave:  chrome://extensions  →  Developer mode  →  Load unpacked.)\n\n" +
+                    "The list of blocked sites is configured in each environment (focus module).")
             },
-            PrimaryButtonText = "Entendido",
+            PrimaryButtonText = L("Entendido", "Got it"),
             XamlRoot = this.XamlRoot
         };
         await dlg.ShowAsync();
@@ -107,7 +118,7 @@ public sealed partial class SettingsPage : Page
     private void LoadGoogleState()
     {
         bool connected = Services.GoogleTasksService.HasSession;
-        GoogleStatus.Text = connected ? "✓ Conectado a Google Tasks." : "No conectado.";
+        GoogleStatus.Text = connected ? L("✓ Conectado a Google Tasks.", "✓ Connected to Google Tasks.") : L("No conectado.", "Not connected.");
         GoogleConnectBtn.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         GoogleSyncBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
         GoogleDisconnectBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
@@ -122,17 +133,17 @@ public sealed partial class SettingsPage : Page
             var box = new PasswordBox();
             var ask = new ContentDialog
             {
-                Title = "Conectar Google Tasks (configuración única)",
+                Title = L("Conectar Google Tasks (configuración única)", "Connect Google Tasks (one-time setup)"),
                 Content = new StackPanel
                 {
                     Spacing = 8,
                     Children =
                     {
-                        new TextBlock { TextWrapping = TextWrapping.Wrap, Text = "Pega una vez el «secreto de cliente» de la app de Google Cloud. Se guarda cifrado en este equipo; después bastará con pulsar Conectar." },
+                        new TextBlock { TextWrapping = TextWrapping.Wrap, Text = L("Pega una vez el «secreto de cliente» de la app de Google Cloud. Se guarda cifrado en este equipo; después bastará con pulsar Conectar.", "Paste your Google Cloud app's «client secret» once. It's stored encrypted on this device; after that, just click Connect.") },
                         box
                     }
                 },
-                PrimaryButtonText = "Guardar y conectar", CloseButtonText = "Cancelar",
+                PrimaryButtonText = L("Guardar y conectar", "Save and connect"), CloseButtonText = L("Cancelar", "Cancel"),
                 XamlRoot = this.XamlRoot, DefaultButton = ContentDialogButton.Primary
             };
             if (await ask.ShowAsync() != ContentDialogResult.Primary) return;
@@ -142,19 +153,19 @@ public sealed partial class SettingsPage : Page
         }
 
         GoogleConnectBtn.IsEnabled = false;
-        GoogleStatus.Text = "Conectando… autoriza en el navegador.";
+        GoogleStatus.Text = L("Conectando… autoriza en el navegador.", "Connecting… authorize in the browser.");
         try
         {
             bool ok = await Services.GoogleTasksService.AuthorizeAsync();
             if (!ok)
             {
-                GoogleStatus.Text = "No se pudo conectar. Revisa que tu cuenta esté como «usuario de prueba» en Google Cloud.";
+                GoogleStatus.Text = L("No se pudo conectar. Revisa que tu cuenta esté como «usuario de prueba» en Google Cloud.", "Couldn't connect. Check that your account is a «test user» in Google Cloud.");
                 return;
             }
             string extra = "";
-            try { var lists = await Services.GoogleTasksService.GetTaskListsAsync(); extra = $" · {lists.Count} lista(s)"; }
+            try { var lists = await Services.GoogleTasksService.GetTaskListsAsync(); extra = L($" · {lists.Count} lista(s)", $" · {lists.Count} list(s)"); }
             catch { }
-            GoogleStatus.Text = "✓ Conectado a Google Tasks" + extra + ".";
+            GoogleStatus.Text = L("✓ Conectado a Google Tasks", "✓ Connected to Google Tasks") + extra + ".";
             GoogleConnectBtn.Visibility = Visibility.Collapsed;
             GoogleSyncBtn.Visibility = Visibility.Visible;
             GoogleDisconnectBtn.Visibility = Visibility.Visible;
@@ -166,14 +177,15 @@ public sealed partial class SettingsPage : Page
     private async void GoogleSyncBtn_Click(object sender, RoutedEventArgs e)
     {
         GoogleSyncBtn.IsEnabled = false;
-        GoogleStatus.Text = "Sincronizando…";
+        GoogleStatus.Text = L("Sincronizando…", "Syncing…");
         try
         {
             var r = await Services.GoogleTasksSync.SyncAsync();
             GoogleStatus.Text = r.Ok
-                ? $"✓ Sincronizado · +{r.Created} nueva(s) · {r.Updated} actualizada(s) · {r.Deleted} borrada(s)."
+                ? L($"✓ Sincronizado · +{r.Created} nueva(s) · {r.Updated} actualizada(s) · {r.Deleted} borrada(s).",
+                    $"✓ Synced · +{r.Created} new · {r.Updated} updated · {r.Deleted} deleted.")
                   + (r.Error is { Length: > 0 } w ? "  ⚠ " + w : "")
-                : "⚠ " + (r.Error ?? "No se pudo sincronizar.");
+                : "⚠ " + (r.Error ?? L("No se pudo sincronizar.", "Couldn't sync."));
         }
         catch (Exception ex) { GoogleStatus.Text = "⚠ Error: " + ex.Message; }
         finally { GoogleSyncBtn.IsEnabled = true; }
@@ -194,8 +206,8 @@ public sealed partial class SettingsPage : Page
         var s = AppState.Load();
         bool published = !string.IsNullOrEmpty(s.GoogleCalendarId);
         GoogleCalStatus.Text = published
-            ? "✓ Publicado en un calendario «Ritmo» de Google."
-            : "Publica tus sesiones en un calendario «Ritmo» de Google.";
+            ? L("✓ Publicado en un calendario «Ritmo» de Google.", "✓ Published to a «Ritmo» Google calendar.")
+            : L("Publica tus sesiones en un calendario «Ritmo» de Google.", "Publish your sessions to a «Ritmo» Google calendar.");
         GoogleCalUnpublishBtn.Visibility = published ? Visibility.Visible : Visibility.Collapsed;
         _loadingGoogleCal = true;
         GoogleCalShowToggle.IsOn = s.ShowGoogleCalendar;
@@ -215,19 +227,20 @@ public sealed partial class SettingsPage : Page
         {
             if (!Services.GoogleTasksService.HasSession)
             {
-                GoogleCalStatus.Text = "Conéctate a Google: pulsa «Reconectar (dar permiso de Calendar)».";
+                GoogleCalStatus.Text = L("Conéctate a Google: pulsa «Reconectar (dar permiso de Calendar)».", "Connect to Google: click «Reconnect (grant Calendar permission)».");
                 return;
             }
-            GoogleCalStatus.Text = "Publicando…";
+            GoogleCalStatus.Text = L("Publicando…", "Publishing…");
             var r = await Services.GoogleCalendarPublisher.PublishAsync();
             if (r.Ok)
             {
-                GoogleCalStatus.Text = $"✓ Publicado · +{r.Created} nuevo(s) · {r.Updated} actualizado(s) · {r.Deleted} borrado(s).";
+                GoogleCalStatus.Text = L($"✓ Publicado · +{r.Created} nuevo(s) · {r.Updated} actualizado(s) · {r.Deleted} borrado(s).",
+                                         $"✓ Published · +{r.Created} new · {r.Updated} updated · {r.Deleted} deleted.");
                 GoogleCalUnpublishBtn.Visibility = Visibility.Visible;
             }
             else
             {
-                GoogleCalStatus.Text = "⚠ " + (r.Error ?? "No se pudo publicar.") + " · Si es de permisos, pulsa «Reconectar».";
+                GoogleCalStatus.Text = "⚠ " + (r.Error ?? L("No se pudo publicar.", "Couldn't publish.")) + L(" · Si es de permisos, pulsa «Reconectar».", " · If it's a permissions issue, click «Reconnect».");
             }
         }
         catch (Exception ex) { GoogleCalStatus.Text = "⚠ Error: " + ex.Message; }
@@ -237,19 +250,19 @@ public sealed partial class SettingsPage : Page
     private async void GoogleCalReconnectBtn_Click(object sender, RoutedEventArgs e)
     {
         GoogleCalReconnectBtn.IsEnabled = false;
-        GoogleCalStatus.Text = "Conectando… autoriza en el navegador (verás permiso de Calendar).";
+        GoogleCalStatus.Text = L("Conectando… autoriza en el navegador (verás permiso de Calendar).", "Connecting… authorize in the browser (you'll see the Calendar permission).");
         try
         {
             // Reutiliza el OAuth de Google; ahora pide el scope combinado (Tasks + Calendar).
             if (!Services.GoogleTasksService.HasStoredSecret)
             {
-                GoogleCalStatus.Text = "Conecta primero Google Tasks (arriba) para guardar el secreto; luego reconecta aquí.";
+                GoogleCalStatus.Text = L("Conecta primero Google Tasks (arriba) para guardar el secreto; luego reconecta aquí.", "Connect Google Tasks first (above) to store the secret; then reconnect here.");
                 return;
             }
             bool ok = await Services.GoogleTasksService.AuthorizeAsync();
             GoogleCalStatus.Text = ok
-                ? "✓ Conectado con permiso de Calendar. Ya puedes publicar."
-                : "No se pudo conectar. Revisa que tu cuenta esté como «usuario de prueba» en Google Cloud.";
+                ? L("✓ Conectado con permiso de Calendar. Ya puedes publicar.", "✓ Connected with Calendar permission. You can publish now.")
+                : L("No se pudo conectar. Revisa que tu cuenta esté como «usuario de prueba» en Google Cloud.", "Couldn't connect. Check that your account is a «test user» in Google Cloud.");
         }
         catch (Exception ex) { GoogleCalStatus.Text = "⚠ Error: " + ex.Message; }
         finally { GoogleCalReconnectBtn.IsEnabled = true; }
@@ -258,11 +271,11 @@ public sealed partial class SettingsPage : Page
     private async void GoogleCalUnpublishBtn_Click(object sender, RoutedEventArgs e)
     {
         GoogleCalUnpublishBtn.IsEnabled = false;
-        GoogleCalStatus.Text = "Quitando de Google Calendar…";
+        GoogleCalStatus.Text = L("Quitando de Google Calendar…", "Removing from Google Calendar…");
         try
         {
             var r = await Services.GoogleCalendarPublisher.UnpublishAsync();
-            GoogleCalStatus.Text = r.Ok ? "✓ Quitado de Google Calendar." : "⚠ " + (r.Error ?? "No se pudo quitar.");
+            GoogleCalStatus.Text = r.Ok ? L("✓ Quitado de Google Calendar.", "✓ Removed from Google Calendar.") : "⚠ " + (r.Error ?? L("No se pudo quitar.", "Couldn't remove."));
             LoadGoogleCalendarState();
         }
         catch (Exception ex) { GoogleCalStatus.Text = "⚠ Error: " + ex.Message; }
@@ -298,8 +311,8 @@ public sealed partial class SettingsPage : Page
         var dlg = new ContentDialog
         {
             Title = "Idioma / Language",
-            Content = "El cambio de idioma se aplica al reiniciar Ritmo. ¿Reiniciar ahora?",
-            PrimaryButtonText = "Reiniciar ahora", CloseButtonText = "Más tarde",
+            Content = L("El cambio de idioma se aplica al reiniciar Ritmo. ¿Reiniciar ahora?", "The language change applies after restarting Ritmo. Restart now?"),
+            PrimaryButtonText = L("Reiniciar ahora", "Restart now"), CloseButtonText = L("Más tarde", "Later"),
             XamlRoot = this.XamlRoot, DefaultButton = ContentDialogButton.Primary
         };
         if (await dlg.ShowAsync() == ContentDialogResult.Primary)
@@ -313,8 +326,8 @@ public sealed partial class SettingsPage : Page
         NavServerBox.Text = s.NavidromeServerUrl ?? "";
         NavUserBox.Text = s.NavidromeUser ?? "";
         bool connected = NavidromeService.IsConnected(s);
-        NavStatus.Text = connected ? "✓ Conectado" : "No conectado";
-        NavHeaderStatus.Text = connected ? "· Conectado" : "";
+        NavStatus.Text = connected ? L("✓ Conectado", "✓ Connected") : L("No conectado", "Not connected");
+        NavHeaderStatus.Text = connected ? L("· Conectado", "· Connected") : "";
     }
 
     private async void NavConnectBtn_Click(object sender, RoutedEventArgs e)
@@ -324,19 +337,19 @@ public sealed partial class SettingsPage : Page
         var pass = NavPassBox.Password;
         if (server.Length == 0 || user.Length == 0 || pass.Length == 0)
         {
-            NavStatus.Text = "Rellena servidor, usuario y contraseña.";
+            NavStatus.Text = L("Rellena servidor, usuario y contraseña.", "Fill in server, username and password.");
             return;
         }
         NavConnectBtn.IsEnabled = false;
-        NavStatus.Text = "Conectando…";
+        NavStatus.Text = L("Conectando…", "Connecting…");
         try
         {
             var playlists = await NavidromeService.GetPlaylistsAsync(server, user, pass);
             AppState.Config.SetNavidromeConnection(server, user);
             NavidromeService.StorePassword(pass);
             NavPassBox.Password = "";
-            NavStatus.Text = $"✓ Conectado · {playlists.Count} playlist(s)";
-            NavHeaderStatus.Text = "· Conectado";
+            NavStatus.Text = L($"✓ Conectado · {playlists.Count} playlist(s)", $"✓ Connected · {playlists.Count} playlist(s)");
+            NavHeaderStatus.Text = L("· Conectado", "· Connected");
         }
         catch (Exception ex)
         {
@@ -350,7 +363,7 @@ public sealed partial class SettingsPage : Page
         AppState.Config.ClearNavidromeConnection();
         NavidromeService.ClearPassword();
         NavServerBox.Text = ""; NavUserBox.Text = ""; NavPassBox.Password = "";
-        NavStatus.Text = "No conectado";
+        NavStatus.Text = L("No conectado", "Not connected");
         NavHeaderStatus.Text = "";
     }
 
@@ -368,7 +381,7 @@ public sealed partial class SettingsPage : Page
             Grid.SetColumn(info, 0);
 
             var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
-            ToolTipService.SetToolTip(del, "Quitar calendario");
+            ToolTipService.SetToolTip(del, L("Quitar calendario", "Remove calendar"));
             var id = f.Id;
             del.Click += (_, _) => { AppState.Config.RemoveCalendarFeed(id); BuildCalendarFeeds(); };
             Grid.SetColumn(del, 1);
@@ -408,18 +421,19 @@ public sealed partial class SettingsPage : Page
         info.Children.Add(new TextBlock { Text = r.Name, FontWeight = FontWeights.SemiBold });
         info.Children.Add(new TextBlock
         {
-            Text = $"Concentración {r.FocusMinutes} · corto {r.ShortBreakMinutes} · largo {r.LongBreakMinutes} cada {r.FocusesPerLongBreak} focos",
+            Text = L($"Concentración {r.FocusMinutes} · corto {r.ShortBreakMinutes} · largo {r.LongBreakMinutes} cada {r.FocusesPerLongBreak} focos",
+                     $"Focus {r.FocusMinutes} · short {r.ShortBreakMinutes} · long {r.LongBreakMinutes} every {r.FocusesPerLongBreak} focuses"),
             Opacity = 0.65, FontSize = 12
         });
         Grid.SetColumn(info, 0);
 
         var edit = new Button { Content = new SymbolIcon(Symbol.Edit) };
-        ToolTipService.SetToolTip(edit, "Editar");
+        ToolTipService.SetToolTip(edit, L("Editar", "Edit"));
         edit.Click += (_, _) => _ = EditRhythm(r);
         Grid.SetColumn(edit, 1);
 
         var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
-        ToolTipService.SetToolTip(del, "Eliminar");
+        ToolTipService.SetToolTip(del, L("Eliminar", "Delete"));
         del.Click += (_, _) => { AppState.Config.RemoveRhythm(r.Id); BuildRhythms(); };
         Grid.SetColumn(del, 2);
 
@@ -475,8 +489,8 @@ public sealed partial class SettingsPage : Page
         var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         // Chip de ámbito (#153): categoría o sesión.
         string? scope = !string.IsNullOrWhiteSpace(note.CategoryId)
-            ? "Categoría · " + AppState.Load().CategoryName(note.CategoryId)
-            : !string.IsNullOrWhiteSpace(note.SessionTitle) ? "Sesión · " + note.SessionTitle : null;
+            ? L("Categoría · ", "Category · ") + AppState.Load().CategoryName(note.CategoryId)
+            : !string.IsNullOrWhiteSpace(note.SessionTitle) ? L("Sesión · ", "Session · ") + note.SessionTitle : null;
         if (scope is not null)
             info.Children.Add(new TextBlock { Text = scope, FontSize = 10, Opacity = 0.55, FontWeight = FontWeights.SemiBold });
         info.Children.Add(new TextBlock { Text = note.Title, FontWeight = FontWeights.SemiBold });
@@ -489,12 +503,12 @@ public sealed partial class SettingsPage : Page
         Grid.SetColumn(info, 0);
 
         var edit = new Button { Content = new SymbolIcon(Symbol.Edit) };
-        ToolTipService.SetToolTip(edit, "Editar");
+        ToolTipService.SetToolTip(edit, L("Editar", "Edit"));
         edit.Click += (_, _) => _ = EditNote(note);
         Grid.SetColumn(edit, 1);
 
         var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
-        ToolTipService.SetToolTip(del, "Eliminar");
+        ToolTipService.SetToolTip(del, L("Eliminar", "Delete"));
         del.Click += (_, _) => { AppState.Config.RemoveNote(note.Id); BuildNotes(); };
         Grid.SetColumn(del, 2);
 
@@ -557,18 +571,18 @@ public sealed partial class SettingsPage : Page
                     break;
                 case Windows.ApplicationModel.StartupTaskState.DisabledByUser:
                     AutostartSwitch.IsOn = false; AutostartSwitch.IsEnabled = false;
-                    AutostartHint.Text = "Desactivado desde el Administrador de tareas de Windows. Actívalo allí (pestaña Inicio).";
+                    AutostartHint.Text = L("Desactivado desde el Administrador de tareas de Windows. Actívalo allí (pestaña Inicio).", "Disabled from Windows Task Manager. Enable it there (Startup tab).");
                     break;
                 default:
                     AutostartSwitch.IsOn = false; AutostartSwitch.IsEnabled = false;
-                    AutostartHint.Text = "El arranque automático lo gestiona una directiva del sistema.";
+                    AutostartHint.Text = L("El arranque automático lo gestiona una directiva del sistema.", "Auto-start is managed by a system policy.");
                     break;
             }
         }
         catch (Exception ex)
         {
             AutostartSwitch.IsEnabled = false;
-            AutostartHint.Text = $"No disponible: {ex.Message}";
+            AutostartHint.Text = L("No disponible: ", "Not available: ") + ex.Message;
         }
         finally { _autostartLoading = false; }
     }
@@ -585,7 +599,7 @@ public sealed partial class SettingsPage : Page
                 if (state != Windows.ApplicationModel.StartupTaskState.Enabled)
                 {
                     AutostartSwitch.IsOn = false;
-                    AutostartHint.Text = "Windows no permitió activarlo (revisa el Administrador de tareas).";
+                    AutostartHint.Text = L("Windows no permitió activarlo (revisa el Administrador de tareas).", "Windows didn't allow enabling it (check Task Manager).");
                 }
             }
             else
@@ -595,7 +609,7 @@ public sealed partial class SettingsPage : Page
         }
         catch (Exception ex)
         {
-            AutostartHint.Text = $"No se pudo cambiar: {ex.Message}";
+            AutostartHint.Text = L("No se pudo cambiar: ", "Couldn't change: ") + ex.Message;
         }
     }
 
@@ -615,13 +629,13 @@ public sealed partial class SettingsPage : Page
                 SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary,
                 SuggestedFileName = "ritmo-config"
             };
-            picker.FileTypeChoices.Add("Configuración de Ritmo", new System.Collections.Generic.List<string> { ".json" });
+            picker.FileTypeChoices.Add(L("Configuración de Ritmo", "Ritmo configuration"), new System.Collections.Generic.List<string> { ".json" });
             WinRT.Interop.InitializeWithWindow.Initialize(picker, WindowHandle());
 
             var file = await picker.PickSaveFileAsync();
             if (file is null) return;
             await Windows.Storage.FileIO.WriteTextAsync(file, AppState.Config.ExportJson());
-            BackupStatus.Text = $"✓ Exportado a {file.Name}";
+            BackupStatus.Text = L("✓ Exportado a ", "✓ Exported to ") + file.Name;
         }
         catch (Exception ex) { BackupStatus.Text = $"⚠ {ex.Message}"; }
     }
@@ -644,10 +658,10 @@ public sealed partial class SettingsPage : Page
             var confirm = new ContentDialog
             {
                 XamlRoot = this.XamlRoot,
-                Title = "Importar configuración",
-                Content = "Esto reemplazará toda tu configuración actual por la del archivo. ¿Continuar?",
-                PrimaryButtonText = "Importar",
-                CloseButtonText = "Cancelar",
+                Title = L("Importar configuración", "Import configuration"),
+                Content = L("Esto reemplazará toda tu configuración actual por la del archivo. ¿Continuar?", "This will replace all your current configuration with the file's. Continue?"),
+                PrimaryButtonText = L("Importar", "Import"),
+                CloseButtonText = L("Cancelar", "Cancel"),
                 DefaultButton = ContentDialogButton.Close
             };
             if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
@@ -658,7 +672,7 @@ public sealed partial class SettingsPage : Page
             {
                 ScheduleHost.Instance.Start();   // re-leer el horario importado
                 LoadValues();                    // refrescar la pantalla
-                BackupStatus.Text = "✓ Configuración importada";
+                BackupStatus.Text = L("✓ Configuración importada", "✓ Configuration imported");
             }
             else
             {
@@ -690,30 +704,30 @@ public sealed partial class SettingsPage : Page
             {
                 Background = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"],
                 CornerRadius = new CornerRadius(8), Padding = new Thickness(8, 1, 8, 1), VerticalAlignment = VerticalAlignment.Center,
-                Child = new TextBlock { Text = "Vigente", FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"] }
+                Child = new TextBlock { Text = L("Vigente", "Active"), FontSize = 11, Foreground = (Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"] }
             });
         }
         info.Children.Add(titleRow);
-        var to = ph.ValidTo is { } end ? end.ToString("dd/MM/yyyy") : "indefinida";
+        var to = ph.ValidTo is { } end ? end.ToString("dd/MM/yyyy") : L("indefinida", "open-ended");
         info.Children.Add(new TextBlock
         {
-            Text = $"{ph.ValidFrom:dd/MM/yyyy} → {to}   ·   {ph.Schedule.Sessions.Count} sesión(es)",
+            Text = $"{ph.ValidFrom:dd/MM/yyyy} → {to}   ·   " + L($"{ph.Schedule.Sessions.Count} sesión(es)", $"{ph.Schedule.Sessions.Count} session(s)"),
             Opacity = 0.65, FontSize = 12
         });
         Grid.SetColumn(info, 0);
 
         var edit = new Button { Content = new SymbolIcon(Symbol.Edit) };
-        ToolTipService.SetToolTip(edit, "Editar fase");
+        ToolTipService.SetToolTip(edit, L("Editar fase", "Edit phase"));
         edit.Click += (_, _) => _ = EditPhase(ph);
         Grid.SetColumn(edit, 1);
 
         var dup = new Button { Content = new SymbolIcon(Symbol.Copy), Margin = new Thickness(6, 0, 0, 0) };
-        ToolTipService.SetToolTip(dup, "Duplicar fase (copia su horario)");
+        ToolTipService.SetToolTip(dup, L("Duplicar fase (copia su horario)", "Duplicate phase (copies its schedule)"));
         dup.Click += (_, _) => _ = DuplicatePhaseUi(ph);
         Grid.SetColumn(dup, 2);
 
         var del = new Button { Content = new SymbolIcon(Symbol.Delete), Margin = new Thickness(6, 0, 0, 0) };
-        ToolTipService.SetToolTip(del, "Eliminar fase");
+        ToolTipService.SetToolTip(del, L("Eliminar fase", "Delete phase"));
         del.Click += (_, _) => _ = DeletePhase(ph);
         Grid.SetColumn(del, 3);
 
@@ -771,9 +785,9 @@ public sealed partial class SettingsPage : Page
     {
         var confirm = new ContentDialog
         {
-            XamlRoot = this.XamlRoot, Title = "Eliminar fase",
-            Content = $"¿Eliminar la fase «{ph.Name}» y su horario? Esta acción no se puede deshacer.",
-            PrimaryButtonText = "Eliminar", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Close
+            XamlRoot = this.XamlRoot, Title = L("Eliminar fase", "Delete phase"),
+            Content = L($"¿Eliminar la fase «{ph.Name}» y su horario? Esta acción no se puede deshacer.", $"Delete the phase «{ph.Name}» and its schedule? This can't be undone."),
+            PrimaryButtonText = L("Eliminar", "Delete"), CloseButtonText = L("Cancelar", "Cancel"), DefaultButton = ContentDialogButton.Close
         };
         if (await confirm.ShowAsync() == ContentDialogResult.Primary)
         {
@@ -784,7 +798,7 @@ public sealed partial class SettingsPage : Page
     }
 
     private async Task InfoDialog(string msg)
-        => await new ContentDialog { XamlRoot = this.XamlRoot, Title = "Fases", Content = msg, CloseButtonText = "Vale" }.ShowAsync();
+        => await new ContentDialog { XamlRoot = this.XamlRoot, Title = L("Fases", "Phases"), Content = msg, CloseButtonText = L("Vale", "OK") }.ShowAsync();
 
     // ---------- Entornos de concentración (#53) ----------
 
@@ -825,7 +839,7 @@ public sealed partial class SettingsPage : Page
             Grid.SetColumn(label, 0);
 
             var combo = new ComboBox { MinWidth = 240, HorizontalAlignment = HorizontalAlignment.Right };
-            combo.Items.Add(new ComboBoxItem { Content = "Por defecto (★)", Tag = "" });
+            combo.Items.Add(new ComboBoxItem { Content = L("Por defecto (★)", "Default (★)"), Tag = "" });
             foreach (var env in s.FocusEnvironments)
                 combo.Items.Add(new ComboBoxItem { Content = env.Name, Tag = env.Id });
 
@@ -878,7 +892,7 @@ public sealed partial class SettingsPage : Page
             Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
             BorderThickness = new Thickness(0)
         };
-        var starTip = isDefault ? "Predeterminado" : "Marcar como predeterminado";
+        var starTip = isDefault ? L("Predeterminado", "Default") : L("Marcar como predeterminado", "Set as default");
         ToolTipService.SetToolTip(star, starTip);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(star, $"{env.Name}: {starTip}");
         star.Click += (_, _) => { AppState.Config.SetDefaultEnvironment(env.Id); BuildEnvList(); };
@@ -891,8 +905,8 @@ public sealed partial class SettingsPage : Page
             BorderThickness = new Thickness(0),
             Margin = new Thickness(2, 0, 0, 0)
         };
-        ToolTipService.SetToolTip(del, "Eliminar entorno");
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(del, $"Eliminar entorno {env.Name}");
+        ToolTipService.SetToolTip(del, L("Eliminar entorno", "Delete environment"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(del, L("Eliminar entorno ", "Delete environment ") + env.Name);
         del.Click += (_, _) => _ = DeleteEnv(env);
         Grid.SetColumn(del, 2);
 
@@ -943,7 +957,7 @@ public sealed partial class SettingsPage : Page
         // Pista a la derecha: chevron si es accionable, badge «Próximamente» si no.
         FrameworkElement hint = mod.Available
             ? new FontIcon { Glyph = "", FontSize = 12, Opacity = 0.55, VerticalAlignment = VerticalAlignment.Center }
-            : new TextBlock { Text = "Próximamente", FontSize = 11, Opacity = 0.55, VerticalAlignment = VerticalAlignment.Center };
+            : new TextBlock { Text = L("Próximamente", "Coming soon"), FontSize = 11, Opacity = 0.55, VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(hint, 2);
 
         var grid = new Grid { ColumnSpacing = 12, Padding = new Thickness(4, 2, 4, 2) };
@@ -972,11 +986,11 @@ public sealed partial class SettingsPage : Page
     {
         var s = AppState.Load();
         var block = s.TaskBlocks.FirstOrDefault(b => b.EnvironmentId == env.Id);
-        if (block is null) return "Toca para abrir la lista de tareas del entorno";
+        if (block is null) return L("Toca para abrir la lista de tareas del entorno", "Tap to open the environment's task list");
         var tasks = s.Tasks.Where(t => t.BlockId == block.Id).ToList();
-        if (tasks.Count == 0) return "Lista vacía · toca para añadir tareas";
+        if (tasks.Count == 0) return L("Lista vacía · toca para añadir tareas", "Empty list · tap to add tasks");
         int pending = tasks.Count(t => !t.Done);
-        return pending == 0 ? $"{tasks.Count} tareas · todas hechas" : $"{pending} pendientes · {tasks.Count} en total";
+        return pending == 0 ? L($"{tasks.Count} tareas · todas hechas", $"{tasks.Count} tasks · all done") : L($"{pending} pendientes · {tasks.Count} en total", $"{pending} pending · {tasks.Count} total");
     }
 
     /// <summary>Abre la vista de detalle de un módulo del entorno (#76).</summary>
@@ -1013,7 +1027,7 @@ public sealed partial class SettingsPage : Page
         var body = new StackPanel { Spacing = 10, Width = 360 };
         body.Children.Add(new TextBlock
         {
-            Text = "Abre de golpe todos los enlaces de este entorno en una ventana nueva de tu navegador por defecto.",
+            Text = L("Abre de golpe todos los enlaces de este entorno en una ventana nueva de tu navegador por defecto.", "Open all of this environment's links at once in a new window of your default browser."),
             TextWrapping = TextWrapping.Wrap, Opacity = 0.8, FontSize = 13
         });
 
@@ -1028,24 +1042,24 @@ public sealed partial class SettingsPage : Page
         {
             body.Children.Add(new TextBlock
             {
-                Text = "Este entorno aún no tiene enlaces. Añádelos desde el módulo «Enlaces».",
+                Text = L("Este entorno aún no tiene enlaces. Añádelos desde el módulo «Enlaces».", "This environment has no links yet. Add them from the «Links» module."),
                 TextWrapping = TextWrapping.Wrap, Opacity = 0.6, FontSize = 12
             });
         }
 
         body.Children.Add(new TextBlock
         {
-            Text = "Próximamente: vincular calendario externo y más herramientas.",
+            Text = L("Próximamente: vincular calendario externo y más herramientas.", "Coming soon: link an external calendar and more tools."),
             TextWrapping = TextWrapping.Wrap, Opacity = 0.5, FontSize = 12
         });
 
         var dlg = new ContentDialog
         {
             XamlRoot = this.XamlRoot,
-            Title = $"Herramientas externas · {env.Name}",
+            Title = L("Herramientas externas · ", "External tools · ") + env.Name,
             Content = body,
-            PrimaryButtonText = "Abrir workspace",
-            CloseButtonText = "Cerrar",
+            PrimaryButtonText = L("Abrir workspace", "Open workspace"),
+            CloseButtonText = L("Cerrar", "Close"),
             DefaultButton = ContentDialogButton.Primary,
             IsPrimaryButtonEnabled = hasLinks
         };
@@ -1059,8 +1073,8 @@ public sealed partial class SettingsPage : Page
         var listPanel = new StackPanel { Spacing = 4 };
 
         // Alta de tarea.
-        var input = new TextBox { PlaceholderText = "Nueva tarea…", MinWidth = 250 };
-        var addBtn = new Button { Content = "Añadir" };
+        var input = new TextBox { PlaceholderText = L("Nueva tarea…", "New task…"), MinWidth = 250 };
+        var addBtn = new Button { Content = L("Añadir", "Add") };
         var addRow = new Grid { ColumnSpacing = 6 };
         addRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         addRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -1075,7 +1089,7 @@ public sealed partial class SettingsPage : Page
             var tasks = cur?.Tasks.OrderBy(t => t.Order).ToList() ?? new System.Collections.Generic.List<EnvironmentTask>();
             if (tasks.Count == 0)
             {
-                listPanel.Children.Add(new TextBlock { Text = "Aún no hay tareas. Añade la primera arriba.", Opacity = 0.6, FontSize = 12 });
+                listPanel.Children.Add(new TextBlock { Text = L("Aún no hay tareas. Añade la primera arriba.", "No tasks yet. Add the first one above."), Opacity = 0.6, FontSize = 12 });
                 return;
             }
             for (int i = 0; i < tasks.Count; i++)
@@ -1094,20 +1108,20 @@ public sealed partial class SettingsPage : Page
                 Grid.SetColumn(check, 0);
 
                 var up = new Button { Content = new FontIcon { Glyph = "", FontSize = 12 }, IsEnabled = !isFirst, Padding = new Thickness(6, 2, 6, 2) };
-                ToolTipService.SetToolTip(up, "Subir");
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(up, $"Subir tarea {t.Text}");
+                ToolTipService.SetToolTip(up, L("Subir", "Move up"));
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(up, L("Subir tarea ", "Move task up ") + t.Text);
                 up.Click += (_, _) => { AppState.Config.MoveEnvironmentTask(env.Id, t.Id, true); Render(); };
                 Grid.SetColumn(up, 1);
 
                 var down = new Button { Content = new FontIcon { Glyph = "", FontSize = 12 }, IsEnabled = !isLast, Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(4, 0, 0, 0) };
-                ToolTipService.SetToolTip(down, "Bajar");
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(down, $"Bajar tarea {t.Text}");
+                ToolTipService.SetToolTip(down, L("Bajar", "Move down"));
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(down, L("Bajar tarea ", "Move task down ") + t.Text);
                 down.Click += (_, _) => { AppState.Config.MoveEnvironmentTask(env.Id, t.Id, false); Render(); };
                 Grid.SetColumn(down, 2);
 
                 var del = new Button { Content = new SymbolIcon(Symbol.Delete), Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(4, 0, 0, 0) };
-                ToolTipService.SetToolTip(del, "Eliminar");
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(del, $"Eliminar tarea {t.Text}");
+                ToolTipService.SetToolTip(del, L("Eliminar", "Delete"));
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(del, L("Eliminar tarea ", "Delete task ") + t.Text);
                 del.Click += (_, _) => { AppState.Config.RemoveEnvironmentTask(env.Id, t.Id); Render(); };
                 Grid.SetColumn(del, 3);
 
@@ -1139,9 +1153,9 @@ public sealed partial class SettingsPage : Page
         var dlg = new ContentDialog
         {
             XamlRoot = this.XamlRoot,
-            Title = $"Tareas · {env.Name}",
+            Title = L("Tareas · ", "Tasks · ") + env.Name,
             Content = body,
-            CloseButtonText = "Cerrar",
+            CloseButtonText = L("Cerrar", "Close"),
             DefaultButton = ContentDialogButton.Close
         };
         await dlg.ShowAsync();
@@ -1151,12 +1165,12 @@ public sealed partial class SettingsPage : Page
     private static string Summary(FocusEnvironment env)
     {
         var rhythm = PomodoroRhythms.Find(env.PomodoroPreset, AppState.Load().Rhythms);
-        var parts = new System.Collections.Generic.List<string> { rhythm?.Name ?? "Pomodoro por defecto" };
-        if (env.EnableDoNotDisturb) parts.Add("No molestar");
-        if (env.OpenLinksInBrowser) parts.Add("abre enlaces");
-        if (env.Music is not null) parts.Add($"música: {env.Music.Name}");
-        if (env.AppsToClose.Count > 0) parts.Add($"cierra {env.AppsToClose.Count} app(s)");
-        if (env.BlockedWebsites.Count > 0) parts.Add($"bloquea {env.BlockedWebsites.Count} web(s)");
+        var parts = new System.Collections.Generic.List<string> { rhythm?.Name ?? L("Pomodoro por defecto", "Default Pomodoro") };
+        if (env.EnableDoNotDisturb) parts.Add(L("No molestar", "Do Not Disturb"));
+        if (env.OpenLinksInBrowser) parts.Add(L("abre enlaces", "opens links"));
+        if (env.Music is not null) parts.Add(L("música: ", "music: ") + env.Music.Name);
+        if (env.AppsToClose.Count > 0) parts.Add(L($"cierra {env.AppsToClose.Count} app(s)", $"closes {env.AppsToClose.Count} app(s)"));
+        if (env.BlockedWebsites.Count > 0) parts.Add(L($"bloquea {env.BlockedWebsites.Count} web(s)", $"blocks {env.BlockedWebsites.Count} site(s)"));
         return string.Join("  ·  ", parts);
     }
 
@@ -1175,10 +1189,10 @@ public sealed partial class SettingsPage : Page
         var confirm = new ContentDialog
         {
             XamlRoot = this.XamlRoot,
-            Title = "Eliminar entorno",
-            Content = $"¿Eliminar «{env.Name}»? Esta acción no se puede deshacer.",
-            PrimaryButtonText = "Eliminar",
-            CloseButtonText = "Cancelar",
+            Title = L("Eliminar entorno", "Delete environment"),
+            Content = L($"¿Eliminar «{env.Name}»? Esta acción no se puede deshacer.", $"Delete «{env.Name}»? This can't be undone."),
+            PrimaryButtonText = L("Eliminar", "Delete"),
+            CloseButtonText = L("Cancelar", "Cancel"),
             DefaultButton = ContentDialogButton.Close
         };
         if (await confirm.ShowAsync() == ContentDialogResult.Primary)
@@ -1215,7 +1229,7 @@ public sealed partial class SettingsPage : Page
         }
 
         SaveStatus.Text = (r1.Success && r2.Success && r3.Success && r4.Success && r5.Success)
-            ? "✓ Guardado"
+            ? L("✓ Guardado", "✓ Saved")
             : $"⚠ {(!r1.Success ? r1.Message : !r2.Success ? r2.Message : !r3.Success ? r3.Message : !r4.Success ? r4.Message : r5.Message)}";
     }
 
@@ -1257,7 +1271,7 @@ public sealed partial class SettingsPage : Page
 
     private async void CheckUpdateBtn_Click(object sender, RoutedEventArgs e)
     {
-        UpdateStatus.Text = "Comprobando…";
+        UpdateStatus.Text = L("Comprobando…", "Checking…");
         CheckUpdateBtn.IsEnabled = false;
         InstallUpdateBtn.Visibility = Visibility.Collapsed;
         _pendingUpdate = null;
@@ -1266,17 +1280,17 @@ public sealed partial class SettingsPage : Page
             var latest = await Services.GitHubReleasesService.GetLatestAsync();
             var current = AppVersionInfo.Current;
             if (latest is null)
-                UpdateStatus.Text = "No se pudo comprobar (sin conexión o aún no hay versiones publicadas).";
+                UpdateStatus.Text = L("No se pudo comprobar (sin conexión o aún no hay versiones publicadas).", "Couldn't check (no connection or no releases published yet).");
             else if (Ritmo.Core.Updates.ReleaseNotes.CompareVersions(latest.Version, current) > 0)
             {
                 _pendingUpdate = latest;
-                UpdateStatus.Text = $"✨ Hay una versión nueva ({latest.Tag}). Pulsa «Instalar ahora».";
+                UpdateStatus.Text = L($"✨ Hay una versión nueva ({latest.Tag}). Pulsa «Instalar ahora».", $"✨ A new version is available ({latest.Tag}). Click «Install now».");
                 InstallUpdateBtn.Visibility = Visibility.Visible;
             }
             else
-                UpdateStatus.Text = $"✓ Estás al día (v{current}).";
+                UpdateStatus.Text = L($"✓ Estás al día (v{current}).", $"✓ You're up to date (v{current}).");
         }
-        catch { UpdateStatus.Text = "⚠ Error al comprobar."; }
+        catch { UpdateStatus.Text = L("⚠ Error al comprobar.", "⚠ Error while checking."); }
         finally { CheckUpdateBtn.IsEnabled = true; }
     }
 
@@ -1292,10 +1306,10 @@ public sealed partial class SettingsPage : Page
             : _pendingUpdate.Url;
         try
         {
-            UpdateStatus.Text = "Abriendo el instalador…";
+            UpdateStatus.Text = L("Abriendo el instalador…", "Opening the installer…");
             await Windows.System.Launcher.LaunchUriAsync(new Uri(target));
         }
-        catch { UpdateStatus.Text = "⚠ No se pudo abrir el instalador."; }
+        catch { UpdateStatus.Text = L("⚠ No se pudo abrir el instalador.", "⚠ Couldn't open the installer."); }
     }
 
     /// <summary>Abre la guía visual (carrusel) de cómo conectar el móvil con el topic actual.</summary>
@@ -1313,13 +1327,13 @@ public sealed partial class SettingsPage : Page
         var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
         dp.SetText((NtfyTopicBox.Text ?? "").Trim());
         Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
-        NtfyStatus.Text = "Topic copiado.";
+        NtfyStatus.Text = L("Topic copiado.", "Topic copied.");
     }
 
     private void NtfySaveBtn_Click(object sender, RoutedEventArgs e)
     {
         var r = AppState.Config.SetNtfy(NtfyEnabledToggle.IsOn, NtfyServerBox.Text, NtfyTopicBox.Text);
-        NtfyStatus.Text = r.Success ? "✓ Guardado." : $"⚠ {r.Message}";
+        NtfyStatus.Text = r.Success ? L("✓ Guardado.", "✓ Saved.") : $"⚠ {r.Message}";
         if (r.Success) RefreshConnections(AppState.Load());
     }
 
@@ -1332,19 +1346,19 @@ public sealed partial class SettingsPage : Page
     private async void NtfyTestBtn_Click(object sender, RoutedEventArgs e)
     {
         var topic = (NtfyTopicBox.Text ?? "").Trim();
-        if (string.IsNullOrWhiteSpace(topic)) { NtfyStatus.Text = "Pon (o genera) un topic primero."; return; }
+        if (string.IsNullOrWhiteSpace(topic)) { NtfyStatus.Text = L("Pon (o genera) un topic primero.", "Set (or generate) a topic first."); return; }
 
-        NtfyStatus.Text = "Enviando…";
+        NtfyStatus.Text = L("Enviando…", "Sending…");
         NtfyTestBtn.IsEnabled = false;
         try
         {
             var pub = Ritmo.Core.Notifications.NtfyPublish.ForTest(NtfyServerBox.Text, topic);
             bool ok = await Services.NtfyPublisher.PublishAsync(pub);
             NtfyStatus.Text = ok
-                ? "✓ Enviado. Revisa el móvil suscrito a ese topic."
-                : "⚠ No se pudo enviar (revisa servidor, topic y conexión).";
+                ? L("✓ Enviado. Revisa el móvil suscrito a ese topic.", "✓ Sent. Check the phone subscribed to that topic.")
+                : L("⚠ No se pudo enviar (revisa servidor, topic y conexión).", "⚠ Couldn't send (check server, topic and connection).");
         }
-        catch { NtfyStatus.Text = "⚠ Error al enviar la prueba."; }
+        catch { NtfyStatus.Text = L("⚠ Error al enviar la prueba.", "⚠ Error sending the test."); }
         finally { NtfyTestBtn.IsEnabled = true; }
     }
 
@@ -1391,10 +1405,10 @@ public sealed partial class SettingsPage : Page
 
             var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
             var catId = category.Id;
-            actions.Children.Add(IconBtn("", "Subir", !isFirst, () => { AppState.Config.ReorderCategory(catId, true); BuildCategories(AppState.Load()); }));
-            actions.Children.Add(IconBtn("", "Bajar", !isLast, () => { AppState.Config.ReorderCategory(catId, false); BuildCategories(AppState.Load()); }));
-            actions.Children.Add(IconBtn("", "Editar", true, () => _ = EditCategory(category)));
-            actions.Children.Add(IconBtn("", "Borrar", !category.IsSystem, () => _ = ConfirmRemoveCategory(category)));
+            actions.Children.Add(IconBtn("", L("Subir", "Move up"), !isFirst, () => { AppState.Config.ReorderCategory(catId, true); BuildCategories(AppState.Load()); }));
+            actions.Children.Add(IconBtn("", L("Bajar", "Move down"), !isLast, () => { AppState.Config.ReorderCategory(catId, false); BuildCategories(AppState.Load()); }));
+            actions.Children.Add(IconBtn("", L("Editar", "Edit"), true, () => _ = EditCategory(category)));
+            actions.Children.Add(IconBtn("", L("Borrar", "Delete"), !category.IsSystem, () => _ = ConfirmRemoveCategory(category)));
             Grid.SetColumn(actions, 2);
 
             row.Children.Add(namePanel); row.Children.Add(colorBtn); row.Children.Add(actions);
@@ -1407,7 +1421,7 @@ public sealed partial class SettingsPage : Page
     {
         Background = new SolidColorBrush(((SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"]).Color),
         CornerRadius = new CornerRadius(8), Padding = new Thickness(7, 1, 7, 2), VerticalAlignment = VerticalAlignment.Center,
-        Child = new TextBlock { Text = "Concentración", FontSize = 10, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) }
+        Child = new TextBlock { Text = L("Concentración", "Focus"), FontSize = 10, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) }
     };
 
     /// <summary>Botón pequeño con icono Fluent (deshabilitado si no aplica).</summary>
@@ -1439,7 +1453,7 @@ public sealed partial class SettingsPage : Page
             Content = new StackPanel
             {
                 Orientation = Orientation.Horizontal, Spacing = 8,
-                Children = { swatch, new TextBlock { Text = "Color", FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 } }
+                Children = { swatch, new TextBlock { Text = L("Color", "Color"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 } }
             }
         };
 
@@ -1476,7 +1490,7 @@ public sealed partial class SettingsPage : Page
                 swatches.Children.Add(sw);
             }
 
-        var resetBtn = new Button { Content = "Usar por defecto", HorizontalAlignment = HorizontalAlignment.Stretch };
+        var resetBtn = new Button { Content = L("Usar por defecto", "Use default"), HorizontalAlignment = HorizontalAlignment.Stretch };
         resetBtn.Click += (_, _) => { AppState.Config.SetKindColor(thisCategoryId, null); flyout.Hide(); BuildCategories(AppState.Load()); };
 
         flyout.Content = new StackPanel { Spacing = 10, Children = { swatches, resetBtn } };
@@ -1509,9 +1523,9 @@ public sealed partial class SettingsPage : Page
     {
         var confirm = new ContentDialog
         {
-            XamlRoot = this.XamlRoot, Title = "Borrar categoría",
-            Content = $"¿Borrar «{cat.Name}»? Los bloques que la usan pasarán a «Otro».",
-            PrimaryButtonText = "Borrar", CloseButtonText = "Cancelar", DefaultButton = ContentDialogButton.Close
+            XamlRoot = this.XamlRoot, Title = L("Borrar categoría", "Delete category"),
+            Content = L($"¿Borrar «{cat.Name}»? Los bloques que la usan pasarán a «Otro».", $"Delete «{cat.Name}»? Blocks using it will move to «Other»."),
+            PrimaryButtonText = L("Borrar", "Delete"), CloseButtonText = L("Cancelar", "Cancel"), DefaultButton = ContentDialogButton.Close
         };
         if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
         var res = AppState.Config.RemoveCategory(cat.Id);
@@ -1521,7 +1535,7 @@ public sealed partial class SettingsPage : Page
     }
 
     private async Task CategoryError(string msg)
-        => await new ContentDialog { XamlRoot = this.XamlRoot, Title = "Categorías", Content = msg, CloseButtonText = "Vale" }.ShowAsync();
+        => await new ContentDialog { XamlRoot = this.XamlRoot, Title = L("Categorías", "Categories"), Content = msg, CloseButtonText = L("Vale", "OK") }.ShowAsync();
 
     /// <summary>Selecciona el item del combo cuyo Tag coincide (cae al primero si no hay match).</summary>
     private static void SelectComboByTag(ComboBox box, string tag)
@@ -1540,7 +1554,7 @@ public sealed partial class SettingsPage : Page
     {
         _loadingRest = true;
         RestToggle.IsOn = s.RestActive;
-        RestToggle.Header = HelpHint.Label("Modo descanso (ahora)", "rest-mode");   // ayuda (#93)
+        RestToggle.Header = HelpHint.Label(L("Modo descanso (ahora)", "Rest mode (now)"), "rest-mode");   // ayuda (#93)
         _loadingRest = false;
         BuildRestPeriods(s);
     }
@@ -1579,7 +1593,7 @@ public sealed partial class SettingsPage : Page
             Grid.SetColumn(info, 0);
 
             var del = new Button { Content = new SymbolIcon(Symbol.Delete) };
-            ToolTipService.SetToolTip(del, "Eliminar periodo");
+            ToolTipService.SetToolTip(del, L("Eliminar periodo", "Delete period"));
             var pid = p.Id;
             del.Click += (_, _) => { AppState.Config.RemoveRestPeriod(pid); BuildRestPeriods(AppState.Load()); };
             Grid.SetColumn(del, 1);

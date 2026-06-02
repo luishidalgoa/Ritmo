@@ -79,7 +79,6 @@
   <data name="SetCategoriesDesc.Text" xml:space="preserve"><value>Define your block categories: their name, their color in the schedule grid, and whether they trigger focus mode when they start.</value></data>
   <data name="SetRest.Text" xml:space="preserve"><value>Rest</value></data>
   <data name="SetRestDesc.Text" xml:space="preserve"><value>Pauses the schedule's reminders. Useful for holidays or breaks: the schedule is still visible, but no reminders sound.</value></data>
-  <data name="SetConnections.Text" xml:space="preserve"><value>Connections</value></data>
   <data name="SetConnectionsDesc.Text" xml:space="preserve"><value>External apps connected to Ritmo. Add new ones from «Add connection».</value></data>
   <data name="SetAddConnection.Content" xml:space="preserve"><value>Add connection</value></data>
   <data name="SetPhases.Text" xml:space="preserve"><value>Plan phases</value></data>
@@ -88,8 +87,6 @@
   <data name="SetEnvironmentsDesc.Text" xml:space="preserve"><value>What happens when you focus: music, apps to close, Do Not Disturb… The one marked as default (★) is used when a block has no environment of its own assigned.</value></data>
   <data name="SetEnvPerType.Text" xml:space="preserve"><value>Environment per block type</value></data>
   <data name="SetEnvPerTypeDesc.Text" xml:space="preserve"><value>Choose which environment to use when focusing on each block type of the schedule. «Default» uses the default environment (★).</value></data>
-  <data name="SetLinkedApps.Text" xml:space="preserve"><value>Linked apps</value></data>
-  <data name="SetLinkedAppsDesc.Text" xml:space="preserve"><value>Connect external services once here; then use them in your environments.</value></data>
   <data name="SetUpdates.Text" xml:space="preserve"><value>Updates</value></data>
   <data name="SetUpdatesDesc.Text" xml:space="preserve"><value>Ritmo updates itself from GitHub (App Installer). Here you can check manually.</value></data>
   <data name="SetAppearance.Text" xml:space="preserve"><value>Appearance</value></data>
@@ -97,7 +94,6 @@
   <data name="SetWebBlock.Text" xml:space="preserve"><value>Web blocking (advanced)</value></data>
   <data name="SetWebBlockDesc.Text" xml:space="preserve"><value>During focus, Ritmo instantly minimizes windows on the environment's blocked sites. For NETWORK-level blocking (preventing them from loading), install the browser extension. The site list is configured per environment.</value></data>
   <data name="SetPrepareBlocker.Content" xml:space="preserve"><value>Prepare blocking extension…</value></data>
-  <data name="SetNotes.Text" xml:space="preserve"><value>Notes</value></data>
   <data name="SetNotesDesc.Text" xml:space="preserve"><value>Pinned notes (Markdown supported). They appear on the «Today» screen. Links now live in each work environment.</value></data>
   <data name="SetBackup.Text" xml:space="preserve"><value>Backup</value></data>
   <data name="SetBackupDesc.Text" xml:space="preserve"><value>Export all your configuration (schedule, phases, environments, notes, settings) to a file, or import it to restore it. Importing replaces the current configuration.</value></data>
