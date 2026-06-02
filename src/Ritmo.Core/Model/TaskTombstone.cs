@@ -8,7 +8,7 @@ namespace Ritmo.Core.Model;
 /// </summary>
 public sealed record TaskTombstone
 {
-    /// <summary>Proveedor dueño: "google" | "apple".</summary>
+    /// <summary>Proveedor dueño: "google".</summary>
     public required string Provider { get; init; }
     /// <summary>Id de la lista remota (el ExternalId del bloque).</summary>
     public required string ListId { get; init; }

@@ -8,8 +8,8 @@ using Ritmo.Core.Persistence;
 namespace Ritmo_App.Services;
 
 /// <summary>
-/// Auto-sincronización con DEBOUNCE (#64): cuando cambia una tarea de una lista YA vinculada a un
-/// proveedor (Google/Apple), espera 15 s sin más cambios y sincroniza sola (push del cambio + pull).
+/// Auto-sincronización con DEBOUNCE (#64): cuando cambia una tarea de una lista YA vinculada a Google
+/// Tasks, espera 15 s sin más cambios y sincroniza sola (push del cambio + pull).
 /// Solo reacciona a datos SINCRONIZADOS (bloques con Provider) — editar una lista local NO dispara
 /// nada (esa se sube con el botón manual, que la "reclama"). Servicio de nivel app, vivo en segundo plano.
 /// </summary>
@@ -46,7 +46,7 @@ public sealed class TaskAutoSync
     }
 
     private static bool AnyProviderConnected()
-        => GoogleTasksService.HasSession || AppleRemindersService.HasSession;
+        => GoogleTasksService.HasSession;
 
     private async Task FireAsync()
     {
@@ -54,7 +54,6 @@ public sealed class TaskAutoSync
         try
         {
             if (GoogleTasksService.HasSession) await GoogleTasksSync.SyncAsync();
-            if (AppleRemindersService.HasSession) await AppleRemindersSync.SyncAsync();
         }
         catch { /* best-effort: si falla, queda el botón "Sincronizar ahora" */ }
         finally

@@ -101,10 +101,6 @@ public sealed record AppSettings
     /// escritorio con PKCE no usan secreto confidencial); el refresh token va en el almacén seguro.</summary>
     public string? GoogleClientId { get; init; }
 
-    /// <summary>Apple ID (email) conectado para Recordatorios vía iCloud CalDAV (#64). No es secreto
-    /// (solo identifica la cuenta); la contraseña de aplicación va CIFRADA en el almacén de credenciales.</summary>
-    public string? AppleId { get; init; }
-
     /// <summary>
     /// Última versión de la app cuyas «Novedades» vio el usuario (p. ej. "1.0.1.0").
     /// Null = nunca las ha visto. Al actualizar la app, si la versión actual es mayor

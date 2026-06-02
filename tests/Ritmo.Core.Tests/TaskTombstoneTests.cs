@@ -56,8 +56,8 @@ public class TaskTombstoneTests
     [Fact]
     public void Lapida_sobrevive_export_import()
     {
-        var block = new TaskBlock { Id = "b1", Name = "Lista", Provider = "apple", ExternalId = "https://x/list/" };
-        var task = new TaskItem { Id = "t1", BlockId = "b1", Text = "x", ExternalId = "https://x/list/t.ics" };
+        var block = new TaskBlock { Id = "b1", Name = "Lista", Provider = "google", ExternalId = "list-9" };
+        var task = new TaskItem { Id = "t1", BlockId = "b1", Text = "x", ExternalId = "rt-9" };
         var (svc, store) = Setup(block, task);
         svc.RemoveTask("t1");
 
