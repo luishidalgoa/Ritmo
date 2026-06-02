@@ -2055,10 +2055,25 @@ public sealed partial class SchedulePage : Page
         content.Children.Add(DetailHeader($"{count} sesiones seleccionadas"));
         content.Children.Add(MetaLine("Selección rectangular (Shift+clic). Las acciones se aplican a todas."));
 
+        var sel = SelectedSessions();
         var col = new StackPanel { Spacing = 8, Margin = new Thickness(0, 10, 0, 0) };
         col.Children.Add(BulkButton("Renombrar todas…", BulkRename));
         col.Children.Add(BulkButton("Cambiar categoría…", BulkCategory));
         col.Children.Add(BulkButton("Vincular a proyecto…", BulkProject));
+
+        // Qué se abre al concentrarse, por cada tipo de sesión presente en la selección (#142).
+        int titlesCount = sel.Select(s => s.Title.Trim()).Distinct().Count();
+        col.Children.Add(BulkButton(titlesCount <= 1 ? "Qué se abre al concentrarme…" : $"Qué se abre al concentrarme… ({titlesCount} tipos)", BulkBehavior));
+
+        // Editar con el formulario: solo si TODAS son la misma sesión (mismo tipo y franja). #142
+        bool homogeneous = sel.Count > 0 && sel.All(x => SessionKey(x) == SessionKey(sel[0]));
+        var editBtn = BulkButton("Editar con el formulario…", BulkEditModal);
+        editBtn.IsEnabled = homogeneous;
+        ToolTipService.SetToolTip(editBtn, homogeneous
+            ? "Edita todas a la vez con el formulario de sesión"
+            : "Solo disponible si todas son del mismo tipo y franja horaria");
+        col.Children.Add(editBtn);
+
         col.Children.Add(BulkButton("Marcar no realizada esta semana", BulkMarkNotDone));
         col.Children.Add(BulkButton("Borrar todas", BulkDelete));
         content.Children.Add(col);
@@ -2075,6 +2090,37 @@ public sealed partial class SchedulePage : Page
 
     /// <summary>Sesiones de la fase activa que están en la selección (#142).</summary>
     private bool IsSelected(StudySession s) => _multiSel.Contains(MemberKey(s));
+
+    /// <summary>Lista de las sesiones seleccionadas en la fase activa (#142).</summary>
+    private List<StudySession> SelectedSessions()
+    {
+        if (_activePhaseName is null) return new List<StudySession>();
+        var phase = AppState.Load().Plan.Phases.FirstOrDefault(p => p.Name == _activePhaseName);
+        return phase is null ? new List<StudySession>() : phase.Schedule.Sessions.Where(IsSelected).ToList();
+    }
+
+    /// <summary>Configura «qué se abre al concentrarme» para cada tipo de sesión (título) de la selección. #142</summary>
+    private async Task BulkBehavior()
+    {
+        var titles = SelectedSessions().Select(s => s.Title.Trim()).Where(t => t.Length > 0).Distinct().ToList();
+        foreach (var t in titles) await ShowSessionBehavior(t);   // un diálogo por cada tipo presente
+    }
+
+    /// <summary>
+    /// Si TODAS las seleccionadas son la misma sesión (mismo tipo + franja), las edita a la vez con el
+    /// formulario de sesión (como un grupo). Si no son homogéneas, el botón está deshabilitado. #142
+    /// </summary>
+    private async Task BulkEditModal()
+    {
+        var sel = SelectedSessions();
+        if (sel.Count == 0) return;
+        var key0 = SessionKey(sel[0]);
+        if (sel.Any(x => SessionKey(x) != key0)) return;   // no homogéneo: el botón debería estar deshabilitado
+        int first = sel.Min(x => Array.IndexOf(Days, x.Day));
+        var group = new Ritmo.Core.Scheduling.SessionGroup(sel[0], first, 1, sel);
+        await ShowEditGroup(group);   // edita/borra el grupo (días seleccionados) con su propio undo
+        AfterBulk();
+    }
 
     /// <summary>Aplica una transformación a las sesiones seleccionadas de la fase activa y guarda.</summary>
     private void ApplyToSelected(Func<StudySession, StudySession> transform)
