@@ -80,6 +80,7 @@ public sealed partial class MainWindow : Window
     {
         _exiting = true;
         TrayIconService.Dispose();     // quita el icono de la bandeja
+        BlockStateServer.Stop();       // cierra el servidor del bloqueo (#8)
         ScheduleHost.Instance.Stop();
         ToastService.Unregister();
         Close();

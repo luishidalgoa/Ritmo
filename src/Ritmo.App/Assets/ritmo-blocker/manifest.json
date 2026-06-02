@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Ritmo — Bloqueo de concentración",
+  "version": "1.0.0",
+  "description": "Bloquea las webs distractoras mientras Ritmo está en una sesión de concentración.",
+  "permissions": ["declarativeNetRequest", "alarms"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": { "service_worker": "background.js" }
+}

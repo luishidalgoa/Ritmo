@@ -44,6 +44,10 @@ public partial class App : Application
         // aunque se oculte la ventana; solo se para al salir de verdad.
         ScheduleHost.Instance.Start();
 
+        // Servidor local (loopback) que publica el estado del bloqueo para la extensión de
+        // navegador (#8, bloqueo duro a nivel de red). Best-effort; si falla, el blando cubre.
+        BlockStateServer.Start();
+
         // Re-planifica los avisos cada vez que cambian los ajustes (añadir/editar sesión,
         // edición por la IA vía MCP, importar…). Antes solo se planificaba al arrancar, así
         // que una sesión nueva no avisaba hasta reiniciar. #128

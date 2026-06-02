@@ -63,6 +63,35 @@ public sealed partial class SettingsPage : Page
         _ = LoadAutostartState();
     }
 
+    // ---------- Bloqueo de webs: extensión de navegador (#8) ----------
+
+    private async void PrepareBlockerBtn_Click(object sender, RoutedEventArgs e)
+    {
+        string folder;
+        try { folder = Services.BlockerExtension.PrepareToUserFolder(); }
+        catch { return; }
+        try { await Windows.System.Launcher.LaunchFolderPathAsync(folder); } catch { }
+
+        var dlg = new ContentDialog
+        {
+            Title = "Instalar la extensión de bloqueo",
+            Content = new TextBlock
+            {
+                TextWrapping = TextWrapping.Wrap,
+                Text = "Se ha abierto la carpeta de la extensión.\n\n" +
+                       "En Microsoft Edge:\n" +
+                       "1. Abre  edge://extensions\n" +
+                       "2. Activa «Modo de desarrollador».\n" +
+                       "3. Pulsa «Cargar desempaquetada» y elige esa carpeta.\n\n" +
+                       "(En Chrome / Brave:  chrome://extensions  →  Modo de desarrollador  →  Cargar descomprimida.)\n\n" +
+                       "La lista de webs bloqueadas se configura en cada entorno (módulo de concentración)."
+            },
+            PrimaryButtonText = "Entendido",
+            XamlRoot = this.XamlRoot
+        };
+        await dlg.ShowAsync();
+    }
+
     // ---------- Tema de la app (#48) ----------
 
     private bool _loadingTheme;

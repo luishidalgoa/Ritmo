@@ -363,6 +363,19 @@
                 </StackPanel>
             </Border>
 
+            <!-- Bloqueo de webs (extensión de navegador, #8) -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="20">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Bloqueo de webs (avanzado)" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.8" FontSize="13"
+                               Text="Durante la concentración, Ritmo minimiza al instante las ventanas en webs bloqueadas del entorno. Para un bloqueo a nivel de RED (que impida cargarlas), instala la extensión de navegador. La lista de webs se configura en cada entorno." />
+                    <Button x:Name="PrepareBlockerBtn" Content="Preparar extensión de bloqueo…"
+                            Click="PrepareBlockerBtn_Click" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
             <!-- Notas y enlaces rápidos (#55) -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"

@@ -357,8 +357,10 @@ public sealed partial class TimerPage : Page
         }
         // Bloqueo blando de webs distractoras mientras dura la concentración (#8/#33): minimiza
         // las ventanas de navegador cuya pestaña activa esté en una web bloqueada del entorno.
-        if (_focus.IsActive && _activeEnv is { BlockedWebsites.Count: > 0 })
-            DistractionGuard.Sweep(_activeEnv.BlockedWebsites);
+        bool blocking = _focus.IsActive && _activeEnv is { BlockedWebsites.Count: > 0 };
+        if (blocking) DistractionGuard.Sweep(_activeEnv!.BlockedWebsites);
+        // Bloqueo duro (#8): publica el estado para la extensión de navegador.
+        BlockStateServer.SetState(blocking, _activeEnv?.BlockedWebsites ?? Array.Empty<string>());
 
         DndBadge.Visibility = _focus.IsActive ? Visibility.Visible : Visibility.Collapsed;
     }

@@ -36,6 +36,10 @@
     <Content Include="Assets\StoreLogo.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Extensión de bloqueo de webs (#8): se empaqueta para poder copiarla a una carpeta del usuario. -->
+    <Content Include="Assets\ritmo-blocker\manifest.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\ritmo-blocker\background.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\ritmo-blocker\README.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
