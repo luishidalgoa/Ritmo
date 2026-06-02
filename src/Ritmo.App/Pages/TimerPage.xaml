@@ -52,6 +52,12 @@
         <TextBlock x:Name="PresetInfo" Opacity="0.55" FontSize="12"
                    TextAlignment="Center" HorizontalAlignment="Center" />
 
+        <!-- Notas de la sesión activa, a mano durante la concentración (#151). Plegado por defecto. -->
+        <Expander x:Name="NotesExpander" Width="440" HorizontalAlignment="Center" Margin="0,4,0,0"
+                  Visibility="Collapsed" HorizontalContentAlignment="Stretch">
+            <StackPanel x:Name="NotesHost" Spacing="8" />
+        </Expander>
+
         <Border x:Name="DndBadge" Visibility="Collapsed" HorizontalAlignment="Center"
                 Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
                 CornerRadius="12" Padding="12,4" Margin="0,4,0,0">

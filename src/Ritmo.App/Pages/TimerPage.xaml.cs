@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Ritmo.Core.Focus;
 using Ritmo.Core.Model;
 using Ritmo.Core.Pomodoro;
@@ -60,6 +61,7 @@ public sealed partial class TimerPage : Page
     {
         ResolveContext();
         BuildEnvSelector(AppState.Load());
+        BuildNotes();   // notas de la sesión activa, a mano (#151)
 
         _ticker = DispatcherQueue.CreateTimer();
         _ticker.Interval = TimeSpan.FromMilliseconds(250);
@@ -74,6 +76,107 @@ public sealed partial class TimerPage : Page
         {
             Refresh();
         }
+    }
+
+    // ---------- Notas de la sesión activa, a mano en concentración (#151) ----------
+
+    /// <summary>Pinta, en el desplegable de notas, las de la SESIÓN ACTIVA (por su título). #151</summary>
+    private void BuildNotes()
+    {
+        NotesHost.Children.Clear();
+        var title = _activeSessionTitle;
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            NotesExpander.Visibility = Visibility.Collapsed;   // sin bloque ahora: no hay notas por tipo
+            return;
+        }
+
+        var notes = AppState.Load().Notes
+            .Where(n => string.Equals(n.SessionTitle, title, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(n => n.Order).ToList();
+
+        NotesExpander.Header = notes.Count > 0 ? $"Notas · {title} ({notes.Count})" : $"Notas · {title}";
+        NotesExpander.Visibility = Visibility.Visible;
+
+        if (notes.Count == 0)
+            NotesHost.Children.Add(new TextBlock { Text = "Sin notas para esta sesión.", Opacity = 0.55, FontSize = 12 });
+        foreach (var note in notes) NotesHost.Children.Add(NoteCard(note));
+
+        var add = new HyperlinkButton { Content = "+ Añadir nota", Padding = new Thickness(0) };
+        add.Click += async (_, _) => await AddNote(title);
+        NotesHost.Children.Add(add);
+    }
+
+    private FrameworkElement NoteCard(StudyNote note)
+    {
+        var header = new Grid();
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var t = new TextBlock { Text = note.Title, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(t, 0);
+        var edit = NoteIconButton(Symbol.Edit, "Editar nota", () => _ = EditNote(note));
+        Grid.SetColumn(edit, 1);
+        var del = NoteIconButton(Symbol.Delete, "Eliminar nota", () => RemoveNote(note));
+        Grid.SetColumn(del, 2);
+        header.Children.Add(t); header.Children.Add(edit); header.Children.Add(del);
+
+        var stack = new StackPanel { Spacing = 4 };
+        stack.Children.Add(header);
+        if (!string.IsNullOrWhiteSpace(note.Content))
+        {
+            var md = MarkdownRenderer.Build(note.Content);
+            md.Opacity = 0.85;
+            stack.Children.Add(md);
+        }
+        return new Border
+        {
+            Padding = new Thickness(10, 8, 6, 8), CornerRadius = new CornerRadius(8),
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorSecondaryBrush"],
+            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"], BorderThickness = new Thickness(1),
+            Child = stack
+        };
+    }
+
+    private static Button NoteIconButton(Symbol symbol, string tooltip, Action onClick)
+    {
+        var b = new Button
+        {
+            Content = new SymbolIcon(symbol),
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(0), Padding = new Thickness(6, 2, 6, 2),
+            MinWidth = 0, VerticalAlignment = VerticalAlignment.Top
+        };
+        ToolTipService.SetToolTip(b, tooltip);
+        b.Click += (_, _) => onClick();
+        return b;
+    }
+
+    private async System.Threading.Tasks.Task AddNote(string sessionTitle)
+    {
+        var dlg = new Ritmo_App.Dialogs.NoteDialog { XamlRoot = this.XamlRoot };
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
+        {
+            AppState.Config.AddNote(dlg.TitleText, dlg.ContentText, sessionTitle: sessionTitle);
+            BuildNotes();
+        }
+    }
+
+    private async System.Threading.Tasks.Task EditNote(StudyNote note)
+    {
+        var dlg = new Ritmo_App.Dialogs.NoteDialog { XamlRoot = this.XamlRoot };
+        dlg.LoadFrom(note);
+        if (await dlg.ShowAsync() == ContentDialogResult.Primary && dlg.TitleText.Length > 0)
+        {
+            AppState.Config.UpdateNote(note.Id, dlg.TitleText, dlg.ContentText);
+            BuildNotes();
+        }
+    }
+
+    private void RemoveNote(StudyNote note)
+    {
+        AppState.Config.RemoveNote(note.Id);
+        BuildNotes();
     }
 
     /// <summary>
