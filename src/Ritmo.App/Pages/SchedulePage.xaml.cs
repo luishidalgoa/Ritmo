@@ -91,6 +91,7 @@ public sealed partial class SchedulePage : Page
     private IReadOnlyList<Ritmo.Core.Model.SessionException> _sessionExceptions = [];   // sesiones no realizadas (#137)
     private IReadOnlyList<StudyNote> _notes = [];             // notas (post-its de sesión, #73)
     private string? _selectedSessionKey;                       // sesión resaltada en la rejilla
+    private int _selectedGroupFirstDay = -1;                   // día inicial del grupo clicado: resalta SOLO esa tarjeta (no todas las del mismo tipo)
     private string? _selectedEventKey;                         // evento resaltado en la rejilla
     private SessionGroup? _selectedGroup;                      // grupo mostrado en el panel
     private CalendarEvent? _selectedEvent;                     // evento mostrado en el panel
@@ -722,7 +723,10 @@ public sealed partial class SchedulePage : Page
             var baseColor = ScheduleColors.For(s.CategoryId);
             bool isActive = activeSession is not null && group.Members.Any(m => ReferenceEquals(m, activeSession));
             bool inMulti = _multiSel.Count > 0 && group.Members.Any(m => _multiSel.Contains(MemberKey(m)));   // #142
-            bool isSelected = inMulti || (_selectedSessionKey is not null && SessionKey(s) == _selectedSessionKey);
+            // Resalta SOLO la tarjeta clicada (misma clave Y mismo día inicial), no todas las del
+            // mismo tipo en otros días (bug: clicar una marcaba todas las «Legislación»).
+            bool isSelected = inMulti
+                || (_selectedSessionKey is not null && SessionKey(s) == _selectedSessionKey && group.FirstDayIndex == _selectedGroupFirstDay);
             bool ring = isActive || isSelected;   // borde de acento: bloque activo, seleccionado o en multiselección
 
             // Excepciones (#137/#137b) en la semana visible: NO realizada → atenuar + tachar;
@@ -1280,7 +1284,7 @@ public sealed partial class SchedulePage : Page
     private void ShowOneOffDetail(OneOffSession one)
     {
         _selectedGroup = null; _selectedEvent = null;
-        _selectedSessionKey = null; _selectedEventKey = null;
+        _selectedSessionKey = null; _selectedGroupFirstDay = -1; _selectedEventKey = null;
         _selectedOneOff = one;   // para copiar con Ctrl+C (#132)
         Build();
 
@@ -1681,7 +1685,7 @@ public sealed partial class SchedulePage : Page
     {
         var rep = group.Representative;
         _selectedGroup = group; _selectedEvent = null; _selectedOneOff = null;
-        _selectedSessionKey = SessionKey(rep); _selectedEventKey = null;
+        _selectedSessionKey = SessionKey(rep); _selectedGroupFirstDay = group.FirstDayIndex; _selectedEventKey = null;
         _anchorGroup = group; _multiSel.Clear();   // #142: este clic fija el ancla y cancela la multiselección
         Build();   // repinta la rejilla con el resaltado
 
@@ -1778,8 +1782,10 @@ public sealed partial class SchedulePage : Page
             if (!string.IsNullOrWhiteSpace(x.Reason)) txt += $"  ({x.Reason})";
             var line = new TextBlock { Text = txt, FontSize = 12, Opacity = 0.7, VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(line, 0);
-            var del = new Button { Content = new FontIcon { Glyph = "", FontSize = 12 }, Padding = new Thickness(6), MinWidth = 0,
-                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0) };
+            // Quitar la excepción = volver a contar la sesión como realizada. Botón con texto claro
+            // (antes era solo un icono y costaba encontrar cómo "desmarcarla").
+            var del = new Button { Content = "Marcar realizada", FontSize = 12, Padding = new Thickness(8, 2, 8, 2), VerticalAlignment = VerticalAlignment.Center };
+            ToolTipService.SetToolTip(del, "Quitar esta marca: la sesión vuelve a contar como realizada.");
             var xid = x.Id;
             del.Click += (_, _) => { AppState.Config.RemoveSessionException(xid); if (_selectedGroup is not null) ShowSessionDetail(_selectedGroup); };
             Grid.SetColumn(del, 1);
@@ -1837,7 +1843,7 @@ public sealed partial class SchedulePage : Page
     private void ShowEventDetail(CalendarEvent ev)
     {
         _selectedEvent = ev; _selectedGroup = null; _selectedOneOff = null;
-        _selectedEventKey = OverlapResolver.EventKey(ev); _selectedSessionKey = null;
+        _selectedEventKey = OverlapResolver.EventKey(ev); _selectedSessionKey = null; _selectedGroupFirstDay = -1;
         Build();
 
         var es = new System.Globalization.CultureInfo("es-ES");
@@ -2019,7 +2025,7 @@ public sealed partial class SchedulePage : Page
     private void ShowTaskBehaviorList()
     {
         _selectedGroup = null; _selectedEvent = null; _selectedOneOff = null;
-        _selectedSessionKey = null; _selectedEventKey = null;
+        _selectedSessionKey = null; _selectedGroupFirstDay = -1; _selectedEventKey = null;
         Build();   // quita resaltado de la rejilla
 
         var content = DetailContent;
@@ -2065,7 +2071,7 @@ public sealed partial class SchedulePage : Page
     {
         DetailPanel.Visibility = Visibility.Collapsed;
         DetailContent.Children.Clear();
-        _selectedSessionKey = null; _selectedEventKey = null;
+        _selectedSessionKey = null; _selectedGroupFirstDay = -1; _selectedEventKey = null;
         _selectedGroup = null; _selectedEvent = null; _selectedOneOff = null;
         _multiSel.Clear(); _anchorGroup = null;   // #142
         if (!internalRefresh) Build();   // repinta sin resaltado (RefreshWeek ya repinta por su cuenta)
