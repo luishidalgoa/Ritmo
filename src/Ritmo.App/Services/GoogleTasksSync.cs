@@ -14,13 +14,6 @@ internal static class GoogleTasksSync
         => TaskSyncRunner.RunAsync(new GoogleSyncProvider(), ct);
 }
 
-/// <summary>Entrada de la sincronización Bloques/Tareas de Ritmo ↔ Microsoft To Do (#64).</summary>
-internal static class MicrosoftTodoSync
-{
-    public static Task<TaskSyncRunner.SyncResult> SyncAsync(CancellationToken ct = default)
-        => TaskSyncRunner.RunAsync(new MicrosoftSyncProvider(), ct);
-}
-
 /// <summary>Entrada de la sincronización Bloques/Tareas de Ritmo ↔ Recordatorios de Apple (#64).</summary>
 internal static class AppleRemindersSync
 {

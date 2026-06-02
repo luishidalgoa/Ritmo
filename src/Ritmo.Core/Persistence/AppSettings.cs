@@ -97,10 +97,6 @@ public sealed record AppSettings
     /// escritorio con PKCE no usan secreto confidencial); el refresh token va en el almacén seguro.</summary>
     public string? GoogleClientId { get; init; }
 
-    /// <summary>Client ID (Application ID) de Azure para Microsoft To Do (#64). PÚBLICO (cliente
-    /// público con PKCE, sin secreto). Normalmente embebido; este override permite fijarlo sin recompilar.</summary>
-    public string? MicrosoftClientId { get; init; }
-
     /// <summary>Apple ID (email) conectado para Recordatorios vía iCloud CalDAV (#64). No es secreto
     /// (solo identifica la cuenta); la contraseña de aplicación va CIFRADA en el almacén de credenciales.</summary>
     public string? AppleId { get; init; }

@@ -26,7 +26,7 @@ public sealed record TaskBlock
     public string? ExternalId { get; init; }
 
     /// <summary>
-    /// Proveedor externo dueño de <see cref="ExternalId"/> (#64): "google" | "microsoft" | "apple".
+    /// Proveedor externo dueño de <see cref="ExternalId"/> (#64): "google" | "apple".
     /// null = sin vincular todavía (lo reclama el primer proveedor con el que se sincronice). Evita
     /// que la sincronización de un proveedor pise los ids de otro cuando hay varias conexiones.
     /// </summary>

@@ -224,27 +224,6 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Gestión de Microsoft To Do (#64): cliente público (PKCE), sin secreto -->
-                    <Border x:Name="MicrosoftManageCard"
-                            Background="{ThemeResource LayerFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                            CornerRadius="8" Padding="16">
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="🟦  Microsoft To Do" FontWeight="SemiBold" FontSize="15" />
-                            <TextBlock x:Name="MicrosoftStatus" Opacity="0.8" FontSize="12" TextWrapping="Wrap" Text="No conectado." />
-                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                <Button x:Name="MicrosoftConnectBtn" Content="Conectar" Click="MicrosoftConnectBtn_Click"
-                                        Style="{StaticResource AccentButtonStyle}" />
-                                <Button x:Name="MicrosoftSyncBtn" Content="Sincronizar ahora" Click="MicrosoftSyncBtn_Click"
-                                        Visibility="Collapsed" Style="{StaticResource AccentButtonStyle}" />
-                                <Button x:Name="MicrosoftDisconnectBtn" Content="Desconectar" Click="MicrosoftDisconnectBtn_Click"
-                                        Visibility="Collapsed" />
-                            </StackPanel>
-                            <TextBlock Text="Sincroniza tus bloques/tareas con tus listas de Microsoft To Do (en ambos sentidos). Misma política: si una tarea cambió en Microsoft, gana Microsoft; si no, gana lo que tengas en Ritmo."
-                                       Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-
                     <!-- Gestión de Recordatorios de Apple (#64): iCloud CalDAV con contraseña de aplicación -->
                     <Border x:Name="AppleManageCard"
                             Background="{ThemeResource LayerFillColorDefaultBrush}"

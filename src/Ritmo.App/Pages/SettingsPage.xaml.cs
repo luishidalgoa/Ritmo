@@ -62,7 +62,6 @@ public sealed partial class SettingsPage : Page
         BuildNotes();
         LoadNavidromeState(s);
         LoadGoogleState();      // sync Google Tasks (#64)
-        LoadMicrosoftState();   // sync Microsoft To Do (#64)
         LoadAppleState();       // sync Recordatorios de Apple (#64)
         BuildCalendarFeeds();
         PomodoroHelp.Content = HelpHint.Icon("pomodoro");   // ayuda (#93)
@@ -179,71 +178,6 @@ public sealed partial class SettingsPage : Page
     {
         Services.GoogleTasksService.SignOut();
         LoadGoogleState();
-    }
-
-    // ---------- Sincronización con Microsoft To Do (#64) ----------
-
-    private void LoadMicrosoftState()
-    {
-        bool connected = Services.MicrosoftTodoService.HasSession;
-        bool configured = Services.MicrosoftTodoService.IsConfigured;
-        MicrosoftStatus.Text = connected
-            ? "✓ Conectado a Microsoft To Do."
-            : (configured ? "No conectado." : "Pendiente de registrar la app en Azure (configuración única).");
-        MicrosoftConnectBtn.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
-        MicrosoftConnectBtn.IsEnabled = configured;
-        MicrosoftSyncBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
-        MicrosoftDisconnectBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private async void MicrosoftConnectBtn_Click(object sender, RoutedEventArgs e)
-    {
-        if (!Services.MicrosoftTodoService.IsConfigured)
-        {
-            MicrosoftStatus.Text = "Falta el Client ID de Azure. Regístralo y conéctalo.";
-            return;
-        }
-        MicrosoftConnectBtn.IsEnabled = false;
-        MicrosoftStatus.Text = "Conectando… autoriza en el navegador.";
-        try
-        {
-            bool ok = await Services.MicrosoftTodoService.AuthorizeAsync();
-            if (!ok)
-            {
-                MicrosoftStatus.Text = "No se pudo conectar. Revisa la app de Azure (cliente público + permiso Tasks.ReadWrite).";
-                return;
-            }
-            string extra = "";
-            try { var lists = await Services.MicrosoftTodoService.GetTaskListsAsync(); extra = $" · {lists.Count} lista(s)"; }
-            catch { }
-            MicrosoftStatus.Text = "✓ Conectado a Microsoft To Do" + extra + ".";
-            MicrosoftConnectBtn.Visibility = Visibility.Collapsed;
-            MicrosoftSyncBtn.Visibility = Visibility.Visible;
-            MicrosoftDisconnectBtn.Visibility = Visibility.Visible;
-        }
-        catch (Exception ex) { MicrosoftStatus.Text = "⚠ Error: " + ex.Message; }
-        finally { MicrosoftConnectBtn.IsEnabled = true; }
-    }
-
-    private async void MicrosoftSyncBtn_Click(object sender, RoutedEventArgs e)
-    {
-        MicrosoftSyncBtn.IsEnabled = false;
-        MicrosoftStatus.Text = "Sincronizando…";
-        try
-        {
-            var r = await Services.MicrosoftTodoSync.SyncAsync();
-            MicrosoftStatus.Text = r.Ok
-                ? $"✓ Sincronizado · +{r.Created} nueva(s) · {r.Updated} actualizada(s) · {r.Deleted} borrada(s)."
-                : "⚠ " + (r.Error ?? "No se pudo sincronizar.");
-        }
-        catch (Exception ex) { MicrosoftStatus.Text = "⚠ Error: " + ex.Message; }
-        finally { MicrosoftSyncBtn.IsEnabled = true; }
-    }
-
-    private void MicrosoftDisconnectBtn_Click(object sender, RoutedEventArgs e)
-    {
-        Services.MicrosoftTodoService.SignOut();
-        LoadMicrosoftState();
     }
 
     // ---------- Sincronización con Recordatorios de Apple (iCloud CalDAV, #64) ----------

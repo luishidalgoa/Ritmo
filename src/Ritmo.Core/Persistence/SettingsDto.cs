@@ -46,7 +46,6 @@ internal sealed class SettingsDto
     public string? NtfyServerUrl { get; set; }
     public string? NtfyTopic { get; set; }
     public string? GoogleClientId { get; set; }   // #64: OAuth público para Google Tasks
-    public string? MicrosoftClientId { get; set; }   // #64: OAuth público para Microsoft To Do
     public string? AppleId { get; set; }   // #64: Apple ID (email) para Recordatorios vía iCloud CalDAV
     public string? LastSeenVersion { get; set; }
     public List<CalendarFeedDto> CalendarFeeds { get; set; } = [];
@@ -370,7 +369,6 @@ internal static class SettingsMapper
         NtfyServerUrl = s.NtfyServerUrl,
         NtfyTopic = s.NtfyTopic,
         GoogleClientId = s.GoogleClientId,
-        MicrosoftClientId = s.MicrosoftClientId,
         AppleId = s.AppleId,
         LastSeenVersion = s.LastSeenVersion,
         CalendarFeeds = s.CalendarFeeds.Select(f => new CalendarFeedDto { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
@@ -508,7 +506,6 @@ internal static class SettingsMapper
         NtfyServerUrl = d.NtfyServerUrl,
         NtfyTopic = d.NtfyTopic,
         GoogleClientId = d.GoogleClientId,
-        MicrosoftClientId = d.MicrosoftClientId,
         AppleId = d.AppleId,
         LastSeenVersion = d.LastSeenVersion,
         CalendarFeeds = d.CalendarFeeds.Select(f => new CalendarFeed { Id = f.Id, Name = f.Name, Url = f.Url }).ToList(),
