@@ -96,6 +96,7 @@ internal sealed class TaskBlockDto
     public string? ColorHex { get; set; }
     public int Order { get; set; }
     public string? EnvironmentId { get; set; }
+    public string? ExternalId { get; set; }   // #64: lista de Google Tasks
 }
 
 internal sealed class TaskItemDto
@@ -108,6 +109,8 @@ internal sealed class TaskItemDto
     public string? Notes { get; set; }
     public string? DueDate { get; set; }   // "yyyy-MM-dd" o null
     public string? SessionKey { get; set; }
+    public string? ExternalId { get; set; }       // #64: tarea de Google
+    public string? ExternalUpdated { get; set; }  // #64: updated de Google en la última sync
 }
 
 internal sealed class WorkLogEntryDto
@@ -342,12 +345,14 @@ internal static class SettingsMapper
         }).ToList(),
         TaskBlocks = s.TaskBlocks.Select(b => new TaskBlockDto
         {
-            Id = b.Id, Name = b.Name, ColorHex = b.ColorHex, Order = b.Order, EnvironmentId = b.EnvironmentId
+            Id = b.Id, Name = b.Name, ColorHex = b.ColorHex, Order = b.Order,
+            EnvironmentId = b.EnvironmentId, ExternalId = b.ExternalId
         }).ToList(),
         Tasks = s.Tasks.Select(t => new TaskItemDto
         {
             Id = t.Id, BlockId = t.BlockId, Text = t.Text, Done = t.Done, Order = t.Order,
             Notes = t.Notes, SessionKey = t.SessionKey,
+            ExternalId = t.ExternalId, ExternalUpdated = t.ExternalUpdated,
             DueDate = t.DueDate?.ToString(DateFormat, CultureInfo.InvariantCulture)
         }).ToList(),
         NavidromeServerUrl = s.NavidromeServerUrl,
@@ -510,7 +515,8 @@ internal static class SettingsMapper
             Name = b.Name ?? "",
             ColorHex = b.ColorHex,
             Order = b.Order,
-            EnvironmentId = b.EnvironmentId
+            EnvironmentId = b.EnvironmentId,
+            ExternalId = b.ExternalId
         }).ToList(),
         Tasks = d.Tasks.Select(t => new TaskItem
         {
@@ -521,6 +527,8 @@ internal static class SettingsMapper
             Order = t.Order,
             Notes = t.Notes,
             SessionKey = t.SessionKey,
+            ExternalId = t.ExternalId,
+            ExternalUpdated = t.ExternalUpdated,
             DueDate = string.IsNullOrWhiteSpace(t.DueDate) ? null
                 : DateOnly.ParseExact(t.DueDate, DateFormat, CultureInfo.InvariantCulture)
         }).ToList()

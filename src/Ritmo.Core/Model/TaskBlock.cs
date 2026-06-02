@@ -21,4 +21,7 @@ public sealed record TaskBlock
     /// vínculo, las tareas se agrupan en "cajones" por cada sesión del entorno.
     /// </summary>
     public string? EnvironmentId { get; init; }
+
+    /// <summary>Id de la lista de Google Tasks con la que está sincronizado este bloque (#64); null = no sincronizado.</summary>
+    public string? ExternalId { get; init; }
 }

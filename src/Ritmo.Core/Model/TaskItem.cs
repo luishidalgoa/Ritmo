@@ -26,4 +26,9 @@ public sealed record TaskItem
     /// null = no asociada a ninguna sesión. Permite el "cajón por sesión" y el atajo desde la sesión.
     /// </summary>
     public string? SessionKey { get; init; }
+
+    /// <summary>Id de la tarea de Google Tasks con la que está sincronizada (#64); null = solo local.</summary>
+    public string? ExternalId { get; init; }
+    /// <summary>Valor <c>updated</c> de Google en la última sincronización (para detectar cambios remotos). #64</summary>
+    public string? ExternalUpdated { get; init; }
 }

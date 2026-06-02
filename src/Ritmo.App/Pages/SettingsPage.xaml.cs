@@ -100,6 +100,7 @@ public sealed partial class SettingsPage : Page
         bool connected = Services.GoogleTasksService.HasSession;
         GoogleStatus.Text = connected ? "✓ Conectado a Google Tasks." : "No conectado.";
         GoogleConnectBtn.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
+        GoogleSyncBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
         GoogleDisconnectBtn.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -146,10 +147,26 @@ public sealed partial class SettingsPage : Page
             catch { }
             GoogleStatus.Text = "✓ Conectado a Google Tasks" + extra + ".";
             GoogleConnectBtn.Visibility = Visibility.Collapsed;
+            GoogleSyncBtn.Visibility = Visibility.Visible;
             GoogleDisconnectBtn.Visibility = Visibility.Visible;
         }
         catch (Exception ex) { GoogleStatus.Text = "⚠ Error: " + ex.Message; }
         finally { GoogleConnectBtn.IsEnabled = true; }
+    }
+
+    private async void GoogleSyncBtn_Click(object sender, RoutedEventArgs e)
+    {
+        GoogleSyncBtn.IsEnabled = false;
+        GoogleStatus.Text = "Sincronizando…";
+        try
+        {
+            var r = await Services.GoogleTasksSync.SyncAsync();
+            GoogleStatus.Text = r.Ok
+                ? $"✓ Sincronizado · +{r.Created} nueva(s) · {r.Updated} actualizada(s) · {r.Deleted} borrada(s)."
+                : "⚠ " + (r.Error ?? "No se pudo sincronizar.");
+        }
+        catch (Exception ex) { GoogleStatus.Text = "⚠ Error: " + ex.Message; }
+        finally { GoogleSyncBtn.IsEnabled = true; }
     }
 
     private void GoogleDisconnectBtn_Click(object sender, RoutedEventArgs e)

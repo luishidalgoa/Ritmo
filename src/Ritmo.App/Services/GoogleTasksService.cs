@@ -226,4 +226,80 @@ public static class GoogleTasksService
                     it.TryGetProperty("title", out var t) ? t.GetString() ?? "(sin nombre)" : "(sin nombre)"));
         return result;
     }
+
+    /// <summary>Lista las tareas (incluidas completadas) de una lista de Google.</summary>
+    public static async Task<IReadOnlyList<GoogleTask>> ListTasksAsync(string listId, CancellationToken ct = default)
+    {
+        var result = new List<GoogleTask>();
+        string? pageToken = null;
+        do
+        {
+            var url = $"{ApiBase}/lists/{Uri.EscapeDataString(listId)}/tasks?showCompleted=true&showHidden=true&maxResults=100";
+            if (!string.IsNullOrEmpty(pageToken)) url += "&pageToken=" + Uri.EscapeDataString(pageToken);
+            var body = await SendAsync(HttpMethod.Get, url, null, ct);
+            if (body is null) break;
+            using var doc = JsonDocument.Parse(body);
+            pageToken = doc.RootElement.TryGetProperty("nextPageToken", out var nt) ? nt.GetString() : null;
+            if (doc.RootElement.TryGetProperty("items", out var items))
+                foreach (var it in items.EnumerateArray())
+                    result.Add(ParseTask(it));
+        }
+        while (!string.IsNullOrEmpty(pageToken) && result.Count < 1000);
+        return result;
+    }
+
+    /// <summary>Crea una lista de Google Tasks y devuelve su id (o null si falla).</summary>
+    public static async Task<string?> InsertTaskListAsync(string title, CancellationToken ct = default)
+    {
+        var body = await SendAsync(HttpMethod.Post, $"{ApiBase}/users/@me/lists",
+            JsonSerializer.Serialize(new { title }), ct);
+        if (body is null) return null;
+        using var doc = JsonDocument.Parse(body);
+        return doc.RootElement.TryGetProperty("id", out var id) ? id.GetString() : null;
+    }
+
+    /// <summary>Crea una tarea en una lista de Google y devuelve la tarea creada (con id + updated).</summary>
+    public static async Task<GoogleTask?> InsertTaskAsync(string listId, string title, bool done, CancellationToken ct = default)
+    {
+        var body = await SendAsync(HttpMethod.Post, $"{ApiBase}/lists/{Uri.EscapeDataString(listId)}/tasks",
+            JsonSerializer.Serialize(new { title, status = done ? "completed" : "needsAction" }), ct);
+        if (body is null) return null;
+        using var doc = JsonDocument.Parse(body);
+        return ParseTask(doc.RootElement);
+    }
+
+    /// <summary>Actualiza el título/estado de una tarea de Google y devuelve la tarea (con updated nuevo).</summary>
+    public static async Task<GoogleTask?> PatchTaskAsync(string listId, string taskId, string title, bool done, CancellationToken ct = default)
+    {
+        var body = await SendAsync(HttpMethod.Patch,
+            $"{ApiBase}/lists/{Uri.EscapeDataString(listId)}/tasks/{Uri.EscapeDataString(taskId)}",
+            JsonSerializer.Serialize(new { title, status = done ? "completed" : "needsAction" }), ct);
+        if (body is null) return null;
+        using var doc = JsonDocument.Parse(body);
+        return ParseTask(doc.RootElement);
+    }
+
+    private static GoogleTask ParseTask(JsonElement it)
+    {
+        string id = it.TryGetProperty("id", out var i) ? i.GetString() ?? "" : "";
+        string title = it.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "";
+        bool done = it.TryGetProperty("status", out var st) && st.GetString() == "completed";
+        string? notes = it.TryGetProperty("notes", out var n) ? n.GetString() : null;
+        string? updated = it.TryGetProperty("updated", out var u) ? u.GetString() : null;
+        int pos = 0;
+        if (it.TryGetProperty("position", out var p) && int.TryParse(p.GetString(), out var pp)) pos = pp;
+        return new GoogleTask(id, title, done, pos, notes, updated);
+    }
+
+    /// <summary>Petición autenticada genérica; devuelve el cuerpo de la respuesta o null si falla.</summary>
+    private static async Task<string?> SendAsync(HttpMethod method, string url, string? jsonBody, CancellationToken ct)
+    {
+        if (!await EnsureAccessTokenAsync(ct)) return null;
+        using var req = new HttpRequestMessage(method, url);
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
+        if (jsonBody is not null) req.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+        using var resp = await Http.SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode) return null;
+        return await resp.Content.ReadAsStringAsync(ct);
+    }
 }

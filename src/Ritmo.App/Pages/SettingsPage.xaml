@@ -213,9 +213,13 @@
                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <Button x:Name="GoogleConnectBtn" Content="Conectar" Click="GoogleConnectBtn_Click"
                                         Style="{StaticResource AccentButtonStyle}" />
+                                <Button x:Name="GoogleSyncBtn" Content="Sincronizar ahora" Click="GoogleSyncBtn_Click"
+                                        Visibility="Collapsed" Style="{StaticResource AccentButtonStyle}" />
                                 <Button x:Name="GoogleDisconnectBtn" Content="Desconectar" Click="GoogleDisconnectBtn_Click"
                                         Visibility="Collapsed" />
                             </StackPanel>
+                            <TextBlock Text="Sincroniza tus bloques/tareas con tus listas de Google Tasks (en ambos sentidos). Si una tarea cambió en Google, gana Google; si no, gana lo que tengas en Ritmo."
+                                       Opacity="0.6" FontSize="11" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
