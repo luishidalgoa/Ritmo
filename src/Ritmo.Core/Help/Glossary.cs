@@ -118,7 +118,115 @@ public static class Glossary
             "Hoy salí 2 h antes → marca «parcial, 2 h». Festivo → «no realizada»."),
     ];
 
-    /// <summary>Busca una entrada por su clave (o null si no existe).</summary>
+    /// <summary>Glosario en inglés (#48 i18n). Mismas claves que <see cref="Entries"/>, traducidas.</summary>
+    public static readonly System.Collections.Generic.IReadOnlyList<GlossaryEntry> EntriesEn =
+    [
+        new("pomodoro", "Pomodoro",
+            "Focus technique using intervals: focus blocks followed by short breaks, and a long break every " +
+            "few focuses. Helps you keep your attention and rest in time.",
+            "25 min focus + 5 break, and a long 15-min one every 4 focuses."),
+        new("deep-work", "Deep rhythm (50/10/20)",
+            "Pomodoro preset with long blocks: 50 min focus, 10 short break and 20 long break every 2 focuses. " +
+            "Fits sessions of about 2 hours."),
+        new("classic", "Classic rhythm (25/5/15)",
+            "Traditional Pomodoro preset: 25 min focus, 5 short break and 15 long break every 4 focuses. " +
+            "Good for short tasks or to get started."),
+        new("rhythm", "Pomodoro rhythm",
+            "A named set of durations (focus, breaks and how many focuses before the long one). Besides the " +
+            "defaults (Classic, Deep), you can create your own in Settings and choose them when setting up an environment.",
+            "\"Afternoon rhythm\": 45/10/30, long every 3."),
+        new("prealert", "Pre-alerts",
+            "Reminders before a session starts. They sound as a Windows notification (and, if enabled, on your " +
+            "phone via ntfy) even when the window is closed. You can set up to two.",
+            "\"10 minutes before\" a 10:00 block alerts you at 9:50."),
+        new("environment", "Work environment",
+            "A reusable context with its music, apps to close, Do Not Disturb, links and tasks. When you focus " +
+            "on a block, the environment linked to its category is applied.",
+            "\"Project X\": opens the repo and the board, mutes Discord and plays music."),
+        new("dnd", "Do Not Disturb",
+            "Silences Windows notifications during focus and restores them when you finish."),
+        new("phase", "Phase",
+            "A stretch of the plan with its dates and its own weekly schedule. Lets you change the schedule by " +
+            "season; when the deadline passes, the next phase begins.",
+            "\"Phase 1\" from Jun 1 to Oct 31 with one schedule, \"Phase 2\" from Nov 1 with another."),
+        new("session", "Session (block)",
+            "A slot of the weekly schedule: day, start and end time, category and pre-alerts. Drag it to move " +
+            "it, stretch its edges to resize it, or press Del to delete it."),
+        new("tentative", "Tentative (doesn't trigger focus)",
+            "Marks a block as reserved but WITHOUT decided content: it looks dimmed and does NOT start focus " +
+            "automatically when its time comes (its pre-alerts can still sound).",
+            "You reserve 17:00–19:00 to \"study something\", but haven't decided what yet."),
+        new("focus", "Focus",
+            "The focused work mode: it starts the current block's timer and applies its environment (music, " +
+            "close apps, Do Not Disturb, open your links)."),
+        new("background", "Background",
+            "When you close the window, Ritmo stays alive in the background (with a system tray icon) so " +
+            "reminders still sound. Quit completely with \"Quit Ritmo\" (tray or Settings)."),
+        new("category", "Category",
+            "A schedule block's label, defined by you: name, color and whether it triggers focus. Replaces the " +
+            "old fixed types, so everyone (student, worker, freelancer…) defines their own. Managed in Settings → Categories.",
+            "\"Meeting\" (blue, triggers focus) or \"Lunch\" (orange, doesn't)."),
+        new("focus-category", "Triggers focus",
+            "If enabled, when a block of this category STARTS, Ritmo enters focus mode: it starts the Pomodoro " +
+            "and applies its environment (music, close apps, Do Not Disturb…). Those without it just show on " +
+            "the schedule, triggering nothing.",
+            "\"Study\" or \"Meeting\" → yes. \"Break\" or \"Lunch\" → no."),
+        new("default-prealert", "Default pre-alert",
+            "How far in advance a NEW session's alert is PRE-FILLED. It's just the initial value: you can change " +
+            "it when creating each session. It doesn't affect existing sessions.",
+            "If you set \"10 minutes before\", each new block is born with that alert."),
+        new("oneoff", "Extraordinary session (on specific dates)",
+            "A block that does NOT repeat every week, but on specific dates. You choose \"From\" and \"To\": the " +
+            "same date in both = a single day; a range = it's created on each day of the range at the same time.",
+            "A course from June 3 to 5, 16:00 to 18:00 → three blocks, one per day."),
+        new("rest-mode", "Rest mode",
+            "Pauses the schedule's reminders WITHOUT deleting anything (the schedule is still visible). Useful " +
+            "for holidays or a break. You can turn it on manually \"now\" or schedule periods by dates.",
+            "On holiday: turn it on and no reminder will sound until you turn it off."),
+        new("rest-period", "Rest period",
+            "A date range where the schedule fires no reminders (e.g. holidays). It activates only on those " +
+            "dates and returns to normal afterward.",
+            "\"Summer holidays\", from August 1 to 31."),
+        new("work-tracking", "Work tracking",
+            "Tracks the hours you work on a project or client and how much you earn. Designed for profiles " +
+            "WITHOUT a fixed schedule: you log hours day by day (or they're computed from the schedule) and " +
+            "Ritmo calculates the month's total, earnings and an end-of-month projection.",
+            "Freelancer at €20/h: log 6 h today → +€120 this month."),
+        new("work-project", "Project / client",
+            "A job whose hours and earnings you track, with its rate, goal and color. It's independent of focus " +
+            "environments (a project may have nothing to do with your focus).",
+            "\"Ice cream shop\", \"Client A\", \"Juan's app\"."),
+        new("work-rate", "Hourly rate",
+            "What you charge per hour on this project. Used to calculate how much you've earned from the logged " +
+            "hours. Leave it at 0 if you only want to count hours, no money.",
+            "€25/h → 6 h worked = €150."),
+        new("work-goal", "Goal (h/month)",
+            "Your monthly hours target for this project. Ritmo shows the % progress and draws the goal line on " +
+            "the chart. Leave it at 0 if you don't want a goal.",
+            "120 h/month: if you've done 60, you're at 50%."),
+        new("work-auto", "Compute hours from the schedule",
+            "If enabled, schedule sessions LINKED to this project add their hours automatically on the days they " +
+            "fall, without you logging anything. If you turn it off, only the hours you log manually count.",
+            "You link your 4-h Monday shift → each Monday adds 4 h automatically."),
+        new("work-link", "Project (session link)",
+            "Links this schedule session to a work-tracking project. If the project computes from the schedule, " +
+            "this session's hours are counted automatically on the days it falls.",
+            "The \"Evening shift\" block linked to \"Ice cream shop\"."),
+        new("session-exception", "Not done / partial",
+            "Marks that a session was NOT done, or done only partially, on a specific day or range. \"Not done\" " +
+            "counts no hours and shows struck through; \"partial\" counts only the real hours you indicate.",
+            "Today I left 2 h early → mark \"partial, 2 h\". Holiday → \"not done\"."),
+    ];
+
+    /// <summary>Glosario en el idioma dado ("en" = inglés; cualquier otro = español).</summary>
+    public static System.Collections.Generic.IReadOnlyList<GlossaryEntry> For(string? lang) =>
+        string.Equals(lang, "en", System.StringComparison.OrdinalIgnoreCase) ? EntriesEn : Entries;
+
+    /// <summary>Busca una entrada por su clave en español (o null si no existe).</summary>
     public static GlossaryEntry? Find(string key)
         => System.Linq.Enumerable.FirstOrDefault(Entries, e => e.Key == key);
+
+    /// <summary>Busca una entrada por su clave en el idioma dado (o null si no existe). #48</summary>
+    public static GlossaryEntry? Find(string key, string? lang)
+        => System.Linq.Enumerable.FirstOrDefault(For(lang), e => e.Key == key);
 }

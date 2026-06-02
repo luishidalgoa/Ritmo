@@ -33,7 +33,7 @@ public static class HelpHint
     /// <summary>Pone el tooltip de ayuda de una clave sobre cualquier elemento.</summary>
     public static void Attach(DependencyObject element, string key)
     {
-        var e = Glossary.Find(key);
+        var e = Glossary.Find(key, Loc.Lang);   // ayuda en el idioma elegido (#48)
         if (e is null) return;
         ToolTipService.SetToolTip(element, BuildTip(e));
     }
@@ -52,7 +52,7 @@ public static class HelpHint
 
         var panel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         panel.Children.Add(label);
-        if (Glossary.Find(key) is not null) panel.Children.Add(Icon(key));
+        if (Glossary.Find(key, Loc.Lang) is not null) panel.Children.Add(Icon(key));
         return panel;
     }
 

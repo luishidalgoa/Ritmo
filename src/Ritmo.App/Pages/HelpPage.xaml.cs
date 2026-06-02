@@ -18,7 +18,7 @@ public sealed partial class HelpPage : Page
     private void Build()
     {
         EntriesList.Children.Clear();
-        foreach (var e in Glossary.Entries)
+        foreach (var e in Glossary.For(Ritmo_App.Services.Loc.Lang))   // #48 i18n
         {
             var stack = new StackPanel { Spacing = 4 };
             stack.Children.Add(new TextBlock { Text = e.Term, FontSize = 16, FontWeight = FontWeights.SemiBold });

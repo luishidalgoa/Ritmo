@@ -44,4 +44,40 @@ public class GlossaryTests
     [Fact]
     public void Find_desconocida_da_null()
         => Assert.Null(Glossary.Find("no-existe"));
+
+    // ---------- i18n (#48): el inglés debe cubrir EXACTAMENTE las mismas claves ----------
+
+    [Fact]
+    public void Ingles_cubre_las_mismas_claves_que_espanol()
+    {
+        var es = Glossary.Entries.Select(e => e.Key).OrderBy(k => k).ToList();
+        var en = Glossary.EntriesEn.Select(e => e.Key).OrderBy(k => k).ToList();
+        Assert.Equal(es, en);
+    }
+
+    [Fact]
+    public void Toda_entrada_en_ingles_tiene_termino_y_descripcion()
+        => Assert.All(Glossary.EntriesEn, e =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(e.Term));
+            Assert.False(string.IsNullOrWhiteSpace(e.Description));
+        });
+
+    [Fact]
+    public void For_en_devuelve_el_glosario_ingles_y_es_el_espanol()
+    {
+        Assert.Same(Glossary.EntriesEn, Glossary.For("en"));
+        Assert.Same(Glossary.Entries, Glossary.For("es"));
+        Assert.Same(Glossary.Entries, Glossary.For("system"));   // por defecto, español
+    }
+
+    [Fact]
+    public void Find_con_idioma_ingles_devuelve_el_termino_traducido()
+    {
+        var es = Glossary.Find("pomodoro", "es");
+        var en = Glossary.Find("pomodoro", "en");
+        Assert.NotNull(es);
+        Assert.NotNull(en);
+        Assert.NotEqual(es!.Description, en!.Description);   // están traducidas
+    }
 }
