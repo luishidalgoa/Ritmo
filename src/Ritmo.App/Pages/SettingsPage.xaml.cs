@@ -1068,8 +1068,8 @@ public sealed partial class SettingsPage : Page
         var r1 = AppState.Config.SetPomodoro(
             Val(FocusBox, 50), Val(ShortBox, 10), Val(LongBox, 20), Val(CyclesBox, 2));
 
-        var start = TimeOnly.FromTimeSpan(DayStartPicker.Time);
-        var end = TimeOnly.FromTimeSpan(DayEndPicker.Time);
+        var start = TimeOnly.FromTimeSpan(DayStartPicker.SelectedTime ?? DayStartPicker.Time);
+        var end = TimeOnly.FromTimeSpan(DayEndPicker.SelectedTime ?? DayEndPicker.Time);
         var r2 = AppState.Config.SetViewHours(start, end);
 
         int gran = (GranularityBox.SelectedItem is ComboBoxItem gi && gi.Tag is string gt && int.TryParse(gt, out var gm)) ? gm : 60;

@@ -33,12 +33,14 @@ public sealed partial class SessionDialog : ContentDialog
 
         // La hora de fin nunca puede ser ≤ inicio (#150): se autocorrige al seleccionar.
         Ritmo_App.Services.TimeRangeGuard.Attach(StartPicker, EndPicker);
-        StartPicker.TimeChanged += (_, _) => TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
-        EndPicker.TimeChanged += (_, _) => TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+        StartPicker.SelectedTimeChanged += (_, _) => TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+        EndPicker.SelectedTimeChanged += (_, _) => TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
         // Red de seguridad por si se cargaran datos antiguos inválidos: no deja guardar fin ≤ inicio.
         PrimaryButtonClick += (_, args) =>
         {
-            if (EndPicker.Time <= StartPicker.Time)
+            var start = StartPicker.SelectedTime ?? StartPicker.Time;
+            var end = EndPicker.SelectedTime ?? EndPicker.Time;
+            if (end <= start)
             {
                 TimeError.Text = "La hora de fin debe ser posterior a la de inicio.";
                 TimeError.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
@@ -259,8 +261,8 @@ public sealed partial class SessionDialog : ContentDialog
     /// <summary>Construye la sesión para un día concreto (inicio+fin → duración).</summary>
     public StudySession ToSession(DayOfWeek day)
     {
-        var start = TimeOnly.FromTimeSpan(StartPicker.Time);
-        var end = TimeOnly.FromTimeSpan(EndPicker.Time);
+        var start = TimeOnly.FromTimeSpan(StartPicker.SelectedTime ?? StartPicker.Time);
+        var end = TimeOnly.FromTimeSpan(EndPicker.SelectedTime ?? EndPicker.Time);
         var duration = ScheduleMath.DurationBetween(start, end);
 
         var categoryId = (KindBox.SelectedItem as ComboBoxItem)?.Tag as string;
