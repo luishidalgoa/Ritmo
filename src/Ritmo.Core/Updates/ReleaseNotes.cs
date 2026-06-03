@@ -113,6 +113,18 @@ public static class ReleaseNotes
                 "Nueva pestaña «Hecho por» con quién hay detrás de Ritmo.",
             ]
         },
+        new ReleaseNote
+        {
+            Version = "1.1.2.0",
+            Title = "Descansos que se notan",
+            Emoji = "☕",
+            Highlights =
+            [
+                "Los descansos del Pomodoro ahora AVISAN: un sonido al entrar en descanso y otro al volver a concentrarte. Antes pasaban en silencio.",
+                "En la isla flotante, durante el descanso aparece una taza de café animada (en lugar de la hora); al reanudar, vuelve la hora.",
+                "Concentrarte ya no crea un escritorio virtual nuevo cada vez: Ritmo usa uno solo llamado «Ritmo» y lo reutiliza. Al terminar, vuelves a tu escritorio de siempre.",
+            ]
+        },
     ];
 
     /// <summary>Novedades en inglés (#48 i18n). Mismas versiones/emojis que <see cref="All"/>, traducidas.</summary>
@@ -200,6 +212,18 @@ public static class ReleaseNotes
                 "Notes shortcut from the navbar, grouped by today / general / other.",
                 "Settings reorganized by topic (Your plan · Focus · Connections · Notes · The app), easier to skim.",
                 "New \"Made by\" tab showing who's behind Ritmo.",
+            ]
+        },
+        new ReleaseNote
+        {
+            Version = "1.1.2.0",
+            Title = "Breaks you'll notice",
+            Emoji = "☕",
+            Highlights =
+            [
+                "Pomodoro breaks now ALERT you: a sound when a break starts and another when focus resumes. They used to pass silently.",
+                "On the floating island, an animated coffee cup appears during the break (instead of the clock); the time returns when you resume.",
+                "Focusing no longer creates a new virtual desktop every time: Ritmo uses a single one named «Ritmo» and reuses it. When you finish, you return to your usual desktop.",
             ]
         },
     ];

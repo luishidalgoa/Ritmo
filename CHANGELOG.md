@@ -212,6 +212,20 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — Release v1.1.2
+
+- **Pomodoro: los descansos avisan (chime + café en la isla).** Los cambios de fase pasaban en
+  silencio; ahora suena un chime descendente al ENTRAR en descanso y otro ascendente al REANUDAR
+  (WAVs empaquetados, WinRT MediaPlayer). En la isla, durante el descanso una taza de café animada
+  sustituye a la hora (modo normal y compacto); al reanudar vuelve la hora.
+- **#110b — Un único escritorio «Ritmo» reutilizable.** Antes cada concentración creaba un escritorio
+  virtual NUEVO (se acumulaban) y al terminar cerraba el actual (podía ser el equivocado). Ahora se
+  crea/reutiliza uno llamado «Ritmo» (detectado por nombre en el registro de escritorios virtuales o
+  por GUID recordado en `~/.ritmo/focus-desktop.txt`); al terminar se vuelve al escritorio de origen
+  sin cerrar «Ritmo». El manifiesto desactiva la virtualización de escritura de registro
+  (`desktop6:RegistryWriteVirtualization` + capacidad `unvirtualizedResources`) para que el nombre se
+  vea en la Vista de tareas.
+
 ### 2026-06-03 — Release v1.1.1
 
 - **«Hecho por»: foto real del autor.** La tarjeta de autor usa la foto del portfolio
