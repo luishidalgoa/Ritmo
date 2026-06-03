@@ -212,6 +212,18 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — Release v1.2.4
+
+- **Fix tutorial: el recorte (spotlight) no aparecía sobre «Nuevo entorno».** El paso dibujaba el
+  recorte antes de que el botón estuviera medido (panel recién construido) → caía en oscurecido
+  completo sin hueco y no se recalculaba (no señalaba dónde pulsar y tapaba el botón). Ahora el overlay
+  se reposiciona en cada pasada de layout (`LayoutUpdated`) con guard anti-bucle hasta estabilizar.
+- **Fix auto-update: el respaldo ya no descarga un fichero.** Cuando la vía silenciosa
+  (`PackageManager`) falla, en vez de abrir el `.appinstaller` en el navegador (que lo descargaba), se
+  usa el protocolo `ms-appinstaller:` (App Installer directo, sin fichero). Además se registra el motivo
+  del fallo en `%USERPROFILE%\.ritmo\update-error.log` para diagnosticar por qué la vía silenciosa no
+  aplica en sideloads con firma Developer.
+
 ### 2026-06-03 — Release v1.2.3 (prueba de auto-update)
 
 - **Release de prueba** para verificar el auto-update silencioso (1.2.1/1.2.2) de 1.2.2 → 1.2.3: mismo

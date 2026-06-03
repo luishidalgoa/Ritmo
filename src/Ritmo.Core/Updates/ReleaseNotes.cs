@@ -157,16 +157,6 @@ public static class ReleaseNotes
                 "Ritmo ahora se actualiza solo en segundo plano al abrirlo: descarga la versión nueva sin abrir el instalador ni pedir botones, y la aplica al reabrir. Adiós a «Comprobar» e «Instalar ahora».",
             ]
         },
-        new ReleaseNote
-        {
-            Version = "1.2.3.0",
-            Title = "Auto-update silencioso: ¡funciona!",
-            Emoji = "✅",
-            Highlights =
-            [
-                "Si estás leyendo esto, Ritmo se ha actualizado SOLO (descarga interna + reinicio) sin que abrieras ningún fichero ni App Installer. Justo lo que queríamos. (Release de prueba del auto-update.)",
-            ]
-        },
     ];
 
     /// <summary>Novedades en inglés (#48 i18n). Mismas versiones/emojis que <see cref="All"/>, traducidas.</summary>
@@ -298,16 +288,6 @@ public static class ReleaseNotes
             Highlights =
             [
                 "Ritmo now updates itself in the background when you open it: it downloads the new version without opening the installer or asking for buttons, and applies it on reopen. No more «Check» and «Install now».",
-            ]
-        },
-        new ReleaseNote
-        {
-            Version = "1.2.3.0",
-            Title = "Silent auto-update: it works!",
-            Emoji = "✅",
-            Highlights =
-            [
-                "If you're reading this, Ritmo updated ITSELF (internal download + restart) without you opening any file or App Installer. Exactly what we wanted. (Auto-update test release.)",
             ]
         },
     ];

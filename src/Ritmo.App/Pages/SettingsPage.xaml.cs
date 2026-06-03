@@ -1315,12 +1315,13 @@ public sealed partial class SettingsPage : Page
                 Microsoft.Windows.AppLifecycle.AppInstance.Restart("");
                 return;   // Restart no retorna
             }
-            // Respaldo: abrir el instalador a mano (si la vía silenciosa falló).
-            var target = !string.IsNullOrWhiteSpace(_pendingUpdate.AppInstallerUrl)
-                ? _pendingUpdate.AppInstallerUrl!
-                : _pendingUpdate.Url;
+            // Respaldo (la vía silenciosa falló): abrir App Installer SIN descargar un fichero al
+            // navegador, vía el protocolo ms-appinstaller. Si no hay appinstaller, abrir la página.
             UpdateStatus.Text = L("Abriendo el instalador…", "Opening the installer…");
-            await Windows.System.Launcher.LaunchUriAsync(new Uri(target));
+            var target = !string.IsNullOrWhiteSpace(_pendingUpdate.AppInstallerUrl)
+                ? new Uri("ms-appinstaller:?source=" + Uri.EscapeDataString(_pendingUpdate.AppInstallerUrl!))
+                : new Uri(_pendingUpdate.Url);
+            await Windows.System.Launcher.LaunchUriAsync(target);
         }
         catch { UpdateStatus.Text = L("⚠ No se pudo actualizar.", "⚠ Couldn't update."); }
         finally { InstallUpdateBtn.IsEnabled = true; }

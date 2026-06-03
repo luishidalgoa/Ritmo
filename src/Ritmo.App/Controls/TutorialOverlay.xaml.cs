@@ -23,12 +23,21 @@ public sealed partial class TutorialOverlay : UserControl
     /// <summary>El usuario quiere abandonar TODO el tutorial.</summary>
     public event EventHandler? SkipAll;
 
+    // Último estado aplicado (guard anti-bucle de layout): evita re-pintar —y re-disparar
+    // LayoutUpdated en cascada— cuando el recorte no ha cambiado.
+    private bool _applied;
+    private bool _appliedFull;
+    private double _ax, _ay, _aw, _ah;
+
     public TutorialOverlay()
     {
         InitializeComponent();
         SkipStepBtn.Content = Loc.Pick("Saltar paso", "Skip step");
         SkipAllBtn.Content = Loc.Pick("Saltar tutorial", "Skip tutorial");
         SizeChanged += (_, _) => Reposition();
+        // El objetivo puede no estar medido al abrir el spotlight (panel recién construido): recalcula
+        // en cada pasada de layout hasta que el hueco se estabiliza (con el guard anti-bucle de arriba).
+        LayoutUpdated += (_, _) => Reposition();
     }
 
     /// <summary>
@@ -40,6 +49,7 @@ public sealed partial class TutorialOverlay : UserControl
                         string? nextLabel = null, bool requiresAction = false)
     {
         _target = null;
+        _applied = false;
         SetCard(badge, title, body, requiresAction, optional);
         NextBtn.Content = nextLabel ?? Loc.Pick("Siguiente", "Next");
         Visibility = Visibility.Visible;
@@ -55,10 +65,12 @@ public sealed partial class TutorialOverlay : UserControl
                           bool requiresAction, bool optional = false)
     {
         _target = target;
+        _applied = false;
         SetCard(badge, title, body, requiresAction, optional);
         NextBtn.Content = Loc.Pick("Siguiente", "Next");
         Visibility = Visibility.Visible;
         Reposition();
+        DispatcherQueue?.TryEnqueue(Reposition);   // reintento tras el layout (objetivo recién creado)
     }
 
     public void Hide()
@@ -87,12 +99,7 @@ public sealed partial class TutorialOverlay : UserControl
         // Sin objetivo (o aún sin medir): oscurecido completo, tarjeta centrada.
         if (_target is null || _target.ActualWidth <= 0 || _target.ActualHeight <= 0)
         {
-            Place(BandTop, 0, 0, w, h);
-            Place(BandBottom, 0, 0, 0, 0);
-            Place(BandLeft, 0, 0, 0, 0);
-            Place(BandRight, 0, 0, 0, 0);
-            Ring.Visibility = Visibility.Collapsed;
-            Card.VerticalAlignment = VerticalAlignment.Center;
+            ApplyFull(w, h);
             return;
         }
 
@@ -115,13 +122,33 @@ public sealed partial class TutorialOverlay : UserControl
         if (hx + hw > w) hw = w - hx;
         if (hy + hh > h) hh = h - hy;
 
-        // 4 bandas alrededor del hueco.
+        ApplyHole(hx, hy, hw, hh, w, h);
+    }
+
+    /// <summary>Oscurecido completo (sin hueco). Solo repinta si cambió (evita bucle de LayoutUpdated).</summary>
+    private void ApplyFull(double w, double h)
+    {
+        if (_applied && _appliedFull && Same(_aw, w) && Same(_ah, h)) return;
+        _applied = true; _appliedFull = true; _aw = w; _ah = h;
+        Place(BandTop, 0, 0, w, h);
+        Place(BandBottom, 0, 0, 0, 0);
+        Place(BandLeft, 0, 0, 0, 0);
+        Place(BandRight, 0, 0, 0, 0);
+        Ring.Visibility = Visibility.Collapsed;
+        Card.VerticalAlignment = VerticalAlignment.Center;
+    }
+
+    /// <summary>4 bandas + anillo alrededor del hueco. Solo repinta si cambió (evita bucle de LayoutUpdated).</summary>
+    private void ApplyHole(double hx, double hy, double hw, double hh, double w, double h)
+    {
+        if (_applied && !_appliedFull && Same(_ax, hx) && Same(_ay, hy) && Same(_aw, hw) && Same(_ah, hh)) return;
+        _applied = true; _appliedFull = false; _ax = hx; _ay = hy; _aw = hw; _ah = hh;
+
         Place(BandTop, 0, 0, w, hy);
         Place(BandBottom, 0, hy + hh, w, h - (hy + hh));
         Place(BandLeft, 0, hy, hx, hh);
         Place(BandRight, hx + hw, hy, w - (hx + hw), hh);
 
-        // Anillo resaltando el hueco.
         Ring.Visibility = Visibility.Visible;
         Canvas.SetLeft(Ring, hx);
         Canvas.SetTop(Ring, hy);
@@ -131,6 +158,8 @@ public sealed partial class TutorialOverlay : UserControl
         // Tarjeta en la mitad opuesta al hueco para no taparlo.
         Card.VerticalAlignment = (hy + hh / 2 < h / 2) ? VerticalAlignment.Bottom : VerticalAlignment.Top;
     }
+
+    private static bool Same(double a, double b) => System.Math.Abs(a - b) < 0.5;
 
     private static void Place(Rectangle r, double left, double top, double width, double height)
     {

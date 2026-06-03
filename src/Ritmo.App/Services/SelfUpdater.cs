@@ -35,11 +35,33 @@ internal static class SelfUpdater
                 AddPackageByAppInstallerOptions.None,
                 targetVolume: null);
 
-            return result is null || string.IsNullOrEmpty(result.ErrorText);
+            if (result is not null && !string.IsNullOrEmpty(result.ErrorText))
+            {
+                Log($"deploy-error hr=0x{result.ExtendedErrorCode?.HResult:X8} : {result.ErrorText}");
+                return false;
+            }
+            Log("ok: actualizacion preparada");
+            return true;
         }
-        catch
+        catch (Exception ex)
         {
+            Log($"exception {ex.GetType().Name} hr=0x{ex.HResult:X8} : {ex.Message}");
             return false;   // best-effort: queda el botón manual de Ajustes
         }
+    }
+
+    /// <summary>
+    /// Apunta el motivo del fallo/éxito del auto-update a %USERPROFILE%\.ritmo\update-error.log,
+    /// para diagnosticar por qué la vía silenciosa no aplica en algunas instalaciones. Best-effort.
+    /// </summary>
+    private static void Log(string msg)
+    {
+        try
+        {
+            var path = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ritmo", "update-error.log");
+            System.IO.File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} v{AppVersionInfo.Current} {msg}{Environment.NewLine}");
+        }
+        catch { /* best-effort */ }
     }
 }
