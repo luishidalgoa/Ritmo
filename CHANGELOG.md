@@ -212,6 +212,13 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — Release v1.2.2
+
+- **El botón «Instalar ahora» reinicia la app ya actualizada (#updates).** Completa el self-update de
+  1.2.1: tras descargar internamente la versión nueva (sin App Installer ni fichero), la app **se
+  reinicia a sí misma** vía `Microsoft.Windows.AppLifecycle.AppInstance.Restart`, volviendo ya
+  actualizada. El auto-update de fondo al arrancar sigue aplicándose al siguiente arranque natural.
+
 ### 2026-06-03 — Release v1.2.1
 
 - **Auto-update silencioso de verdad (#updates).** Ritmo se actualiza **a sí mismo** al abrirlo, vía

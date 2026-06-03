@@ -1303,17 +1303,19 @@ public sealed partial class SettingsPage : Page
     {
         if (_pendingUpdate is null) return;
         InstallUpdateBtn.IsEnabled = false;
-        UpdateStatus.Text = L("Actualizando en segundo plano…", "Updating in the background…");
+        UpdateStatus.Text = L("Descargando la actualización…", "Downloading the update…");
         try
         {
             if (await Services.SelfUpdater.TryUpdateAsync())
             {
-                UpdateStatus.Text = L("✓ Actualización lista. Se aplicará al reabrir Ritmo.",
-                                      "✓ Update ready. It will apply when you reopen Ritmo.");
-                InstallUpdateBtn.Visibility = Visibility.Collapsed;
-                return;
+                // Reinicio interno: la app se cierra y vuelve a abrir YA actualizada (sin App Installer).
+                UpdateStatus.Text = L("✓ Lista. Reiniciando Ritmo ya actualizado…",
+                                      "✓ Ready. Restarting Ritmo already updated…");
+                await System.Threading.Tasks.Task.Delay(900);
+                Microsoft.Windows.AppLifecycle.AppInstance.Restart("");
+                return;   // Restart no retorna
             }
-            // Respaldo: abrir el instalador a mano.
+            // Respaldo: abrir el instalador a mano (si la vía silenciosa falló).
             var target = !string.IsNullOrWhiteSpace(_pendingUpdate.AppInstallerUrl)
                 ? _pendingUpdate.AppInstallerUrl!
                 : _pendingUpdate.Url;
