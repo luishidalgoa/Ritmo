@@ -94,3 +94,18 @@ public sealed class JsonSettingsStore : ISettingsStore
             File.Move(tmp, FilePath);
     }
 }
+
+/// <summary>
+/// Almacén EN MEMORIA: no toca el disco. Lo usa el "modo demo" del tutorial de
+/// primer arranque, donde el usuario crea un horario de ejemplo SIN ensuciar ni
+/// modificar su settings.json real. Se siembra con un estado inicial y a partir
+/// de ahí guarda/carga en RAM. Al salir de la demo se descarta (o se vuelca al
+/// store real si el usuario decide conservar el plan).
+/// </summary>
+public sealed class InMemorySettingsStore : ISettingsStore
+{
+    private AppSettings _current;
+    public InMemorySettingsStore(AppSettings seed) => _current = seed;
+    public AppSettings Load() => _current;
+    public void Save(AppSettings settings) => _current = settings;
+}

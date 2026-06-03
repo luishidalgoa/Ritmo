@@ -11,8 +11,9 @@ namespace Ritmo_App.Services;
 /// </summary>
 public static class AppState
 {
-    // Decorador que avisa tras cada guardado (#128): re-planificar avisos, refrescos…
-    private static readonly ChangeNotifyingStore _store = new(JsonSettingsStore.Default());
+    // Store redirigible: notifica tras cada guardado (#128) y permite desviar todas las
+    // lecturas/escrituras a una copia EN MEMORIA durante el "modo demo" del tutorial.
+    private static readonly RedirectableStore _store = new(JsonSettingsStore.Default());
 
     public static ISettingsStore Store => _store;
     public static ConfigurationService Config { get; } = new(_store);
@@ -38,15 +39,63 @@ public static class AppState
     /// </summary>
     public static bool IsFirstRun() => !_store.Load().OnboardingCompleted;
 
-    /// <summary>Store que reenvía a otro y notifica tras guardar (patrón decorador). #128</summary>
-    private sealed class ChangeNotifyingStore(ISettingsStore inner) : ISettingsStore
+    /// <summary>¿Estamos dentro del "modo demo" del tutorial? (nada se persiste a disco).</summary>
+    public static bool IsDemo => _store.IsDemo;
+
+    /// <summary>
+    /// Entra en "modo demo": a partir de aquí TODA lectura/escritura va a una copia EN
+    /// MEMORIA, sembrada con el estado actual. El settings.json del disco NO se toca. Lo
+    /// usa el tutorial de primer arranque para que el usuario "monte" un horario de ejemplo
+    /// sin ensuciar ni cambiar su configuración real. Idempotente.
+    /// </summary>
+    public static void BeginDemo()
     {
+        if (_store.IsDemo) return;
+        _store.EnterDemo(new InMemorySettingsStore(_store.Load()));
+    }
+
+    /// <summary>
+    /// Sale del "modo demo". Si <paramref name="persist"/> es true, vuelca el estado de la
+    /// demo al disco REAL (es el plan inicial del usuario nuevo). Si es false, lo DESCARTA y
+    /// el disco queda EXACTAMENTE como estaba. En ambos casos dispara SettingsChanged para
+    /// que la UI recargue del store real.
+    /// </summary>
+    public static void EndDemo(bool persist) => _store.ExitDemo(persist);
+
+    /// <summary>
+    /// Store que reenvía a un destino y notifica tras guardar (#128). El destino activo es
+    /// el real (disco) salvo durante el modo demo, en el que apunta a uno en memoria.
+    /// </summary>
+    private sealed class RedirectableStore(ISettingsStore real) : ISettingsStore
+    {
+        private readonly ISettingsStore _real = real;
+        private ISettingsStore? _demo;
+
         public event Action? Saved;
-        public AppSettings Load() => inner.Load();
+
+        public bool IsDemo => _demo is not null;
+        private ISettingsStore Active => _demo ?? _real;
+
+        public AppSettings Load() => Active.Load();
+
         public void Save(AppSettings settings)
         {
-            inner.Save(settings);
+            Active.Save(settings);
             Saved?.Invoke();
+        }
+
+        public void EnterDemo(ISettingsStore demo)
+        {
+            _demo = demo;
+            Saved?.Invoke();   // la UI recarga ya desde la copia en memoria
+        }
+
+        public void ExitDemo(bool persist)
+        {
+            if (_demo is not null && persist)
+                _real.Save(_demo.Load());   // conservar: vuelca la demo al disco real
+            _demo = null;
+            Saved?.Invoke();                // la UI recarga desde el store real
         }
     }
 }

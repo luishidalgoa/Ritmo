@@ -212,6 +212,21 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — Release v1.2.0 «Empieza con buen pie»
+
+- **Tutorial guiado de primer arranque (#tutorial).** La primera vez que se abre Ritmo, un tutorial
+  interactivo estilo «coach mark» (oscurece la pantalla y deja un recorte sobre el control correcto)
+  lleva al usuario paso a paso: crear un entorno, una fase y sesiones, e iniciar la isla de
+  concentración para tomar una nota y salir. Reemplaza al selector de plantillas. Corre en **modo demo**
+  (no escribe en `settings.json`); al terminar ofrece conservar lo creado como plan inicial. Saltable
+  con confirmación. Pieza nueva: capa `TutorialOverlay` + `TutorialController` + guion en
+  `MainWindow.Tutorial.cs`, sobre un store redirigible (`AppState.BeginDemo/EndDemo`).
+- **Auto-update cada ~8 h en segundo plano.** El `.appinstaller` pasa de comprobar en cada arranque
+  (`HoursBetweenUpdateChecks=0`) a cada 8 h + `AutomaticBackgroundTask` (Windows comprueba/descarga
+  aunque la app esté cerrada).
+- **Distribución más clara**: el método manual (MSIX) se empaqueta en `Ritmo-MSIX.zip` (msix + cert +
+  appinstaller + LEEME) y la release distingue `RitmoSetup.exe` (fácil) de `Ritmo-MSIX.zip` (manual).
+
 ### 2026-06-03 — Release v1.1.4
 
 - **Distribución: instalador `.exe` (`RitmoSetup.exe`).** Además del MSIX/`.appinstaller`, cada release

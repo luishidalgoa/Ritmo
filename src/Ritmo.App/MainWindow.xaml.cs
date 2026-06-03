@@ -98,8 +98,14 @@ public sealed partial class MainWindow : Window
         RebuildEnvNavItems();
         UpdateWhatsNewBadge();   // "Novedades" se activa si la app se actualizó (#updates)
 
-        // Primer arranque (#83): onboarding neutral con plantillas. Ya no se siembra TAI.
-        if (AppState.IsFirstRun()) _ = RunOnboarding();
+        // Primer arranque (#tutorial): tutorial guiado interactivo (reemplaza al selector de plantillas).
+        // Corre en modo demo y, al final, ofrece conservar lo creado como plan inicial.
+        if (AppState.IsFirstRun()) _ = RunTutorial(firstRun: true);
+        // Verificación manual: forzar el tutorial en modo demo (replay) si existe
+        // %USERPROFILE%\.ritmo\tutorial.flag — lo recorres sin que se persista NADA a tu config real.
+        else if (System.IO.File.Exists(System.IO.Path.Combine(
+            System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".ritmo", "tutorial.flag")))
+            _ = RunTutorial(firstRun: false);
     }
 
     /// <summary>
@@ -264,6 +270,9 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    /// <summary>#tutorial: referencia al botón "Nuevo entorno" del panel (se recrea en cada build).</summary>
+    internal Microsoft.UI.Xaml.Controls.Button? TutorialNewEnvBtn;
+
     /// <summary>
     /// Rellena el panel derecho con cada entorno, sus enlaces y tareas (#74/#77).
     /// Si se pasa <paramref name="focusEnvId"/>, solo ese queda expandido y se enfoca.
@@ -284,6 +293,7 @@ public sealed partial class MainWindow : Window
         };
         newBtn.Click += (_, _) => _ = NewEnvironment();
         WorkEnvPanel.Children.Add(newBtn);
+        TutorialNewEnvBtn = newBtn;   // #tutorial: handle para el recorte "Nuevo entorno"
 
         var envs = Services.AppState.Load().FocusEnvironments;
         if (envs.Count == 0)

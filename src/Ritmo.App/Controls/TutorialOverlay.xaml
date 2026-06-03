@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Ritmo_App.Controls.TutorialOverlay"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    IsTabStop="False"
+    mc:Ignorable="d">
+
+    <!-- Capa de tutorial "coach mark" (#tutorial): oscurece toda la ventana con 4 bandas
+         que se tragan el ratón, dejando un RECORTE (la zona del control objetivo) por el que
+         el clic SÍ pasa al control real. Una tarjeta de instrucción acompaña el recorte.
+         Root y Canvas con Background nulo a propósito: solo las bandas/tarjeta capturan el
+         puntero; el hueco queda libre y el clic llega al NavigationView de debajo. -->
+    <Grid x:Name="Root" Background="{x:Null}">
+        <Canvas x:Name="MaskCanvas" Background="{x:Null}">
+            <Rectangle x:Name="BandTop" Fill="#B8000000" />
+            <Rectangle x:Name="BandBottom" Fill="#B8000000" />
+            <Rectangle x:Name="BandLeft" Fill="#B8000000" />
+            <Rectangle x:Name="BandRight" Fill="#B8000000" />
+            <Border x:Name="Ring"
+                    BorderBrush="#FF8AB4F8" BorderThickness="2.5" CornerRadius="10"
+                    IsHitTestVisible="False" Visibility="Collapsed" />
+        </Canvas>
+
+        <Border x:Name="Card"
+                MaxWidth="380" CornerRadius="14" Padding="22"
+                HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="28"
+                Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <Border.Shadow>
+                <ThemeShadow />
+            </Border.Shadow>
+            <StackPanel Spacing="10">
+                <TextBlock x:Name="StepBadge" FontSize="12" FontWeight="SemiBold" Opacity="0.6" />
+                <TextBlock x:Name="CardTitle" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock x:Name="CardBody" Opacity="0.85" TextWrapping="Wrap" LineHeight="20" />
+                <Grid Margin="0,6,0,0" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="NextBtn" Grid.Column="0" Style="{ThemeResource AccentButtonStyle}"
+                            Click="NextBtn_Click" />
+                    <Button x:Name="SkipStepBtn" Grid.Column="1" Visibility="Collapsed"
+                            Click="SkipStepBtn_Click" />
+                    <HyperlinkButton x:Name="SkipAllBtn" Grid.Column="3" Click="SkipAllBtn_Click" />
+                </Grid>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

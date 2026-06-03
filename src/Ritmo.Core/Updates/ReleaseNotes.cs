@@ -136,6 +136,17 @@ public static class ReleaseNotes
                 "Al concentrarte, la isla flotante ahora aparece en el escritorio «Ritmo», junto a tu workspace, en vez de quedarse en el escritorio anterior.",
             ]
         },
+        new ReleaseNote
+        {
+            Version = "1.2.0.0",
+            Title = "Empieza con buen pie",
+            Emoji = "🎓",
+            Highlights =
+            [
+                "Tutorial guiado la primera vez que abres Ritmo: te lleva paso a paso a montar tu primer horario (entorno, fase y sesiones) y a usar la isla de concentración.",
+                "Las actualizaciones se comprueban e instalan solas en segundo plano (~cada 8 h), sin pedir red en cada arranque.",
+            ]
+        },
     ];
 
     /// <summary>Novedades en inglés (#48 i18n). Mismas versiones/emojis que <see cref="All"/>, traducidas.</summary>
@@ -246,6 +257,17 @@ public static class ReleaseNotes
             [
                 "From the island, the notes button opens an overlay to write WITHOUT leaving focus (before it sent you back to the app). Notes attach to the active session; if there's none, they're general.",
                 "When you focus, the floating island now appears on the «Ritmo» desktop, next to your workspace, instead of staying on the previous desktop.",
+            ]
+        },
+        new ReleaseNote
+        {
+            Version = "1.2.0.0",
+            Title = "Off to a good start",
+            Emoji = "🎓",
+            Highlights =
+            [
+                "Guided tutorial the first time you open Ritmo: it walks you through building your first schedule (environment, phase and sessions) and using the focus island.",
+                "Updates are now checked and installed automatically in the background (~every 8h), without hitting the network on every launch.",
             ]
         },
     ];
