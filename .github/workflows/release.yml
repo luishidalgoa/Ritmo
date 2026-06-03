@@ -110,6 +110,29 @@ jobs:
           # Quitar la indentación del here-string para que el XML sea válido.
           ($xml -split "`n" | ForEach-Object { $_.TrimStart() }) -join "`n" | Set-Content -Path (Join-Path $out "Ritmo.appinstaller") -Encoding utf8
 
+          # --- Método manual empaquetado: Ritmo-MSIX.zip (msix + cert + appinstaller + LEEME) ---
+          $leeme = @"
+          RITMO - Instalacion manual (MSIX con certificado)
+
+          Este paquete esta firmado con un certificado auto-firmado en el que Windows no confia
+          por defecto. Hay que confiar en el certificado UNA vez y luego instalar.
+
+          1) Confiar en el certificado (PowerShell como Administrador):
+               Import-Certificate -FilePath ".\Ritmo-signing.cer" -CertStoreLocation Cert:\LocalMachine\Root
+             (o doble clic en Ritmo-signing.cer -> Instalar certificado -> Equipo local ->
+              Entidades de certificacion raiz de confianza)
+
+          2) Instalar Ritmo:
+             Abre Ritmo.appinstaller (recomendado, con auto-update) o Ritmo-x64.msix.
+             Ahora el boton Instalar estara disponible.
+
+          Mas facil: usa RitmoSetup.exe de la misma release (hace todo esto de un doble clic).
+          "@
+          ($leeme -split "`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n" | Set-Content -Path (Join-Path $out "LEEME.txt") -Encoding utf8
+          Compress-Archive -Force -DestinationPath (Join-Path $out "Ritmo-MSIX.zip") -Path `
+            (Join-Path $out "Ritmo-x64.msix"), (Join-Path $out "Ritmo-signing.cer"), `
+            (Join-Path $out "Ritmo.appinstaller"), (Join-Path $out "LEEME.txt")
+
       - name: Construir instalador .exe (Inno Setup)
         # Aditivo y NO bloqueante: si falla, la release del MSIX/.appinstaller sale igual.
         continue-on-error: true
@@ -140,10 +163,26 @@ jobs:
           tag_name: ${{ github.event_name == 'push' && github.ref_name || format('v{0}', steps.ver.outputs.version) }}
           name: Ritmo v${{ steps.ver.outputs.version }}
           generate_release_notes: true
+          body: |
+            ## Cómo instalar Ritmo — elige **una** opción
+
+            ### 🟢 Opción 1 · `RitmoSetup.exe` (la más fácil)
+            Descarga **`RitmoSetup.exe`** y ejecútalo. De un doble clic confía en el certificado,
+            instala el runtime y registra la app.
+            > El `.exe` no va firmado → SmartScreen dirá «editor desconocido»: pulsa **Más información → Ejecutar de todas formas**.
+
+            ### 🔵 Opción 2 · `Ritmo-MSIX.zip` (manual, con certificado)
+            Descarga **`Ritmo-MSIX.zip`**, descomprímelo y sigue el `LEEME.txt`: confías en el
+            certificado una vez y abres el `.appinstaller`.
+
+            ---
+            Los ficheros sueltos (`Ritmo-x64.msix`, `Ritmo.appinstaller`, `Ritmo-signing.cer`) son los
+            **componentes y el canal de auto-actualización**; no hace falta descargarlos a mano. Si dudas, usa la **Opción 1**.
           # RitmoSetup.exe puede faltar si el paso anterior falló (continue-on-error);
           # action-gh-release omite los ficheros que no existen con un aviso, sin fallar.
           files: |
+            release/RitmoSetup.exe
+            release/Ritmo-MSIX.zip
             release/Ritmo-x64.msix
             release/Ritmo.appinstaller
             release/Ritmo-signing.cer
-            release/RitmoSetup.exe

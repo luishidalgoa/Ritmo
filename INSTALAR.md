@@ -14,27 +14,35 @@ registra la app.
 > todas formas**. (Para quitar TODOS los avisos haría falta publicar en la **Microsoft
 > Store** o firmar con **Azure Trusted Signing** — ver final del documento.)
 
-## Opción B — MSIX a mano
+## Opción B — `Ritmo-MSIX.zip` (manual, con certificado)
 
 Si prefieres el paquete MSIX directamente, en un equipo nuevo verás el error **0x800B010A**
 («No se pudo comprobar el certificado de publicador…») y el botón **Instalar**
 deshabilitado. Hay que **confiar una vez en el certificado** y luego instalar.
 
-## 1. Descarga los ficheros de la última versión
+## 1. Descarga **`Ritmo-MSIX.zip`** y descomprímelo
 
 Desde la página de releases:
 <https://github.com/luishidalgoa/Ritmo/releases/latest>
+
+Descarga **`Ritmo-MSIX.zip`** y extráelo en una carpeta. Dentro encontrarás todo lo
+necesario (y un `LEEME.txt` con estos mismos pasos):
 
 - `Ritmo-signing.cer` — el certificado **público** (no es secreto).
 - `Ritmo.appinstaller` — el instalador con auto-update (recomendado), **o**
 - `Ritmo-x64.msix` — el paquete suelto.
 
+> Los mismos ficheros están **sueltos** en la release para el canal de auto-actualización;
+> para instalar a mano usa el **ZIP**, que los trae juntos.
+
 ## 2. Confía en el certificado (una sola vez)
 
 ### Opción rápida — PowerShell **como Administrador**
 
+Desde la carpeta donde extrajiste el ZIP:
+
 ```powershell
-Import-Certificate -FilePath "$HOME\Downloads\Ritmo-signing.cer" -CertStoreLocation Cert:\LocalMachine\Root
+Import-Certificate -FilePath ".\Ritmo-signing.cer" -CertStoreLocation Cert:\LocalMachine\Root
 ```
 
 ### Opción con ratón
