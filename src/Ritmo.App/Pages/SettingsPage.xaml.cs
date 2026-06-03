@@ -1295,21 +1295,33 @@ public sealed partial class SettingsPage : Page
     }
 
     /// <summary>
-    /// Lanza la instalación de la versión nueva. Abre el .appinstaller con App Installer (que pide
-    /// confirmación y actualiza el paquete); si no hay asset, abre la página de la release.
+    /// Actualiza la app en SILENCIO (sin App Installer ni más botones): la prepara en segundo plano y
+    /// Windows la aplica al reabrir Ritmo. Si la vía silenciosa falla, cae al método clásico (abrir el
+    /// .appinstaller con App Installer) como respaldo.
     /// </summary>
     private async void InstallUpdateBtn_Click(object sender, RoutedEventArgs e)
     {
         if (_pendingUpdate is null) return;
-        var target = !string.IsNullOrWhiteSpace(_pendingUpdate.AppInstallerUrl)
-            ? _pendingUpdate.AppInstallerUrl!
-            : _pendingUpdate.Url;
+        InstallUpdateBtn.IsEnabled = false;
+        UpdateStatus.Text = L("Actualizando en segundo plano…", "Updating in the background…");
         try
         {
+            if (await Services.SelfUpdater.TryUpdateAsync())
+            {
+                UpdateStatus.Text = L("✓ Actualización lista. Se aplicará al reabrir Ritmo.",
+                                      "✓ Update ready. It will apply when you reopen Ritmo.");
+                InstallUpdateBtn.Visibility = Visibility.Collapsed;
+                return;
+            }
+            // Respaldo: abrir el instalador a mano.
+            var target = !string.IsNullOrWhiteSpace(_pendingUpdate.AppInstallerUrl)
+                ? _pendingUpdate.AppInstallerUrl!
+                : _pendingUpdate.Url;
             UpdateStatus.Text = L("Abriendo el instalador…", "Opening the installer…");
             await Windows.System.Launcher.LaunchUriAsync(new Uri(target));
         }
-        catch { UpdateStatus.Text = L("⚠ No se pudo abrir el instalador.", "⚠ Couldn't open the installer."); }
+        catch { UpdateStatus.Text = L("⚠ No se pudo actualizar.", "⚠ Couldn't update."); }
+        finally { InstallUpdateBtn.IsEnabled = true; }
     }
 
     /// <summary>Abre la guía visual (carrusel) de cómo conectar el móvil con el topic actual.</summary>

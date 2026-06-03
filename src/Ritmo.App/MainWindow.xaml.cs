@@ -106,6 +106,10 @@ public sealed partial class MainWindow : Window
         else if (System.IO.File.Exists(System.IO.Path.Combine(
             System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".ritmo", "tutorial.flag")))
             _ = RunTutorial(firstRun: false);
+
+        // Auto-update SILENCIOSO en segundo plano (#updates): si hay una versión nueva publicada, la app
+        // se actualiza sola (se aplica al reabrir). Best-effort; no bloquea el arranque ni pide botón.
+        _ = Services.SelfUpdater.TryUpdateAsync();
     }
 
     /// <summary>

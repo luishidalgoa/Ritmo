@@ -147,6 +147,16 @@ public static class ReleaseNotes
                 "Las actualizaciones se comprueban e instalan solas en segundo plano (~cada 8 h), sin pedir red en cada arranque.",
             ]
         },
+        new ReleaseNote
+        {
+            Version = "1.2.1.0",
+            Title = "Actualizaciones solas de verdad",
+            Emoji = "🔄",
+            Highlights =
+            [
+                "Ritmo ahora se actualiza solo en segundo plano al abrirlo: descarga la versión nueva sin abrir el instalador ni pedir botones, y la aplica al reabrir. Adiós a «Comprobar» e «Instalar ahora».",
+            ]
+        },
     ];
 
     /// <summary>Novedades en inglés (#48 i18n). Mismas versiones/emojis que <see cref="All"/>, traducidas.</summary>
@@ -268,6 +278,16 @@ public static class ReleaseNotes
             [
                 "Guided tutorial the first time you open Ritmo: it walks you through building your first schedule (environment, phase and sessions) and using the focus island.",
                 "Updates are now checked and installed automatically in the background (~every 8h), without hitting the network on every launch.",
+            ]
+        },
+        new ReleaseNote
+        {
+            Version = "1.2.1.0",
+            Title = "Updates that truly happen on their own",
+            Emoji = "🔄",
+            Highlights =
+            [
+                "Ritmo now updates itself in the background when you open it: it downloads the new version without opening the installer or asking for buttons, and applies it on reopen. No more «Check» and «Install now».",
             ]
         },
     ];

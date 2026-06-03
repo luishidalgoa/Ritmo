@@ -64,6 +64,9 @@
     <!-- Necesaria para RegistryWriteVirtualization=disabled: escribir el nombre del escritorio
          virtual «Ritmo» en el registro REAL (#110b). App full-trust/sideload. -->
     <rescap:Capability Name="unvirtualizedResources" />
+    <!-- Auto-update silencioso (#updates): la app se actualiza a sí misma vía PackageManager
+         (AddPackageByAppInstallerFileAsync) sin App Installer ni botón. App full-trust/sideload. -->
+    <rescap:Capability Name="packageManagement" />
     <systemai:Capability Name="systemAIModels"/>
   </Capabilities>
 </Package>

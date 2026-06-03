@@ -212,6 +212,16 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — Release v1.2.1
+
+- **Auto-update silencioso de verdad (#updates).** Ritmo se actualiza **a sí mismo** al abrirlo, vía
+  `PackageManager.AddPackageByAppInstallerFileAsync` (`Services/SelfUpdater.cs`): descarga/prepara la
+  versión nueva en segundo plano **sin abrir App Installer ni pedir botones** y la aplica al reabrir.
+  Funciona se haya instalado como se haya instalado (no depende del canal nativo del `.appinstaller`,
+  que solo se registra si se instaló abriendo el `.appinstaller`). Best-effort: si falla, queda el
+  botón manual de Ajustes como respaldo (que ahora también intenta la vía silenciosa primero).
+  Capability nueva `packageManagement` (rescap, sideload).
+
 ### 2026-06-03 — Release v1.2.0 «Empieza con buen pie»
 
 - **Tutorial guiado de primer arranque (#tutorial).** La primera vez que se abre Ritmo, un tutorial
