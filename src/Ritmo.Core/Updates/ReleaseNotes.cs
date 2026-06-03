@@ -125,6 +125,17 @@ public static class ReleaseNotes
                 "Concentrarte ya no crea un escritorio virtual nuevo cada vez: Ritmo usa uno solo llamado «Ritmo» y lo reutiliza. Al terminar, vuelves a tu escritorio de siempre.",
             ]
         },
+        new ReleaseNote
+        {
+            Version = "1.1.3.0",
+            Title = "Concentración más a mano",
+            Emoji = "📝",
+            Highlights =
+            [
+                "Desde la isla, el botón de notas abre un panel superpuesto para escribir SIN salir de la concentración (antes te devolvía a la app). Las notas se asocian a la sesión activa; si no hay ninguna, son generales.",
+                "Al concentrarte, la isla flotante ahora aparece en el escritorio «Ritmo», junto a tu workspace, en vez de quedarse en el escritorio anterior.",
+            ]
+        },
     ];
 
     /// <summary>Novedades en inglés (#48 i18n). Mismas versiones/emojis que <see cref="All"/>, traducidas.</summary>
@@ -224,6 +235,17 @@ public static class ReleaseNotes
                 "Pomodoro breaks now ALERT you: a sound when a break starts and another when focus resumes. They used to pass silently.",
                 "On the floating island, an animated coffee cup appears during the break (instead of the clock); the time returns when you resume.",
                 "Focusing no longer creates a new virtual desktop every time: Ritmo uses a single one named «Ritmo» and reuses it. When you finish, you return to your usual desktop.",
+            ]
+        },
+        new ReleaseNote
+        {
+            Version = "1.1.3.0",
+            Title = "Focus stays focused",
+            Emoji = "📝",
+            Highlights =
+            [
+                "From the island, the notes button opens an overlay to write WITHOUT leaving focus (before it sent you back to the app). Notes attach to the active session; if there's none, they're general.",
+                "When you focus, the floating island now appears on the «Ritmo» desktop, next to your workspace, instead of staying on the previous desktop.",
             ]
         },
     ];

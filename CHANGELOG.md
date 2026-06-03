@@ -212,6 +212,17 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — Release v1.1.3
+
+- **#153b — El atajo de notas de la isla abre un modal superpuesto (no rompe el foco).** Antes devolvía
+  a la app; ahora abre `IslandNotesWindow` (always-on-top) para ver/editar notas sin salir de la
+  concentración. Las notas nuevas se asocian a la sesión activa (por título); si no hay sesión, son
+  generales automáticamente.
+- **#110c — La isla viaja al escritorio «Ritmo».** Al concentrarse, la isla se quedaba en el escritorio
+  viejo (la API documentada `MoveWindowToDesktop` da E_ACCESSDENIED sobre la isla, que está fuera del
+  Alt+Tab). Como las ventanas nuevas nacen en el escritorio actual, ahora se RECREA la isla una vez ya
+  en «Ritmo», para que aparezca junto al workspace.
+
 ### 2026-06-03 — Release v1.1.2
 
 - **Pomodoro: los descansos avisan (chime + café en la isla).** Los cambios de fase pasaban en
