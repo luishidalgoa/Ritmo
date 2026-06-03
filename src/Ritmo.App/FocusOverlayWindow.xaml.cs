@@ -3,6 +3,8 @@ using System.Runtime.InteropServices;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Ritmo.Core.Persistence;
 using Ritmo_App.Services;
 using Windows.Graphics;
@@ -153,7 +155,7 @@ public sealed partial class FocusOverlayWindow : Window
 
     /// <summary>Refresca los textos/progreso (lo llama TimerPage en cada tick), en ambos modos.</summary>
     public void UpdateView(string clock, string date, string phaseLabel, string pomo,
-                           double progress, bool isRunning, bool canSkip)
+                           double progress, bool isRunning, bool canSkip, bool isBreak)
     {
         ClockText.Text = clock;
         CompactClock.Text = clock;
@@ -167,6 +169,62 @@ public sealed partial class FocusOverlayWindow : Window
         PauseIcon.Glyph = pauseGlyph;
         CompactPauseIcon.Glyph = pauseGlyph;
         SkipBtn.IsEnabled = canSkip;
+        SetBreak(isBreak);
+    }
+
+    // ---------- Café del descanso (#descansos): la taza animada sustituye a la hora ----------
+
+    private bool _onBreak;
+    private Storyboard? _coffeeSb;
+
+    /// <summary>Durante un descanso muestra la taza animada (en vez de la hora); al volver, la hora.</summary>
+    private void SetBreak(bool onBreak)
+    {
+        if (onBreak == _onBreak) return;
+        _onBreak = onBreak;
+
+        ClockText.Visibility = onBreak ? Visibility.Collapsed : Visibility.Visible;
+        NormalCoffee.Visibility = onBreak ? Visibility.Visible : Visibility.Collapsed;
+        CompactClock.Visibility = onBreak ? Visibility.Collapsed : Visibility.Visible;
+        CompactCoffee.Visibility = onBreak ? Visibility.Visible : Visibility.Collapsed;
+
+        if (onBreak) StartCoffee();
+        else StopCoffee();
+    }
+
+    private void StartCoffee()
+    {
+        StopCoffee();
+        _coffeeSb = new Storyboard();
+        // La taza "respira" (escala) y bobea suavemente, en ambos tamaños.
+        foreach (var cup in new[] { NormalCoffee, CompactCoffee })
+        {
+            AnimateTransform(_coffeeSb, cup, "ScaleX", 1.0, 1.07, 1.3);
+            AnimateTransform(_coffeeSb, cup, "ScaleY", 1.0, 1.07, 1.3);
+            AnimateTransform(_coffeeSb, cup, "TranslateY", 0, -5, 1.3);
+        }
+        _coffeeSb.Begin();
+    }
+
+    private void StopCoffee()
+    {
+        if (_coffeeSb is not null) { _coffeeSb.Stop(); _coffeeSb = null; }
+    }
+
+    private static void AnimateTransform(Storyboard sb, UIElement target, string prop, double from, double to, double seconds)
+    {
+        var anim = new DoubleAnimation
+        {
+            From = from,
+            To = to,
+            Duration = new Duration(TimeSpan.FromSeconds(seconds)),
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        Storyboard.SetTarget(anim, target);
+        Storyboard.SetTargetProperty(anim, $"(UIElement.RenderTransform).(CompositeTransform.{prop})");
+        sb.Children.Add(anim);
     }
 
     private void PauseBtn_Click(object sender, RoutedEventArgs e) => PauseResumeRequested?.Invoke();

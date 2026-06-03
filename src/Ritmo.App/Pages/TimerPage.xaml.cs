@@ -42,6 +42,7 @@ public sealed partial class TimerPage : Page
     // Isla flotante de concentración (#118).
     private FocusOverlayWindow? _overlay;
     private bool _compact;
+    private bool _wasBreak;   // para avisar (chime) al cambiar entre concentración y descanso (#descansos)
 
     /// <summary>
     /// Si otra pantalla (Hoy / Horario) pide "empezar ya", lo deja marcado aquí;
@@ -309,6 +310,16 @@ public sealed partial class TimerPage : Page
         var now = _clock.Now;
         _engine.Advance(now);
 
+        // Aviso de cambio de fase (#descansos): un chime al ENTRAR en descanso y otro al REANUDAR,
+        // para que el cambio (que antes pasaba en silencio) no se escape.
+        bool isBreak = _engine.Phase is PomodoroPhase.ShortBreak or PomodoroPhase.LongBreak;
+        if (_engine.Phase != PomodoroPhase.Idle && _engine.IsRunning)
+        {
+            if (isBreak && !_wasBreak) SoundAlerts.BreakStarted();
+            else if (!isBreak && _wasBreak) SoundAlerts.FocusResumed();
+        }
+        _wasBreak = _engine.Phase != PomodoroPhase.Idle && isBreak;
+
         var remaining = _engine.Remaining(now);
         TimeText.Text = $"{(int)remaining.TotalMinutes:00}:{remaining.Seconds:00}";
 
@@ -354,7 +365,8 @@ public sealed partial class TimerPage : Page
                 pomo: $"{(int)remaining.TotalMinutes:00}:{remaining.Seconds:00}",
                 progress: Math.Clamp(prog, 0.0, 1.0),
                 isRunning: running,
-                canSkip: !idle);
+                canSkip: !idle,
+                isBreak: isBreak);
         }
     }
 
