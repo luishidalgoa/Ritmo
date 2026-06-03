@@ -212,6 +212,16 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — Release v1.1.4
+
+- **Distribución: instalador `.exe` (`RitmoSetup.exe`).** Además del MSIX/`.appinstaller`, cada release
+  adjunta un instalador tradicional hecho con Inno Setup que, de un doble clic, confía en el certificado,
+  instala el runtime de Windows App SDK 2.1.3 y registra el paquete. (El `.exe` no va firmado → SmartScreen
+  avisa de «editor desconocido»; para quitar avisos del todo, Store o Azure Trusted Signing.) Paso del CI
+  no-bloqueante. Sin cambios en la app respecto a v1.1.3.
+- **Docs**: `INSTALAR.md` (cómo instalar + confiar en el cert, error 0x800B010A) y `docs/STORE.md` (guía de
+  publicación en la Microsoft Store).
+
 ### 2026-06-03 — Release v1.1.3
 
 - **#153b — El atajo de notas de la isla abre un modal superpuesto (no rompe el foco).** Antes devolvía
