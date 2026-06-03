@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Ritmo_App.Services;
 
@@ -36,6 +37,31 @@ public sealed partial class MainWindow
         return tut.SpotlightUntil(target, badge, title, body,
             subscribe: () => Nav.ItemInvoked += OnInvoked,
             unsubscribe: () => Nav.ItemInvoked -= OnInvoked);
+    }
+
+    /// <summary>
+    /// Paso de acción: si hay un control objetivo, lo RECORTA (spotlight, deja pulsarlo por el hueco);
+    /// si no se encontró (otra página), cae a un mensaje gated NO bloqueante. Avanza con la acción real.
+    /// </summary>
+    private Task<bool> ActionStepAsync(TutorialController tut, FrameworkElement? target, string badge,
+                                       string title, string body, Action subscribe, Action unsubscribe)
+        => target is not null
+            ? tut.SpotlightUntil(target, badge, title, body, subscribe, unsubscribe)
+            : tut.MessageUntil(badge, title, body, subscribe, unsubscribe);
+
+    /// <summary>
+    /// Espera (sondeo cada 50ms, ~2s) a que un control de OTRA página exista y esté medido tras navegar,
+    /// para poder recortarlo. Devuelve null si no aparece (el llamador cae a mensaje).
+    /// </summary>
+    private static async Task<FrameworkElement?> WaitForElementAsync(Func<FrameworkElement?> get, int tries = 40)
+    {
+        for (int i = 0; i < tries; i++)
+        {
+            var el = get();
+            if (el is not null && el.ActualWidth > 0 && el.ActualHeight > 0) return el;
+            await Task.Delay(50);
+        }
+        return get();
     }
 
     /// <summary>Busca un item del NavigationView por su Tag (menú principal o footer).</summary>
@@ -107,14 +133,15 @@ public sealed partial class MainWindow
                      "Phases live in Settings. Open it to create the first one.")))
             return false;
         {
+            var phaseBtn = await WaitForElementAsync(() => (ContentFrame.Content as SettingsPage)?.TutorialAddPhaseButton);
             int phaseBefore = AppState.Load().Plan.Phases.Count;
             void OnPhase() { if (AppState.Load().Plan.Phases.Count > phaseBefore) tut.SignalAction(); }
-            if (!await tut.MessageUntil(TutStep(6),
+            if (!await ActionStepAsync(tut, phaseBtn, TutStep(6),
                 Loc.Pick("Crea una fase", "Create a phase"),
-                Loc.Pick("En Ajustes › Fases, añade una fase: un tramo del curso con su horario (p. ej. «Trimestre 1»).",
-                         "In Settings › Phases, add a phase: a stretch of the term with its schedule (e.g. “Term 1”)."),
-                subscribe: () => AppState.SettingsChanged += OnPhase,
-                unsubscribe: () => AppState.SettingsChanged -= OnPhase))
+                Loc.Pick("Pulsa «Nueva fase» (arriba a la derecha): un tramo del curso con su horario (p. ej. «Trimestre 1»).",
+                         "Click “New phase” (top right): a stretch of the term with its schedule (e.g. “Term 1”)."),
+                () => AppState.SettingsChanged += OnPhase,
+                () => AppState.SettingsChanged -= OnPhase))
                 return false;
         }
 
@@ -125,14 +152,15 @@ public sealed partial class MainWindow
                      "Now let's place your study blocks on the weekly schedule.")))
             return false;
         {
+            var sessionBtn = await WaitForElementAsync(() => (ContentFrame.Content as SchedulePage)?.TutorialAddSessionButton);
             int before = SessionCount();
             void OnSession() { if (SessionCount() > before) tut.SignalAction(); }
-            if (!await tut.MessageUntil(TutStep(8),
+            if (!await ActionStepAsync(tut, sessionBtn, TutStep(8),
                 Loc.Pick("Añade una sesión", "Add a session"),
                 Loc.Pick("Pulsa «Añadir sesión», elige los días (L–V) y una hora (p. ej. 17:00–18:00) y guarda.",
                          "Click “Add session”, pick the days (Mon–Fri) and a time (e.g. 5–6pm) and save."),
-                subscribe: () => AppState.SettingsChanged += OnSession,
-                unsubscribe: () => AppState.SettingsChanged -= OnSession))
+                () => AppState.SettingsChanged += OnSession,
+                () => AppState.SettingsChanged -= OnSession))
                 return false;
         }
 

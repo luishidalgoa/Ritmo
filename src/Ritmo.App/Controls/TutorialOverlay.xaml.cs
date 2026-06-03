@@ -23,11 +23,21 @@ public sealed partial class TutorialOverlay : UserControl
     /// <summary>El usuario quiere abandonar TODO el tutorial.</summary>
     public event EventHandler? SkipAll;
 
-    // Último estado aplicado (guard anti-bucle de layout): evita re-pintar —y re-disparar
-    // LayoutUpdated en cascada— cuando el recorte no ha cambiado.
+    // Último estado aplicado (guard anti-bucle de layout): evita re-pintar cuando el recorte no ha
+    // cambiado (y con ello cortar el bucle de re-layout).
     private bool _applied;
     private bool _appliedFull;
     private double _ax, _ay, _aw, _ah;
+
+    // Re-posicionado durante ~700ms tras abrir un spotlight: cubre la ANIMACIÓN del panel lateral
+    // (el botón objetivo cambia de POSICIÓN, no de tamaño → SizeChanged no basta) y la medición tardía.
+    private DispatcherTimer? _settle;
+    private int _settleTicks;
+
+    // ¿El oscurecido COMPLETO (sin hueco) traga los clics? En pasos informativos sí (Siguiente en la
+    // tarjeta); en pasos gated por acción (p. ej. "crea una fase") NO, para que el usuario pueda pulsar
+    // el botón real. Alrededor de un hueco (spotlight) siempre se bloquea.
+    private bool _blockInput = true;
 
     public TutorialOverlay()
     {
@@ -35,9 +45,6 @@ public sealed partial class TutorialOverlay : UserControl
         SkipStepBtn.Content = Loc.Pick("Saltar paso", "Skip step");
         SkipAllBtn.Content = Loc.Pick("Saltar tutorial", "Skip tutorial");
         SizeChanged += (_, _) => Reposition();
-        // El objetivo puede no estar medido al abrir el spotlight (panel recién construido): recalcula
-        // en cada pasada de layout hasta que el hueco se estabiliza (con el guard anti-bucle de arriba).
-        LayoutUpdated += (_, _) => Reposition();
     }
 
     /// <summary>
@@ -48,8 +55,9 @@ public sealed partial class TutorialOverlay : UserControl
     public void Message(string badge, string title, string body, bool optional = false,
                         string? nextLabel = null, bool requiresAction = false)
     {
-        _target = null;
+        SetTarget(null);
         _applied = false;
+        _blockInput = !requiresAction;   // gated (sin Siguiente) → no bloquear: deja pulsar el botón real
         SetCard(badge, title, body, requiresAction, optional);
         NextBtn.Content = nextLabel ?? Loc.Pick("Siguiente", "Next");
         Visibility = Visibility.Visible;
@@ -64,20 +72,56 @@ public sealed partial class TutorialOverlay : UserControl
     public void Spotlight(FrameworkElement target, string badge, string title, string body,
                           bool requiresAction, bool optional = false)
     {
-        _target = target;
+        SetTarget(target);
         _applied = false;
+        _blockInput = true;   // spotlight: bloquea todo salvo el hueco
         SetCard(badge, title, body, requiresAction, optional);
         NextBtn.Content = Loc.Pick("Siguiente", "Next");
         Visibility = Visibility.Visible;
         Reposition();
-        DispatcherQueue?.TryEnqueue(Reposition);   // reintento tras el layout (objetivo recién creado)
+        StartSettle();   // recoloca durante la animación de apertura / medición tardía del objetivo
     }
 
     public void Hide()
     {
         Visibility = Visibility.Collapsed;
-        _target = null;
+        _settle?.Stop();
+        SetTarget(null);
     }
+
+    /// <summary>Reposiciona repetidamente ~700ms (cada 50ms) tras abrir un spotlight, luego para.</summary>
+    private void StartSettle()
+    {
+        _settleTicks = 0;
+        _settle ??= CreateSettleTimer();
+        _settle.Start();
+    }
+
+    private DispatcherTimer CreateSettleTimer()
+    {
+        var t = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+        t.Tick += (_, _) =>
+        {
+            Reposition();
+            if (++_settleTicks >= 14) t.Stop();
+        };
+        return t;
+    }
+
+    /// <summary>
+    /// Cambia el objetivo y se suscribe a SU SizeChanged (puntual): cuando el control recién creado se
+    /// MIDE (0 → tamaño real), recalcula el recorte UNA vez. Se evita LayoutUpdated global (se disparaba
+    /// durante el baile de layout de un ComboBox y, con valores transitorios NaN, crasheaba XAML #crash).
+    /// </summary>
+    private void SetTarget(FrameworkElement? t)
+    {
+        if (ReferenceEquals(_target, t)) return;
+        if (_target is not null) _target.SizeChanged -= OnTargetSizeChanged;
+        _target = t;
+        if (_target is not null) _target.SizeChanged += OnTargetSizeChanged;
+    }
+
+    private void OnTargetSizeChanged(object sender, SizeChangedEventArgs e) => Reposition();
 
     private void SetCard(string badge, string title, string body, bool requiresAction, bool optional)
     {
@@ -122,6 +166,11 @@ public sealed partial class TutorialOverlay : UserControl
         if (hx + hw > w) hw = w - hx;
         if (hy + hh > h) hh = h - hy;
 
+        // Blindaje: en estados de layout transitorios (p. ej. abrir un ComboBox) TransformToVisual puede
+        // devolver NaN/∞; asignar eso a XAML lanza E_INVALIDARG y CRASHEA. Si no es finito, no tocar nada.
+        if (!double.IsFinite(hx) || !double.IsFinite(hy) || !double.IsFinite(hw) || !double.IsFinite(hh))
+            return;
+
         ApplyHole(hx, hy, hw, hh, w, h);
     }
 
@@ -134,6 +183,7 @@ public sealed partial class TutorialOverlay : UserControl
         Place(BandBottom, 0, 0, 0, 0);
         Place(BandLeft, 0, 0, 0, 0);
         Place(BandRight, 0, 0, 0, 0);
+        SetBandsHitTest(_blockInput);   // pasos gated: dim decorativo (no traga clics) → deja pulsar el botón real
         Ring.Visibility = Visibility.Collapsed;
         Card.VerticalAlignment = VerticalAlignment.Center;
     }
@@ -148,12 +198,13 @@ public sealed partial class TutorialOverlay : UserControl
         Place(BandBottom, 0, hy + hh, w, h - (hy + hh));
         Place(BandLeft, 0, hy, hx, hh);
         Place(BandRight, hx + hw, hy, w - (hx + hw), hh);
+        SetBandsHitTest(true);   // alrededor del hueco siempre se bloquea (forzar el control resaltado)
 
         Ring.Visibility = Visibility.Visible;
         Canvas.SetLeft(Ring, hx);
         Canvas.SetTop(Ring, hy);
-        Ring.Width = hw;
-        Ring.Height = hh;
+        Ring.Width = Math.Max(0, hw);
+        Ring.Height = Math.Max(0, hh);
 
         // Tarjeta en la mitad opuesta al hueco para no taparlo.
         Card.VerticalAlignment = (hy + hh / 2 < h / 2) ? VerticalAlignment.Bottom : VerticalAlignment.Top;
@@ -163,10 +214,22 @@ public sealed partial class TutorialOverlay : UserControl
 
     private static void Place(Rectangle r, double left, double top, double width, double height)
     {
+        // Nunca asignar NaN/∞ a XAML (E_INVALIDARG → crash). Si algún valor no es finito, no tocar.
+        if (!double.IsFinite(left) || !double.IsFinite(top) || !double.IsFinite(width) || !double.IsFinite(height))
+            return;
         Canvas.SetLeft(r, left);
         Canvas.SetTop(r, top);
         r.Width = Math.Max(0, width);
         r.Height = Math.Max(0, height);
+    }
+
+    /// <summary>¿Las bandas oscuras tragan los clics? (false = dim decorativo que deja pasar el clic).</summary>
+    private void SetBandsHitTest(bool v)
+    {
+        BandTop.IsHitTestVisible = v;
+        BandBottom.IsHitTestVisible = v;
+        BandLeft.IsHitTestVisible = v;
+        BandRight.IsHitTestVisible = v;
     }
 
     private void NextBtn_Click(object sender, RoutedEventArgs e) => Next?.Invoke(this, EventArgs.Empty);

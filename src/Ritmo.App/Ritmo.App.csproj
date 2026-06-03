@@ -95,7 +95,10 @@
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <!-- NUNCA trimmed: SettingsJson usa serialización por reflexión (incompatible con trimming →
+         crash "Reflection-based serialization disabled" al cargar settings.json). El CI ya pasaba
+         -p:PublishTrimmed=false, así que la app publicada nunca fue trimmed; aquí se hace explícito
+         para que los builds locales de Release tampoco crasheen. #crash -->
+    <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
 </Project>

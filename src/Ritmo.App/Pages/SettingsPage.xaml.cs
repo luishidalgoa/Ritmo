@@ -684,6 +684,9 @@ public sealed partial class SettingsPage : Page
 
     // ---------- Fases del plan (#46) ----------
 
+    /// <summary>#tutorial: botón «Nueva fase» para el recorte del tutorial.</summary>
+    internal Microsoft.UI.Xaml.Controls.Button TutorialAddPhaseButton => AddPhaseBtn;
+
     private void BuildPhases()
     {
         var s = AppState.Load();

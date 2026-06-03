@@ -212,6 +212,20 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — Release v1.2.5
+
+- **Fix CRASH al abrir un desplegable durante el tutorial (#crash #tutorial).** El overlay recalculaba
+  el recorte en cada `LayoutUpdated`; al abrir un ComboBox, un estado transitorio de layout daba
+  coordenadas NaN que, asignadas a XAML, lanzaban E_INVALIDARG y tiraban la app. Se quita `LayoutUpdated`
+  (ahora `SizeChanged` del objetivo + un timer breve) y se blindan todos los valores (nunca NaN/∞ a XAML).
+- **Fix: el recorte no aparecía sobre «Nuevo entorno».** El panel lateral se abre con animación (el botón
+  cambia de POSICIÓN, no de tamaño); un timer reposiciona ~700 ms tras abrir el spotlight hasta estabilizar.
+- **Fix: el build LOCAL de Release crasheaba al cargar settings** («Reflection-based serialization
+  disabled»): el csproj ponía `PublishTrimmed=true` en Release (el CI lo anulaba, así que la app publicada
+  nunca fue trimmed); ahora explícito a `false`, así los builds locales tampoco crashean.
+- **Red de seguridad:** handler global de excepciones de UI que apunta el stack a
+  `%USERPROFILE%\.ritmo\crash.log` y evita el cierre brusco.
+
 ### 2026-06-03 — Release v1.2.4
 
 - **Fix tutorial: el recorte (spotlight) no aparecía sobre «Nuevo entorno».** El paso dibujaba el

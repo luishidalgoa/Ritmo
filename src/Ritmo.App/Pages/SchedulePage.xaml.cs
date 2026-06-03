@@ -1592,6 +1592,9 @@ public sealed partial class SchedulePage : Page
 
     private void AddBtn_Click(object sender, RoutedEventArgs e) => _ = ShowAddDialog();
 
+    /// <summary>#tutorial: botón «Añadir sesión» para el recorte del tutorial.</summary>
+    internal Microsoft.UI.Xaml.Controls.Button TutorialAddSessionButton => AddBtn;
+
     private void TaskBehaviorBtn_Click(object sender, RoutedEventArgs e) => ShowTaskBehaviorList();
 
     private async Task ShowAddDialog(DayOfWeek? day = null, TimeOnly? start = null)

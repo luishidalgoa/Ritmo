@@ -21,6 +21,25 @@ public partial class App : Application
     {
         ApplyLanguageOverride();   // idioma elegido (#48), ANTES de cargar la UI
         InitializeComponent();
+        UnhandledException += OnUnhandledException;   // #crash: loguear el stack real
+    }
+
+    /// <summary>
+    /// Red de seguridad: cualquier excepción no controlada de la UI se APUNTA a
+    /// %USERPROFILE%\.ritmo\crash.log (con stack) y se marca como tratada para que la app no se
+    /// caiga de golpe. Diagnóstico + robustez para una app que vive en segundo plano. #crash
+    /// </summary>
+    private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+    {
+        try
+        {
+            var path = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ritmo", "crash.log");
+            System.IO.File.AppendAllText(path,
+                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}  {e.Message}{Environment.NewLine}{e.Exception}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch { /* best-effort */ }
+        e.Handled = true;   // sobrevivir (no fail-fast)
     }
 
     /// <summary>Aplica el idioma elegido (#48 i18n) al sistema de recursos antes de crear la UI.</summary>
