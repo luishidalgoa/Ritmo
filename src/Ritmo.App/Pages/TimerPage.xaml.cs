@@ -41,6 +41,7 @@ public sealed partial class TimerPage : Page
 
     // Isla flotante de concentración (#118).
     private FocusOverlayWindow? _overlay;
+    private IslandNotesWindow? _notesWindow;   // notas superpuestas a la isla (#153b)
     private bool _compact;
     private bool _wasBreak;   // para avisar (chime) al cambiar entre concentración y descanso (#descansos)
 
@@ -54,7 +55,7 @@ public sealed partial class TimerPage : Page
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        Unloaded += (_, _) => { _ticker?.Stop(); _focus.Exit(); TaskbarSilencer.Restore(); _overlay?.Close(); _overlay = null; };
+        Unloaded += (_, _) => { _ticker?.Stop(); _focus.Exit(); TaskbarSilencer.Restore(); CloseNotesWindow(); _overlay?.Close(); _overlay = null; };
     }
 
     private bool _loadingEnv;
@@ -388,7 +389,7 @@ public sealed partial class TimerPage : Page
             };
             _overlay.SkipRequested += () => SkipBtn_Click(this, new RoutedEventArgs());
             _overlay.NotesRequested += OpenNotesFromIsland;   // #153
-            _overlay.Closed += (_, _) => { _overlay = null; _compact = false; };
+            _overlay.Closed += (_, _) => { _overlay = null; _compact = false; CloseNotesWindow(); };
         }
         _compact = true;
         _overlay.Activate();
@@ -400,6 +401,7 @@ public sealed partial class TimerPage : Page
     private void ExitCompact()
     {
         _compact = false;
+        CloseNotesWindow();   // al volver a la app, cierra las notas superpuestas de la isla (#153b)
         if (_overlay is not null) { var o = _overlay; _overlay = null; o.Close(); }
         var main = MainWindow.Current;
         if (main is not null)
@@ -411,16 +413,21 @@ public sealed partial class TimerPage : Page
 
     private void CompactBtn_Click(object sender, RoutedEventArgs e) => EnterCompact();
 
-    /// <summary>Desde la isla: restaura la app y abre el desplegable de notas de la sesión activa (#153).</summary>
+    /// <summary>
+    /// Desde la isla: abre una ventana-modal superpuesta para escribir notas SIN salir del foco (#153b).
+    /// Las notas se asocian a la sesión activa; si no hay sesión, son generales. La isla se mantiene.
+    /// </summary>
     private void OpenNotesFromIsland()
     {
-        ExitCompact();
-        BuildNotes();
-        if (NotesExpander.Visibility == Visibility.Visible)
-        {
-            NotesExpander.IsExpanded = true;
-            NotesExpander.StartBringIntoView();
-        }
+        if (_notesWindow is not null) { _notesWindow.Activate(); return; }
+        _notesWindow = new IslandNotesWindow(_activeSessionTitle, _activeCategoryId);
+        _notesWindow.Closed += (_, _) => _notesWindow = null;
+        _notesWindow.Activate();
+    }
+
+    private void CloseNotesWindow()
+    {
+        if (_notesWindow is not null) { var w = _notesWindow; _notesWindow = null; w.Close(); }
     }
 
     /// <summary>
