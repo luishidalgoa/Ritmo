@@ -103,7 +103,8 @@ jobs:
           <AppInstaller xmlns="http://schemas.microsoft.com/appx/appinstaller/2018" Version="$version" Uri="$base/Ritmo.appinstaller">
             <MainPackage Name="$name" Publisher="$pub" Version="$version" ProcessorArchitecture="x64" Uri="$base/Ritmo-x64.msix" />
             <UpdateSettings>
-              <OnLaunch HoursBetweenUpdateChecks="0" />
+              <OnLaunch HoursBetweenUpdateChecks="8" />
+              <AutomaticBackgroundTask />
             </UpdateSettings>
           </AppInstaller>
           "@
@@ -180,9 +181,11 @@ jobs:
             **componentes y el canal de auto-actualización**; no hace falta descargarlos a mano. Si dudas, usa la **Opción 1**.
           # RitmoSetup.exe puede faltar si el paso anterior falló (continue-on-error);
           # action-gh-release omite los ficheros que no existen con un aviso, sin fallar.
+          # El .cer NO se sube suelto: va dentro de Ritmo-MSIX.zip (redundante fuera).
+          # Ritmo-x64.msix y Ritmo.appinstaller SÍ van sueltos: son el canal de auto-update
+          # (el .appinstaller referencia su URL en releases/latest; sin ellos no hay updates).
           files: |
             release/RitmoSetup.exe
             release/Ritmo-MSIX.zip
             release/Ritmo-x64.msix
             release/Ritmo.appinstaller
-            release/Ritmo-signing.cer
