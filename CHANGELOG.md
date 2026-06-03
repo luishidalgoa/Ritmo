@@ -212,6 +212,11 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-03 — Release v1.2.3 (prueba de auto-update)
+
+- **Release de prueba** para verificar el auto-update silencioso (1.2.1/1.2.2) de 1.2.2 → 1.2.3: mismo
+  código, solo bump de versión + una diapositiva de «Novedades» como prueba visible. Sin cambios de app.
+
 ### 2026-06-03 — Release v1.2.2
 
 - **El botón «Instalar ahora» reinicia la app ya actualizada (#updates).** Completa el self-update de
