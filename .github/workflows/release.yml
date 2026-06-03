@@ -110,6 +110,28 @@ jobs:
           # Quitar la indentación del here-string para que el XML sea válido.
           ($xml -split "`n" | ForEach-Object { $_.TrimStart() }) -join "`n" | Set-Content -Path (Join-Path $out "Ritmo.appinstaller") -Encoding utf8
 
+      - name: Construir instalador .exe (Inno Setup)
+        # Aditivo y NO bloqueante: si falla, la release del MSIX/.appinstaller sale igual.
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $version = "${{ steps.ver.outputs.version }}"
+          $src = Join-Path $env:GITHUB_WORKSPACE "tools\installer"
+          $rel = Join-Path $env:GITHUB_WORKSPACE "release"
+          # Los 3 ficheros que empaqueta el .iss, junto a él.
+          Copy-Item (Join-Path $rel "Ritmo-x64.msix") (Join-Path $src "Ritmo-x64.msix") -Force
+          Copy-Item (Join-Path $rel "Ritmo-signing.cer") (Join-Path $src "Ritmo-signing.cer") -Force
+          # Runtime que pide el MSIX (Microsoft.WindowsAppRuntime.2 >= 2.1.3).
+          Invoke-WebRequest "https://aka.ms/windowsappsdk/2.1/2.1.3/windowsappruntimeinstall-x64.exe" `
+            -OutFile (Join-Path $src "WindowsAppRuntimeInstall-x64.exe")
+          # Inno Setup (preinstalado en windows-latest vía choco).
+          choco install innosetup -y --no-progress
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          & $iscc "/DMyAppVersion=$version" "/O$rel" (Join-Path $src "Ritmo.iss")
+          if ($LASTEXITCODE -ne 0) { throw "ISCC falló ($LASTEXITCODE)" }
+          if (-not (Test-Path (Join-Path $rel "RitmoSetup.exe"))) { throw "No se generó RitmoSetup.exe" }
+          Write-Host "RitmoSetup.exe generado."
+
       - name: Crear la GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -118,7 +140,10 @@ jobs:
           tag_name: ${{ github.event_name == 'push' && github.ref_name || format('v{0}', steps.ver.outputs.version) }}
           name: Ritmo v${{ steps.ver.outputs.version }}
           generate_release_notes: true
+          # RitmoSetup.exe puede faltar si el paso anterior falló (continue-on-error);
+          # action-gh-release omite los ficheros que no existen con un aviso, sin fallar.
           files: |
             release/Ritmo-x64.msix
             release/Ritmo.appinstaller
             release/Ritmo-signing.cer
+            release/RitmoSetup.exe

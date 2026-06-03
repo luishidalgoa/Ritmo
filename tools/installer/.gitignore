@@ -1,0 +1,6 @@
+# Artefactos que el CI copia/genera junto al .iss para compilar el instalador.
+Ritmo-x64.msix
+Ritmo-signing.cer
+WindowsAppRuntimeInstall-x64.exe
+RitmoSetup.exe
+Output/

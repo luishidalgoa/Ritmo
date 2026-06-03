@@ -1,12 +1,24 @@
 # Instalar Ritmo
 
-Ritmo se distribuye como paquete **MSIX** firmado con un **certificado auto-firmado**
-(gratuito). Windows no confía en ese certificado por defecto, así que en un equipo
-nuevo verás el error **0x800B010A** («No se pudo comprobar el certificado de
-publicador…») y el botón **Instalar** aparece deshabilitado.
+Ritmo se firma con un **certificado auto-firmado** (gratuito), en el que Windows no confía
+por defecto. Hay dos formas de instalar:
 
-Solución: **confiar una vez en el certificado público** y luego instalar. Solo hay que
-hacerlo la primera vez; las auto-actualizaciones posteriores ya funcionan solas.
+## Opción A — `RitmoSetup.exe` (la más fácil)
+
+Descarga **`RitmoSetup.exe`** de la [última release](https://github.com/luishidalgoa/Ritmo/releases/latest)
+y ejecútalo. De un doble clic: confía en el certificado, instala el runtime necesario y
+registra la app.
+
+> ⚠️ Como el propio `RitmoSetup.exe` **no va firmado**, Windows SmartScreen mostrará
+> *«Windows protegió tu PC… editor desconocido»*. Pulsa **Más información → Ejecutar de
+> todas formas**. (Para quitar TODOS los avisos haría falta publicar en la **Microsoft
+> Store** o firmar con **Azure Trusted Signing** — ver final del documento.)
+
+## Opción B — MSIX a mano
+
+Si prefieres el paquete MSIX directamente, en un equipo nuevo verás el error **0x800B010A**
+(«No se pudo comprobar el certificado de publicador…») y el botón **Instalar**
+deshabilitado. Hay que **confiar una vez en el certificado** y luego instalar.
 
 ## 1. Descarga los ficheros de la última versión
 
