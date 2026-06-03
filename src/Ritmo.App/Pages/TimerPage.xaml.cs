@@ -389,7 +389,9 @@ public sealed partial class TimerPage : Page
             };
             _overlay.SkipRequested += () => SkipBtn_Click(this, new RoutedEventArgs());
             _overlay.NotesRequested += OpenNotesFromIsland;   // #153
-            _overlay.Closed += (_, _) => { _overlay = null; _compact = false; CloseNotesWindow(); };
+            // Guarda de identidad: si recreamos la isla (al moverla al escritorio Ritmo), el Closed de
+            // la antigua NO debe tocar el estado de la nueva (#110c).
+            _overlay.Closed += (s, _) => { if (!ReferenceEquals(s, _overlay)) return; _overlay = null; _compact = false; CloseNotesWindow(); };
         }
         _compact = true;
         _overlay.Activate();
@@ -428,6 +430,21 @@ public sealed partial class TimerPage : Page
     private void CloseNotesWindow()
     {
         if (_notesWindow is not null) { var w = _notesWindow; _notesWindow = null; w.Close(); }
+    }
+
+    /// <summary>
+    /// Lleva la isla al escritorio «Ritmo» (#110c). La isla es una ventana especial (fuera del Alt+Tab)
+    /// que la API de mover ventanas entre escritorios NO traslada; como las ventanas nuevas nacen en el
+    /// escritorio ACTUAL, la recreamos estando ya en «Ritmo» para que aparezca ahí, junto al workspace.
+    /// </summary>
+    private void MoveIslandToRitmoDesktop()
+    {
+        if (_overlay is null || !_compact) return;
+        if (!VirtualDesktops.OnRitmoDesktop()) return;   // el cambio de escritorio no cuajó: no recrear en el viejo
+        var old = _overlay;
+        _overlay = null;                 // el Closed de 'old' queda neutralizado por la guarda de identidad
+        try { old.Close(); } catch { }
+        EnterCompact();                  // crea la isla nueva en el escritorio actual (Ritmo)
     }
 
     /// <summary>
@@ -476,6 +493,7 @@ public sealed partial class TimerPage : Page
                         {
                             _ritmoReturnTo = VirtualDesktops.EnterRitmoDesktop();
                             System.Threading.Thread.Sleep(WorkspaceLaunchDelayMs);
+                            DispatcherQueue.TryEnqueue(MoveIslandToRitmoDesktop);   // la isla viaja al escritorio Ritmo (#110c)
                             LaunchWorkspace();
                         });
                     else

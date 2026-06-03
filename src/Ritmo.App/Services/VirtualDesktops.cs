@@ -94,6 +94,19 @@ public static class VirtualDesktops
         catch { }
     }
 
+    /// <summary>¿Hay un escritorio «Ritmo» activo ahora mismo? (para decidir si recrear la isla ahí).</summary>
+    public static bool OnRitmoDesktop()
+    {
+        try
+        {
+            var current = GetCurrentId();
+            if (current is not Guid c) return false;
+            if (string.Equals(GetName(c), RitmoName, StringComparison.OrdinalIgnoreCase)) return true;
+            return LoadSavedId() is Guid saved && saved == c;
+        }
+        catch { return false; }
+    }
+
     /// <summary>Cambia al escritorio indicado moviéndose por índice con Win+Ctrl+←/→.</summary>
     private static void SwitchTo(Guid target, List<Guid> ids, Guid current)
     {
