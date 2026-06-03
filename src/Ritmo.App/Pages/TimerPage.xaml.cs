@@ -29,7 +29,7 @@ public sealed partial class TimerPage : Page
     private readonly IFocusController _focus = new WindowsFocusController();
     private DispatcherQueueTimer? _ticker;
     private bool _environmentApplied;
-    private bool _createdDesktop;   // #110: creamos un escritorio virtual esta sesión
+    private Guid? _ritmoReturnTo;   // #110b: escritorio al que volver tras la concentración (el «Ritmo» se reutiliza)
     // Espera tras crear el escritorio virtual antes de lanzar apps/navegador, para que el cambio
     // de escritorio (asíncrono) se complete y se abran EN el escritorio nuevo (#141).
     private const int WorkspaceLaunchDelayMs = 700;
@@ -457,21 +457,20 @@ public sealed partial class TimerPage : Page
                         if (!musicInNewWindow) MusicService.TryLaunch(env.Music);   // app/URI o sin ventana nueva
                     }
 
-                    if (env.NewVirtualDesktop)                   // escritorio virtual limpio PRIMERO (#110)
-                    {
-                        VirtualDesktops.CreateAndSwitch();
-                        _createdDesktop = true;
-                    }
                     AppCloser.CloseAll(env.AppsToClose);         // cerrar apps de ruido (#35)
                     AppMuter.Mute(env.AppsToMute);               // silenciar apps de ruido (#9)
                     if (env.HideTaskbarBadges && MainWindow.Current is not null)   // sin parpadeos/badge (#31)
                         TaskbarSilencer.Suppress(WinRT.Interop.WindowNative.GetWindowHandle(MainWindow.Current));
 
                     if (env.NewVirtualDesktop)
-                        // El cambio de escritorio (SendInput Win+Ctrl+D) es ASÍNCRONO a nivel del SO:
-                        // si lanzáramos las apps/navegador ya, se abrirían en el escritorio viejo (#141).
-                        // Esperamos a que el escritorio nuevo esté activo (fuera de la UI, best-effort).
-                        _ = System.Threading.Tasks.Task.Delay(WorkspaceLaunchDelayMs).ContinueWith(_ => LaunchWorkspace());
+                        // Escritorio «Ritmo» reutilizable (#110b): crear/cambiar fuera de la UI (lleva pequeñas
+                        // esperas de registro/animación) y abrir las apps EN él tras dejar que el SO cuaje (#141).
+                        _ = System.Threading.Tasks.Task.Run(() =>
+                        {
+                            _ritmoReturnTo = VirtualDesktops.EnterRitmoDesktop();
+                            System.Threading.Thread.Sleep(WorkspaceLaunchDelayMs);
+                            LaunchWorkspace();
+                        });
                     else
                         LaunchWorkspace();                       // sin escritorio nuevo: abrir ya, en el actual
                 }
@@ -487,7 +486,11 @@ public sealed partial class TimerPage : Page
             _environmentApplied = false;   // reset al parar
             AppMuter.RestoreAll();         // restaurar el audio de las apps silenciadas (#9)
             TaskbarSilencer.Restore();     // volver a permitir parpadeos/badge (#31)
-            if (_createdDesktop) { VirtualDesktops.CloseCurrent(); _createdDesktop = false; }   // cerrar el escritorio de concentración
+            if (_ritmoReturnTo is Guid back)   // volver al escritorio de origen; el «Ritmo» se conserva para reutilizar (#110b)
+            {
+                _ritmoReturnTo = null;
+                System.Threading.Tasks.Task.Run(() => VirtualDesktops.LeaveRitmoDesktop(back));
+            }
         }
         // Bloqueo blando de webs distractoras mientras dura la concentración (#8/#33): minimiza
         // las ventanas de navegador cuya pestaña activa esté en una web bloqueada del entorno.
