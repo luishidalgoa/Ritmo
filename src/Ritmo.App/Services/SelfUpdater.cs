@@ -24,8 +24,11 @@ internal static class SelfUpdater
     // Nombre ESTABLE del .msix en cada release (el workflow lo publica así).
     private const string MsixUrl = "https://github.com/luishidalgoa/Ritmo/releases/latest/download/Ritmo-x64.msix";
 
+    // OJO: %USERPROFILE%\.ritmo (NO %LOCALAPPDATA%): en MSIX, %LOCALAPPDATA% se VIRTUALIZA al LocalCache
+    // del paquete, así que el script externo (sin empaquetar) no vería el .msix en la ruta real. .ritmo
+    // no sufre esa redirección — lo ven igual la app y el script. #updates
     private static string UpdateDir => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ritmo", "update");
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ritmo", "update");
 
     /// <summary>Ruta de un .msix YA descargado más nuevo que la versión actual (pendiente de aplicar), o null.</summary>
     public static string? PendingUpdate()

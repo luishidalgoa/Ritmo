@@ -212,6 +212,14 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-04 — Release v1.2.9
+
+- **Fix del auto-update Discord (#updates): la descarga iba a una ruta VIRTUALIZADA.** El `.msix` se
+  bajaba a `%LOCALAPPDATA%`, que en MSIX se redirige al LocalCache del paquete → el script externo (sin
+  empaquetar) no lo encontraba en la ruta real. Ahora se descarga en `%USERPROFILE%\.ritmo\update` (no
+  virtualizado, lo ven igual app y script). Con esto el flujo completo (descarga → cierra → instala →
+  reabre) funciona firmado→firmado, sin admin. Verificado pieza a pieza.
+
 ### 2026-06-04 — Release v1.2.7 «Auto-update que funciona»
 
 - **Auto-update estilo Discord (#updates).** Se abandona la vía MSIX nativa, que estaba rota por dos
