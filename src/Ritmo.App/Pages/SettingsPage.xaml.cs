@@ -1298,9 +1298,9 @@ public sealed partial class SettingsPage : Page
     }
 
     /// <summary>
-    /// Actualiza la app en SILENCIO (sin App Installer ni más botones): la prepara en segundo plano y
-    /// Windows la aplica al reabrir Ritmo. Si la vía silenciosa falla, cae al método clásico (abrir el
-    /// .appinstaller con App Installer) como respaldo.
+    /// Actualiza estilo Discord: descarga el .msix nuevo y lo aplica con un script externo que cierra
+    /// Ritmo, instala (per-user, sin admin) y la reabre ya actualizada. Sin App Installer ni el
+    /// protocolo ms-appinstaller (deshabilitado por Microsoft).
     /// </summary>
     private async void InstallUpdateBtn_Click(object sender, RoutedEventArgs e)
     {
@@ -1309,22 +1309,15 @@ public sealed partial class SettingsPage : Page
         UpdateStatus.Text = L("Descargando la actualización…", "Downloading the update…");
         try
         {
-            if (await Services.SelfUpdater.TryUpdateAsync())
+            var path = Services.SelfUpdater.PendingUpdate() ?? await Services.SelfUpdater.DownloadIfNewerAsync();
+            if (path is not null)
             {
-                // Reinicio interno: la app se cierra y vuelve a abrir YA actualizada (sin App Installer).
-                UpdateStatus.Text = L("✓ Lista. Reiniciando Ritmo ya actualizado…",
-                                      "✓ Ready. Restarting Ritmo already updated…");
-                await System.Threading.Tasks.Task.Delay(900);
-                Microsoft.Windows.AppLifecycle.AppInstance.Restart("");
-                return;   // Restart no retorna
+                UpdateStatus.Text = L("✓ Reiniciando Ritmo ya actualizado…", "✓ Restarting Ritmo already updated…");
+                await System.Threading.Tasks.Task.Delay(700);
+                Services.SelfUpdater.ApplyAndRestart(path);   // la app se cierra y vuelve ya actualizada
+                return;
             }
-            // Respaldo (la vía silenciosa falló): abrir App Installer SIN descargar un fichero al
-            // navegador, vía el protocolo ms-appinstaller. Si no hay appinstaller, abrir la página.
-            UpdateStatus.Text = L("Abriendo el instalador…", "Opening the installer…");
-            var target = !string.IsNullOrWhiteSpace(_pendingUpdate.AppInstallerUrl)
-                ? new Uri("ms-appinstaller:?source=" + Uri.EscapeDataString(_pendingUpdate.AppInstallerUrl!))
-                : new Uri(_pendingUpdate.Url);
-            await Windows.System.Launcher.LaunchUriAsync(target);
+            UpdateStatus.Text = L("⚠ No se pudo descargar la actualización.", "⚠ Couldn't download the update.");
         }
         catch { UpdateStatus.Text = L("⚠ No se pudo actualizar.", "⚠ Couldn't update."); }
         finally { InstallUpdateBtn.IsEnabled = true; }

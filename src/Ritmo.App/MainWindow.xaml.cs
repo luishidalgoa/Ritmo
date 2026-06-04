@@ -107,9 +107,25 @@ public sealed partial class MainWindow : Window
             System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".ritmo", "tutorial.flag")))
             _ = RunTutorial(firstRun: false);
 
-        // Auto-update SILENCIOSO en segundo plano (#updates): si hay una versión nueva publicada, la app
-        // se actualiza sola (se aplica al reabrir). Best-effort; no bloquea el arranque ni pide botón.
-        _ = Services.SelfUpdater.TryUpdateAsync();
+        // Auto-update estilo Discord (#updates): si hay una update YA descargada de un arranque anterior,
+        // se aplica ahora (cierra+instala+reabre); si no, se descarga en segundo plano para el próximo
+        // arranque. Best-effort, un intento por versión (no bucle), sin App Installer ni protocolos muertos.
+        _ = System.Threading.Tasks.Task.Run(async () =>
+        {
+            var pending = Services.SelfUpdater.PendingUpdate();
+            if (pending is not null)
+            {
+                if (!Services.SelfUpdater.AlreadyTried(pending))
+                {
+                    Services.SelfUpdater.MarkTried(pending);
+                    DispatcherQueue.TryEnqueue(() => Services.SelfUpdater.ApplyAndRestart(pending));
+                }
+            }
+            else
+            {
+                await Services.SelfUpdater.DownloadIfNewerAsync();
+            }
+        });
     }
 
     /// <summary>

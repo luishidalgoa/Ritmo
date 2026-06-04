@@ -212,6 +212,17 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-04 — Release v1.2.7 «Auto-update que funciona»
+
+- **Auto-update estilo Discord (#updates).** Se abandona la vía MSIX nativa, que estaba rota por dos
+  motivos confirmados: (1) el protocolo `ms-appinstaller` está **deshabilitado por Microsoft** (seguridad,
+  desde 2023) → el fallback no abría nada; (2) `PackageManager.AddPackageByAppInstallerFileAsync` fallaba
+  con `0x80073D02` (**paquete EN USO**: la app no puede reemplazarse a sí misma estando abierta). Ahora
+  Ritmo **descarga el `.msix`** nuevo y lo aplica con un script PowerShell externo (`Services/SelfUpdater.cs`)
+  que espera a que la app cierre, hace `Add-AppxPackage` (**per-user, sin admin/UAC**, sin App Installer ni
+  protocolos) y reabre Ritmo ya actualizada. Verificado: actualiza firmado→firmado sin admin. Flujo: al
+  arrancar descarga la versión nueva; al siguiente arranque (o con «Instalar ahora») se aplica y reinicia.
+
 ### 2026-06-03 — Release v1.2.5
 
 - **Fix CRASH al abrir un desplegable durante el tutorial (#crash #tutorial).** El overlay recalculaba
