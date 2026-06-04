@@ -212,6 +212,15 @@ cambios de la IA los ve la app al instante y viceversa. Guía de conexión:
 
 ## Registro de cambios
 
+### 2026-06-04 — Release v1.2.11
+
+- **Al concentrarte, la ventana principal se va a SEGUNDO PLANO** en vez de quedarse colgada en el
+  escritorio anterior (#110c). Antes se minimizaba y permanecía en el escritorio viejo; ahora se oculta
+  (bandeja) y la isla es la única UI del foco. Al **abrir desde la isla** se trae al **escritorio actual**
+  («Ritmo»); al **parar** vuelve al escritorio de **origen** (para no quedar atrapada en el de «Ritmo»).
+  La ventana principal sí es movible por `IVirtualDesktopManager` (la isla no lo era, por eso se recrea).
+  Best-effort.
+
 ### 2026-06-04 — Release v1.2.9
 
 - **Fix del auto-update Discord (#updates): la descarga iba a una ruta VIRTUALIZADA.** El `.msix` se

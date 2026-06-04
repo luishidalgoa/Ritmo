@@ -302,7 +302,7 @@ public sealed partial class TimerPage : Page
     {
         _engine.Reset();
         _ticker?.Stop();
-        if (_compact) ExitCompact();   // al parar, vuelve a la app y cierra la isla (#118)
+        if (_compact) ExitCompact(_ritmoReturnTo);   // al parar, vuelve a la app (al escritorio de ORIGEN) y cierra la isla (#118/#110c)
         Refresh();
     }
 
@@ -381,7 +381,7 @@ public sealed partial class TimerPage : Page
         if (_overlay is null)
         {
             _overlay = new FocusOverlayWindow();
-            _overlay.ExpandRequested += ExitCompact;
+            _overlay.ExpandRequested += () => ExitCompact();   // abrir desde la isla → al escritorio ACTUAL (Ritmo)
             _overlay.PauseResumeRequested += () =>
             {
                 if (_engine.IsRunning) PauseBtn_Click(this, new RoutedEventArgs());
@@ -395,12 +395,18 @@ public sealed partial class TimerPage : Page
         }
         _compact = true;
         _overlay.Activate();
-        (MainWindow.Current?.AppWindow.Presenter as Microsoft.UI.Windowing.OverlappedPresenter)?.Minimize();
+        // La ventana principal se va a SEGUNDO PLANO (no minimizada en el escritorio viejo): así no queda
+        // colgada en el escritorio anterior; al reabrir desde la isla se trae al escritorio actual. #110c
+        try { MainWindow.Current?.AppWindow.Hide(); } catch { /* best-effort */ }
         Refresh();   // pinta la isla de inmediato
     }
 
-    /// <summary>Cierra la isla y restaura la app a tamaño normal.</summary>
-    private void ExitCompact()
+    /// <summary>
+    /// Cierra la isla y trae la app de vuelta DESDE segundo plano, al escritorio destino: el ACTUAL si
+    /// null (abrir desde la isla → escritorio «Ritmo»), o uno concreto (al parar → el de origen, para que
+    /// no quede atrapada en el de «Ritmo»). Mueve antes de mostrar para que aparezca donde toca. #110c
+    /// </summary>
+    private void ExitCompact(Guid? targetDesktop = null)
     {
         _compact = false;
         CloseNotesWindow();   // al volver a la app, cierra las notas superpuestas de la isla (#153b)
@@ -408,8 +414,9 @@ public sealed partial class TimerPage : Page
         var main = MainWindow.Current;
         if (main is not null)
         {
-            (main.AppWindow.Presenter as Microsoft.UI.Windowing.OverlappedPresenter)?.Restore();
-            main.Activate();
+            try { VirtualDesktops.MoveWindowToDesktop(WinRT.Interop.WindowNative.GetWindowHandle(main), targetDesktop); }
+            catch { /* best-effort */ }
+            main.ShowFromBackground();   // reaparece desde segundo plano (Show + Activate)
         }
     }
 

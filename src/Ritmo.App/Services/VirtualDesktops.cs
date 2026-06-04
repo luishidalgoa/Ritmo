@@ -107,6 +107,35 @@ public static class VirtualDesktops
         catch { return false; }
     }
 
+    /// <summary>
+    /// Mueve una ventana NORMAL (en el Alt+Tab) al escritorio indicado, o al ACTUAL si null. Best-effort.
+    /// La ventana principal de Ritmo SÍ es movible por esta API documentada (a diferencia de la isla, que
+    /// está fuera del Alt+Tab y la API rechaza). #110c — para que al abrir desde la isla aparezca aquí.
+    /// </summary>
+    public static void MoveWindowToDesktop(IntPtr hwnd, Guid? desktopId = null)
+    {
+        try
+        {
+            if (hwnd == IntPtr.Zero) return;
+            var target = desktopId ?? GetCurrentId();
+            if (target is not Guid g || g == Guid.Empty) return;
+            var type = Type.GetTypeFromCLSID(new Guid("aa509086-5ca9-4c25-8f95-589d3c07b48a"));   // VirtualDesktopManager
+            if (type is null) return;
+            if (Activator.CreateInstance(type) is not IVirtualDesktopManager mgr) return;
+            var gg = g;
+            mgr.MoveWindowToDesktop(hwnd, ref gg);
+        }
+        catch { /* best-effort: si la API cambia/falla, la ventana se muestra donde estaba */ }
+    }
+
+    [ComImport, Guid("a5cd92ff-29be-454c-8d04-d82879fb3f1b"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IVirtualDesktopManager
+    {
+        [PreserveSig] int IsWindowOnCurrentVirtualDesktop(IntPtr topLevelWindow, out int onCurrentDesktop);
+        [PreserveSig] int GetWindowDesktopId(IntPtr topLevelWindow, out Guid desktopId);
+        [PreserveSig] int MoveWindowToDesktop(IntPtr topLevelWindow, ref Guid desktopId);
+    }
+
     /// <summary>Cambia al escritorio indicado moviéndose por índice con Win+Ctrl+←/→.</summary>
     private static void SwitchTo(Guid target, List<Guid> ids, Guid current)
     {
